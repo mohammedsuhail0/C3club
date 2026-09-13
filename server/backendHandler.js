@@ -103,6 +103,15 @@ export function handleApiRequest(req, res, next) {
 
   // Parse JSON body for POST requests
   if (req.method === 'POST') {
+    if (req.body && typeof req.body === 'object') {
+      return routeApi(req.method, pathname, url, req.body, req, res);
+    }
+    if (req.body && typeof req.body === 'string') {
+      try {
+        const parsed = JSON.parse(req.body);
+        return routeApi(req.method, pathname, url, parsed, req, res);
+      } catch (e) {}
+    }
     let body = '';
     req.on('data', chunk => {
       body += chunk.toString();
