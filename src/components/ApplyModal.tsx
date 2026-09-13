@@ -23,6 +23,9 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({ isOpen, onClose }) => {
   const [email, setEmail] = useState('');
   const [branch, setBranch] = useState('CSE');
   const [year, setYear] = useState('3rd Year');
+  const [roleMode, setRoleMode] = useState<'dropdown' | 'custom'>('dropdown');
+  const [rolePreset, setRolePreset] = useState('Technical & AI Architect');
+  const [customRole, setCustomRole] = useState('');
   const [projectIdea, setProjectIdea] = useState('');
   const [motivation, setMotivation] = useState('');
 
@@ -61,12 +64,15 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({ isOpen, onClose }) => {
     setSubmitting(true);
     setErrorMsg(null);
 
+    const finalRole = roleMode === 'custom' && customRole.trim() ? customRole.trim() : rolePreset;
+
     const res = await submitApplicationApi({
       name: name.trim(),
       phone: phone.trim(),
       email: email.trim(),
       branch,
       year,
+      role: finalRole,
       projectIdea: projectIdea.trim(),
       motivation: motivation.trim()
     });
@@ -239,6 +245,63 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({ isOpen, onClose }) => {
                     <option value="4th Year">4th Year</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Preferred Builder Role (Dropdown or Type Custom) */}
+              <div className="p-3.5 rounded-2xl bg-[#F5F0E6] border border-[#E3DCCF] space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[10px] font-mono uppercase text-[#666055] font-bold">
+                    Preferred Builder Role *
+                  </label>
+                  <div className="flex items-center bg-white p-0.5 rounded-lg border border-[#DDD6C9] text-[10px] font-mono">
+                    <button
+                      type="button"
+                      onClick={() => setRoleMode('dropdown')}
+                      className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                        roleMode === 'dropdown'
+                          ? 'bg-[#CC5A36] text-white font-bold'
+                          : 'text-[#666055] hover:text-[#1F1E1B]'
+                      }`}
+                    >
+                      Dropdown
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRoleMode('custom')}
+                      className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                        roleMode === 'custom'
+                          ? 'bg-[#CC5A36] text-white font-bold'
+                          : 'text-[#666055] hover:text-[#1F1E1B]'
+                      }`}
+                    >
+                      Type Custom
+                    </button>
+                  </div>
+                </div>
+
+                {roleMode === 'dropdown' ? (
+                  <select
+                    value={rolePreset}
+                    onChange={e => setRolePreset(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-[#DDD6C9] font-mono text-xs focus:outline-none focus:border-[#CC5A36]"
+                  >
+                    <option value="Technical & AI Architect">Technical &amp; AI Architect</option>
+                    <option value="Project Founder">Project Founder</option>
+                    <option value="Design & Creative Lead">Design &amp; Creative Lead</option>
+                    <option value="Growth & Community Lead">Growth &amp; Community Lead</option>
+                    <option value="Vibe Coder / Shipper">Vibe Coder / Shipper</option>
+                    <option value="Founding Builder">Founding Builder</option>
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={customRole}
+                    onChange={e => setCustomRole(e.target.value)}
+                    placeholder="e.g. Systems Hacker, Hardware Lead, AI Agent Architect..."
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-[#CC5A36] font-mono text-xs focus:outline-none placeholder-[#8C8275]"
+                    autoFocus
+                  />
+                )}
               </div>
 
               <div>

@@ -57,6 +57,25 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
   const [selectedApplicant, setSelectedApplicant] = useState<MemberRecord | null>(null);
   const [isAdding, setIsAdding] = useState(false);
 
+  // Drawer Builder Role Selection (Two Options: Dropdown vs Type Custom)
+  const [drawerRoleMode, setDrawerRoleMode] = useState<'dropdown' | 'custom'>('dropdown');
+  const [drawerPresetRole, setDrawerPresetRole] = useState<string>('Technical & AI Architect');
+  const [drawerCustomRole, setDrawerCustomRole] = useState<string>('');
+
+  useEffect(() => {
+    if (selectedApplicant) {
+      if (selectedApplicant.customRole && selectedApplicant.customRole.trim()) {
+        setDrawerRoleMode('custom');
+        setDrawerCustomRole(selectedApplicant.customRole);
+        setDrawerPresetRole(selectedApplicant.role || 'Founding Builder');
+      } else {
+        setDrawerRoleMode('dropdown');
+        setDrawerCustomRole('');
+        setDrawerPresetRole(selectedApplicant.role || 'Technical & AI Architect');
+      }
+    }
+  }, [selectedApplicant?.id]);
+
   // Email sending state
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const [emailStatusMsg, setEmailStatusMsg] = useState<{ id: string; text: string; success: boolean } | null>(null);
@@ -278,9 +297,14 @@ See you on Monday!
     window.open(waUrl, '_blank');
   };
 
-  const handleReviewDecision = async (id: string, action: 'accept' | 'reject', role?: string) => {
+  const handleReviewDecision = async (
+    id: string,
+    action: 'accept' | 'reject',
+    role?: string,
+    customRole?: string
+  ) => {
     sounds.playSuccess();
-    const updated = await reviewApplicantApi(id, action, role);
+    const updated = await reviewApplicantApi(id, action, role, customRole);
     if (updated) {
       if (selectedApplicant?.id === id) {
         setSelectedApplicant(updated);
@@ -1476,107 +1500,282 @@ function onFormSubmit(e) {
 
                 {/* Candidate Screening Responses */}
                 <div className="space-y-3.5">
-                  <h4 className="text-xs font-mono uppercase tracking-wider text-[#CC5A36] font-bold">
-                    Candidate Screening Responses
-                  </h4>
-
-                  {/* Built / Designed */}
-                  <div className="p-4 rounded-2xl bg-[#12100C] border border-[#2E2922] space-y-1.5">
-                    <span className="text-[11px] font-mono text-[#8C8275] block font-semibold">
-                      What is one thing you have built, designed, or broken?
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-mono uppercase tracking-wider text-[#CC5A36] font-bold">
+                      Google Form Screening Answers
+                    </h4>
+                    <span className="text-[10px] font-mono text-[#8C8275]">
+                      {selectedApplicant.source === 'google_sheet_sync' ? 'Synced from Google Sheet' : 
+                       selectedApplicant.source === 'google_form' ? 'Ingested via Webhook' : 'Direct Submission'}
                     </span>
-                    <p className="text-xs font-sans text-white leading-relaxed whitespace-pre-wrap">
-                      {selectedApplicant.answers?.built || selectedApplicant.answers?.projectIdea || 'No description provided.'}
-                    </p>
                   </div>
 
-                  {/* AI & Coding Experience */}
-                  {selectedApplicant.answers?.experience && (
-                    <div className="p-4 rounded-2xl bg-[#12100C] border border-[#2E2922] space-y-1.5">
-                      <span className="text-[11px] font-mono text-[#8C8275] block font-semibold">
-                        Experience with AI tools &amp; coding workflows
-                      </span>
-                      <p className="text-xs font-sans text-white leading-relaxed whitespace-pre-wrap">
-                        {selectedApplicant.answers.experience}
-                      </p>
-                    </div>
-                  )}
+                  {/* 1. What is one thing you have built, designed, or broken? */}
+                  {(() => {
+                    const builtAnswer = selectedApplicant.answers?.built || 
+                      selectedApplicant.answers?.projectIdea || 
+                      selectedApplicant.answers?.['What is one thing you have built, designed, or broken?'] || '';
+                    return (
+                      <div className="p-4 rounded-2xl bg-[#12100C] border border-[#2E2922] space-y-1.5">
+                        <span className="text-[11px] font-mono text-[#8C8275] block font-semibold">
+                          What is one thing you have built, designed, or broken?
+                        </span>
+                        <p className="text-xs font-sans text-white leading-relaxed whitespace-pre-wrap">
+                          {builtAnswer || 'No response recorded.'}
+                        </p>
+                      </div>
+                    );
+                  })()}
 
-                  {/* 48-Hour Weekend Shipping Scenario */}
-                  {selectedApplicant.answers?.weekendScenario && (
-                    <div className="p-4 rounded-2xl bg-[#12100C] border border-[#2E2922] space-y-1.5">
-                      <span className="text-[11px] font-mono text-[#8C8275] block font-semibold">
-                        Weekend Shipping Scenario (48 Hours Prototype)
-                      </span>
-                      <p className="text-xs font-sans text-white leading-relaxed whitespace-pre-wrap">
-                        {selectedApplicant.answers.weekendScenario}
-                      </p>
-                    </div>
-                  )}
+                  {/* 2. Experience with AI tools & coding workflows */}
+                  {(() => {
+                    const expAnswer = selectedApplicant.answers?.experience || 
+                      selectedApplicant.answers?.['What is your current experience with AI tools & coding workflows?'] || '';
+                    return expAnswer ? (
+                      <div className="p-4 rounded-2xl bg-[#12100C] border border-[#2E2922] space-y-1.5">
+                        <span className="text-[11px] font-mono text-[#8C8275] block font-semibold">
+                          Experience with AI tools &amp; coding workflows
+                        </span>
+                        <p className="text-xs font-sans text-white leading-relaxed whitespace-pre-wrap">
+                          {expAnswer}
+                        </p>
+                      </div>
+                    ) : null;
+                  })()}
 
-                  {/* Motivation / Why CCC */}
-                  <div className="p-4 rounded-2xl bg-[#12100C] border border-[#2E2922] space-y-1.5">
-                    <span className="text-[11px] font-mono text-[#8C8275] block font-semibold">
-                      Why build CCC instead of joining a conventional club?
-                    </span>
-                    <p className="text-xs font-sans text-white leading-relaxed whitespace-pre-wrap">
-                      {selectedApplicant.answers?.motivation || 'No motivation statement provided.'}
-                    </p>
+                  {/* 3. 48-Hour Weekend Shipping Scenario */}
+                  {(() => {
+                    const weekendAnswer = selectedApplicant.answers?.weekendScenario || 
+                      selectedApplicant.answers?.['Weekend Shipping Scenario: If you had 48 hours to ship an AI prototype with a team of 3, what would you build?'] || '';
+                    return weekendAnswer ? (
+                      <div className="p-4 rounded-2xl bg-[#12100C] border border-[#2E2922] space-y-1.5">
+                        <span className="text-[11px] font-mono text-[#8C8275] block font-semibold">
+                          Weekend Shipping Scenario (48 Hours Prototype with 3 Builders)
+                        </span>
+                        <p className="text-xs font-sans text-white leading-relaxed whitespace-pre-wrap">
+                          {weekendAnswer}
+                        </p>
+                      </div>
+                    ) : null;
+                  })()}
+
+                  {/* 4. Why build CCC instead of joining a conventional club */}
+                  {(() => {
+                    const whyAnswer = selectedApplicant.answers?.motivation || 
+                      selectedApplicant.answers?.['Why do you want to build CCC instead of joining a conventional college club?'] || '';
+                    return (
+                      <div className="p-4 rounded-2xl bg-[#12100C] border border-[#2E2922] space-y-1.5">
+                        <span className="text-[11px] font-mono text-[#8C8275] block font-semibold">
+                          Why build CCC instead of joining a conventional club?
+                        </span>
+                        <p className="text-xs font-sans text-white leading-relaxed whitespace-pre-wrap">
+                          {whyAnswer || 'No response recorded.'}
+                        </p>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 5. Estimated Weekly Commitment */}
+                  {(() => {
+                    const commitAnswer = selectedApplicant.answers?.commitment || 
+                      selectedApplicant.answers?.['Estimated weekly commitment'] || '';
+                    return commitAnswer ? (
+                      <div className="p-3.5 rounded-2xl bg-[#12100C] border border-[#2E2922] flex items-center justify-between">
+                        <span className="text-[11px] font-mono text-[#8C8275] font-semibold">
+                          Estimated Weekly Commitment:
+                        </span>
+                        <span className="text-xs font-mono font-bold text-emerald-400">
+                          {commitAnswer}
+                        </span>
+                      </div>
+                    ) : null;
+                  })()}
+
+                  {/* 6. Links & Portfolio */}
+                  {(() => {
+                    const linksAnswer = selectedApplicant.answers?.links || 
+                      selectedApplicant.answers?.['Links (GitHub, Portfolio, LinkedIn, X, or Projects)'] || '';
+                    if (!linksAnswer) return null;
+                    const parsedLinks = linksAnswer.split(/[\s,]+/).filter(Boolean);
+                    return (
+                      <div className="p-3.5 rounded-2xl bg-[#12100C] border border-[#2E2922] space-y-1.5">
+                        <span className="text-[11px] font-mono text-[#8C8275] block font-semibold">
+                          Links &amp; Portfolio:
+                        </span>
+                        <div className="space-y-1">
+                          {parsedLinks.map((link, idx) => (
+                            <div key={idx} className="text-xs font-mono text-[#CC5A36] break-all">
+                              {link.startsWith('http') ? (
+                                <a
+                                  href={link}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="hover:underline inline-flex items-center gap-1 text-[#E06D48] hover:text-[#FFA07A]"
+                                >
+                                  <span>{link}</span>
+                                  <ExternalLink className="w-3 h-3 shrink-0" />
+                                </a>
+                              ) : (
+                                <span className="text-[#D4CDC3]">{link}</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 7. Any additional raw form questions */}
+                  {selectedApplicant.answers && Object.entries(selectedApplicant.answers).map(([key, val]) => {
+                    if (!val) return null;
+                    const standardKeys = [
+                      'built', 'projectIdea', 'experience', 'weekendScenario', 
+                      'motivation', 'commitment', 'links',
+                      'What is one thing you have built, designed, or broken?',
+                      'What is your current experience with AI tools & coding workflows?',
+                      'Weekend Shipping Scenario: If you had 48 hours to ship an AI prototype with a team of 3, what would you build?',
+                      'Why do you want to build CCC instead of joining a conventional college club?',
+                      'Estimated weekly commitment',
+                      'Links (GitHub, Portfolio, LinkedIn, X, or Projects)',
+                      'Which founding role(s) resonate most with you?'
+                    ];
+                    if (standardKeys.includes(key)) return null;
+                    return (
+                      <div key={key} className="p-4 rounded-2xl bg-[#12100C] border border-[#2E2922] space-y-1.5">
+                        <span className="text-[11px] font-mono text-[#8C8275] block font-semibold">
+                          {key}
+                        </span>
+                        <p className="text-xs font-sans text-white leading-relaxed whitespace-pre-wrap">
+                          {val}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Builder Role Assignment (Two Options: Dropdown vs Type Custom) */}
+                <div className="p-4 rounded-2xl bg-[#16130E] border border-[#2E2922] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-mono text-white uppercase block font-bold">
+                        Builder Track &amp; Role
+                      </span>
+                      <span className="text-[10px] font-mono text-[#8C8275]">
+                        Choose from standard tracks or type bespoke role
+                      </span>
+                    </div>
+
+                    {/* Mode Toggle Pill */}
+                    <div className="flex items-center bg-[#0D0B09] p-1 rounded-xl border border-[#2E2922] text-xs font-mono">
+                      <button
+                        type="button"
+                        onClick={() => setDrawerRoleMode('dropdown')}
+                        className={`px-3 py-1 rounded-lg transition-all cursor-pointer font-medium flex items-center gap-1.5 ${
+                          drawerRoleMode === 'dropdown'
+                            ? 'bg-[#CC5A36] text-white font-bold shadow-sm'
+                            : 'text-[#8C8275] hover:text-white'
+                        }`}
+                      >
+                        <span>Dropdown</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDrawerRoleMode('custom')}
+                        className={`px-3 py-1 rounded-lg transition-all cursor-pointer font-medium flex items-center gap-1.5 ${
+                          drawerRoleMode === 'custom'
+                            ? 'bg-[#CC5A36] text-white font-bold shadow-sm'
+                            : 'text-[#8C8275] hover:text-white'
+                        }`}
+                      >
+                        <span>Type Custom</span>
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Weekly Commitment */}
-                  {selectedApplicant.answers?.commitment && (
-                    <div className="p-3.5 rounded-2xl bg-[#12100C] border border-[#2E2922] flex items-center justify-between">
-                      <span className="text-[11px] font-mono text-[#8C8275] font-semibold">
-                        Estimated Weekly Commitment:
-                      </span>
-                      <span className="text-xs font-mono font-bold text-emerald-400">
-                        {selectedApplicant.answers.commitment}
-                      </span>
+                  {/* Option 1: Dropdown */}
+                  {drawerRoleMode === 'dropdown' ? (
+                    <div className="space-y-1.5">
+                      <select
+                        value={drawerPresetRole}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '__custom__') {
+                            setDrawerRoleMode('custom');
+                          } else {
+                            setDrawerPresetRole(val);
+                            if (selectedApplicant.status === 'accepted') {
+                              handleReviewDecision(selectedApplicant.id, 'accept', val, '');
+                            }
+                          }
+                        }}
+                        className="w-full px-3.5 py-2.5 bg-[#0D0B09] border border-[#2E2922] rounded-xl text-xs font-mono text-white focus:outline-none focus:border-[#CC5A36] cursor-pointer"
+                      >
+                        <option value="Technical & AI Architect">Technical &amp; AI Architect</option>
+                        <option value="Project Founder">Project Founder</option>
+                        <option value="Design & Creative Lead">Design &amp; Creative Lead</option>
+                        <option value="Growth & Community Lead">Growth &amp; Community Lead</option>
+                        <option value="Vibe Coder / Shipper">Vibe Coder / Shipper</option>
+                        <option value="Founding Builder">Founding Builder</option>
+                        <option value="__custom__">✎ Type Custom Role...</option>
+                      </select>
+                      <div className="flex items-center justify-between text-[10px] font-mono text-[#8C8275]">
+                        <span>Standard track: <strong className="text-white">{drawerPresetRole}</strong></span>
+                        <button
+                          type="button"
+                          onClick={() => setDrawerRoleMode('custom')}
+                          className="text-[#CC5A36] hover:underline cursor-pointer"
+                        >
+                          Switch to Type Mode &rarr;
+                        </button>
+                      </div>
                     </div>
-                  )}
-
-                  {/* Portfolio & Links */}
-                  {selectedApplicant.answers?.links && (
-                    <div className="p-3.5 rounded-2xl bg-[#12100C] border border-[#2E2922] space-y-1">
-                      <span className="text-[11px] font-mono text-[#8C8275] block font-semibold">
-                        Links &amp; Portfolio:
-                      </span>
-                      <div className="text-xs font-mono text-[#CC5A36] break-all">
-                        {selectedApplicant.answers.links.split(/[\s,]+/).filter(Boolean).map((link, idx) => (
-                          <div key={idx}>
-                            {link.startsWith('http') ? (
-                              <a href={link} target="_blank" rel="noreferrer" className="hover:underline flex items-center gap-1">
-                                <span>{link}</span>
-                                <ExternalLink className="w-3 h-3 shrink-0" />
-                              </a>
-                            ) : (
-                              <span>{link}</span>
-                            )}
-                          </div>
-                        ))}
+                  ) : (
+                    /* Option 2: Direct Text Input */
+                    <div className="space-y-1.5">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={drawerCustomRole}
+                          onChange={(e) => setDrawerCustomRole(e.target.value)}
+                          placeholder="e.g. Systems Hacker, Hardware Lead, AI Agent Architect..."
+                          className="w-full px-3.5 py-2.5 bg-[#0D0B09] border border-[#CC5A36] rounded-xl text-xs font-mono text-white focus:outline-none placeholder-[#5A5245]"
+                          autoFocus
+                        />
+                        {drawerCustomRole && (
+                          <button
+                            type="button"
+                            onClick={() => setDrawerCustomRole('')}
+                            className="absolute right-2.5 top-2.5 text-[#8C8275] hover:text-white text-xs cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] font-mono text-[#8C8275]">
+                        <span>Role on badge &amp; pass: <strong className="text-emerald-400">{drawerCustomRole.trim() || 'Founding Builder'}</strong></span>
+                        {selectedApplicant.status === 'accepted' ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const roleVal = drawerCustomRole.trim() || drawerPresetRole;
+                              handleReviewDecision(selectedApplicant.id, 'accept', roleVal, drawerCustomRole.trim());
+                            }}
+                            className="text-emerald-400 hover:underline font-bold cursor-pointer"
+                          >
+                            Save Role Now ✓
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setDrawerRoleMode('dropdown')}
+                            className="text-[#8C8275] hover:text-white hover:underline cursor-pointer"
+                          >
+                            &larr; Switch to Dropdown
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
-                </div>
-
-                {/* Track Assignment */}
-                <div className="space-y-2">
-                  <label className="text-xs font-mono text-[#8C8275] uppercase block font-semibold">
-                    Cohort Track / Role
-                  </label>
-                  <select
-                    value={selectedApplicant.role || 'Technical & AI Architect'}
-                    onChange={(e) => handleReviewDecision(selectedApplicant.id, selectedApplicant.status === 'accepted' ? 'accept' : 'accept', e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#12100C] border border-[#2E2922] rounded-xl text-xs font-mono text-white focus:outline-none focus:border-[#CC5A36]"
-                  >
-                    <option value="Technical & AI Architect">Technical &amp; AI Architect</option>
-                    <option value="Project Founder">Project Founder</option>
-                    <option value="Design & Creative Lead">Design &amp; Creative Lead</option>
-                    <option value="Growth & Community Lead">Growth &amp; Community Lead</option>
-                    <option value="Vibe Coder / Shipper">Vibe Coder / Shipper</option>
-                    <option value="Founding Builder">Founding Builder</option>
-                  </select>
                 </div>
 
                 {/* Quick Dispatch Actions */}
@@ -1629,11 +1828,16 @@ function onFormSubmit(e) {
               <div className="pt-6 border-t border-[#2A2620] flex items-center gap-3">
                 {selectedApplicant.status !== 'accepted' ? (
                   <button
-                    onClick={() => handleReviewDecision(selectedApplicant.id, 'accept')}
+                    onClick={() => {
+                      const isCustom = drawerRoleMode === 'custom' && drawerCustomRole.trim().length > 0;
+                      const assignedRole = isCustom ? drawerCustomRole.trim() : drawerPresetRole;
+                      const customRoleVal = isCustom ? drawerCustomRole.trim() : '';
+                      handleReviewDecision(selectedApplicant.id, 'accept', assignedRole, customRoleVal);
+                    }}
                     className="flex-1 py-3 rounded-xl bg-[#CC5A36] hover:bg-[#B34826] text-white font-mono text-xs font-bold shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     <Check className="w-4 h-4" />
-                    Accept Candidate & Issue Key
+                    Accept Candidate &amp; Issue Key
                   </button>
                 ) : (
                   <button

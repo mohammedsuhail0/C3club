@@ -233,22 +233,56 @@ async function routeApi(method, pathname, url, body, req, res) {
 
   // 6. POST /api/webhook/form (Also handles direct on-site applications)
   if (method === 'POST' && (pathname === '/api/webhook/form' || pathname === '/api/apply')) {
-    const {
-      name,
-      email,
-      phone,
-      branch = 'CSE',
-      year = '3rd Year',
-      role = 'Vibe Coder / Shipper',
-      projectIdea = '',
-      motivation = '',
-      source = 'website'
-    } = body;
+    let name = body.name || '';
+    let email = body.email || '';
+    let phone = body.phone || body.whatsapp || '';
+    let branchRaw = body.branch || body.department || '';
+    let yearRaw = body.year || '';
+    let roleRaw = body.role || '';
+    let customRole = body.customRole || '';
+    let projectIdea = body.projectIdea || body.built || '';
+    let motivation = body.motivation || '';
+    let built = body.built || '';
+    let experience = body.experience || '';
+    let weekendScenario = body.weekendScenario || '';
+    let links = body.links || body.portfolio || '';
+    let commitment = body.commitment || '';
+    const source = body.source || 'website';
+
+    // Scan any extra keys in body (e.g. from Google Form webhook or sheet)
+    for (const [colName, val] of Object.entries(body)) {
+      const col = colName.toLowerCase();
+      if (!name && col.includes('name')) name = val;
+      else if (!phone && (col.includes('phone') || col.includes('whatsapp') || col.includes('mobile') || col.includes('contact') || col.includes('number'))) phone = val;
+      else if (!email && col.includes('email')) email = val;
+      else if (col.includes('branch') || col.includes('department') || col.includes('study')) branchRaw = val;
+      else if (col.includes('year') && !branchRaw) yearRaw = val;
+      else if (col.includes('role')) roleRaw = val;
+      else if (col.includes('link') || col.includes('github') || col.includes('portfolio') || col.includes('linkedin')) links = val;
+      else if (col.includes('built') || col.includes('broken')) built = val;
+      else if (col.includes('experience') || col.includes('workflows')) experience = val;
+      else if (col.includes('weekend') || col.includes('48 hours') || col.includes('scenario')) weekendScenario = val;
+      else if (col.includes('why') || col.includes('motivation') || col.includes('instead of')) motivation = val;
+      else if (col.includes('commitment') || col.includes('weekly') || col.includes('hours')) commitment = val;
+    }
 
     if (!name || !phone) {
       res.statusCode = 400;
       return res.end(JSON.stringify({ success: false, message: 'Name and Phone Number are required' }));
     }
+
+    const { branch, year } = parseBranchAndYear(branchRaw || yearRaw);
+    const role = parseRole(roleRaw);
+
+    const answersObj = {
+      projectIdea: built || weekendScenario || projectIdea || '',
+      motivation: motivation || '',
+      built: built || projectIdea || '',
+      experience: experience || '',
+      weekendScenario: weekendScenario || '',
+      links: links || '',
+      commitment: commitment || ''
+    };
 
     const existingIndex = members.findIndex(m =>
       m.phone === String(phone).trim() || (email && m.email && m.email.toLowerCase() === String(email).trim().toLowerCase())
@@ -256,12 +290,18 @@ async function routeApi(method, pathname, url, body, req, res) {
 
     if (existingIndex !== -1) {
       const existing = members[existingIndex];
+      existing.branch = branch;
+      existing.year = year;
+      if (!existing.role || existing.role === 'Vibe Coder / Shipper') {
+        existing.role = role;
+      }
+      if (customRole) {
+        existing.customRole = customRole;
+      }
       existing.answers = {
-        projectIdea: projectIdea || existing.answers?.projectIdea || '',
-        motivation: motivation || existing.answers?.motivation || ''
+        ...(existing.answers || {}),
+        ...answersObj
       };
-      if (branch) existing.branch = branch;
-      if (year) existing.year = year;
       saveMembers(members);
       return res.end(JSON.stringify({ success: true, member: existing, isExisting: true }));
     }
@@ -276,15 +316,12 @@ async function routeApi(method, pathname, url, body, req, res) {
       founderKey: '', // Key assigned upon review/acceptance
       status: 'pending_review',
       role,
-      customRole: '',
+      customRole: customRole || '',
       claimedAt: null,
       printedAt: null,
       emailSentAt: null,
       source,
-      answers: {
-        projectIdea,
-        motivation
-      },
+      answers: answersObj,
       createdAt: new Date().toISOString()
     };
 
