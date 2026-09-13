@@ -104,7 +104,7 @@ export const ShipWall: React.FC<ShipWallProps> = ({ onOpenApply }) => {
       buildTime: '50 mins',
       stack: ['React 19', 'Supabase', 'Telegram Bot'],
       prompt: 'Build a private college commute coordination board for ISL day-scholars. Allow students to post route, pickup time, and seat availability (shared auto or bike) with college email verification.',
-      metric: '₹4,200 estimated monthly transit savings'
+      metric: '420 hrs estimated monthly transit savings'
     },
     {
       id: 'placement-roaster',

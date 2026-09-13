@@ -127,7 +127,7 @@ Workspace Schedule:
 Present this pass on Monday morning to collect your physical NFC campus badge.
 
 See you on Monday!
-— Syed Saleem (Lead Organizer & Student Convener)
+— Mohammad Bilal (Lead Organizer & Student Convener)
 Department of CSE · ISL Engineering College`;
 
   const senderEmail = config.user || 'c3.collective.in@gmail.com';
@@ -217,7 +217,7 @@ Department of CSE · ISL Engineering College`;
           <tr>
             <td>
               <div style="font-family:Georgia,serif;font-style:italic;font-size:15px;font-weight:bold;color:#CC5A36;">
-                Syed Saleem
+                Mohammad Bilal
               </div>
               <div style="font-size:11px;color:#1F1E1B;font-weight:600;">
                 Lead Organizer &amp; Student Convener

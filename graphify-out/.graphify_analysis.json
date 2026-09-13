@@ -384,13 +384,13 @@
       "degree": 26
     },
     {
-      "id": "ref_framer_motion",
-      "label": "framer-motion",
+      "id": "src_utils_audio_sounds",
+      "label": "sounds",
       "degree": 23
     },
     {
-      "id": "src_utils_audio_sounds",
-      "label": "sounds",
+      "id": "ref_framer_motion",
+      "label": "framer-motion",
       "degree": 23
     },
     {
@@ -419,8 +419,8 @@
       "degree": 8
     },
     {
-      "id": "server_backendhandler_handleapirequest",
-      "label": "handleApiRequest()",
+      "id": "src_utils_api_memberrecord",
+      "label": "MemberRecord",
       "degree": 6
     }
   ],
@@ -435,28 +435,6 @@
       "confidence": "EXTRACTED",
       "relation": "calls",
       "why": "connects across different repos/directories; peripheral node `c3BackendPlugin()` unexpectedly reaches hub `handleApiRequest()`"
-    },
-    {
-      "source": "server",
-      "target": "handleApiRequest()",
-      "source_files": [
-        "server/index.js",
-        "server/backendHandler.js"
-      ],
-      "confidence": "EXTRACTED",
-      "relation": "calls",
-      "why": "peripheral node `server` unexpectedly reaches hub `handleApiRequest()`"
-    },
-    {
-      "source": "App()",
-      "target": "fetchMemberByKey()",
-      "source_files": [
-        "src/App.tsx",
-        "src/utils/api.ts"
-      ],
-      "confidence": "EXTRACTED",
-      "relation": "calls",
-      "why": "bridges separate communities"
     },
     {
       "source": "AcceptanceLetterModalProps",
@@ -479,10 +457,65 @@
       "confidence": "EXTRACTED",
       "relation": "references",
       "why": "peripheral node `OrganizerPortalModalProps` unexpectedly reaches hub `MemberRecord`"
+    },
+    {
+      "source": "server",
+      "target": "handleApiRequest()",
+      "source_files": [
+        "server/index.js",
+        "server/backendHandler.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "peripheral node `server` unexpectedly reaches hub `handleApiRequest()`"
+    },
+    {
+      "source": "App()",
+      "target": "fetchMemberByKey()",
+      "source_files": [
+        "src/App.tsx",
+        "src/utils/api.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
     }
   ],
-  "tokens": {
-    "input": 0,
-    "output": 0
-  }
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `react` connect `react` to `package.json`, `OrganizerPortalModal.tsx`, `App.tsx`, `FoundingPass.tsx`, `ZoomPreloader.tsx`?",
+      "why": "High betweenness centrality (0.149) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `lucide-react` connect `react` to `FoundingPass.tsx`, `package.json`, `OrganizerPortalModal.tsx`, `App.tsx`?",
+      "why": "High betweenness centrality (0.084) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `framer-motion` connect `react` to `package.json`, `OrganizerPortalModal.tsx`, `App.tsx`, `FoundingPass.tsx`, `ZoomPreloader.tsx`?",
+      "why": "High betweenness centrality (0.072) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `TiltCardProps`, `ZoomPortalScrubProps`, `ZoomPortalTriggerProps` to the rest of the system?",
+      "why": "99 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `react` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.08395989974937343 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `package.json` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.06896551724137931 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `App.tsx` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.12554112554112554 - nodes in this community are weakly interconnected."
+    }
+  ]
 }

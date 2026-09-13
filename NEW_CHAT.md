@@ -11,7 +11,7 @@
 - **Project:** C3 (Claude Code & Cowork) Club Official Platform
 - **Institution:** ISL Engineering College (UGC Autonomous), Bandlaguda, Chandrayangutta, Hyderabad
 - **Department:** Department of Computer Science & Engineering
-- **Student Convener / Lead Organizer:** Syed Saleem
+- **Student Convener / Lead Organizer:** Mohammad Bilal
 - **Official Club Email:** `c3.collective.in@gmail.com`
 - **Core Mission:** A hyper-focused student builder collective learning Claude Code CLI, Agentic AI pipelines, and shipping real MVPs every week.
 

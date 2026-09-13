@@ -162,7 +162,7 @@ export const VibePlayground: React.FC = () => {
 
             <div className="mt-4 pt-3 border-t border-claude-border/50 dark:border-claude-darkBorder flex items-center justify-between text-[11px] text-claude-muted">
               <span>Ready to paste into Claude Code or Claude 3.7</span>
-              <span className="text-claude-terracotta">100% Free Tier</span>
+              <span className="text-claude-terracotta">Open Stack Ready</span>
             </div>
           </div>
 

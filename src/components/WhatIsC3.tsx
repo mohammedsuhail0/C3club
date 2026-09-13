@@ -17,8 +17,8 @@ export const WhatIsC3: React.FC = () => {
       code: '02 / INITIATIVE',
       icon: Terminal,
       title: 'Student Collective',
-      highlight: 'Prompt Design & Free Tools',
-      desc: 'An independent student builder collective exploring prompt engineering, free web AI tools, and vibe coding workflows with zero costly setup.',
+      highlight: 'Prompt Design & Open Architectures',
+      desc: 'An independent student builder collective exploring prompt engineering, web AI tools, and vibe coding workflows with zero friction.',
     },
     {
       code: '03 / VELOCITY',

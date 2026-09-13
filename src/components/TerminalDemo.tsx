@@ -196,7 +196,7 @@ export const TerminalDemo: React.FC = () => {
 
         {/* Terminal Bottom Controls */}
         <div className="px-4 py-2.5 bg-[#181615] border-t border-[#2A2825] flex items-center justify-between text-[11px] text-[#8C847B]">
-          <span>Tip: In C3 lab sessions, every student gets terminal AI agent environments set up for free.</span>
+          <span>Tip: In C3 lab sessions, every student gets terminal AI agent environments set up on day one.</span>
           <span className="hidden sm:inline">Press Re-run to restart</span>
         </div>
 

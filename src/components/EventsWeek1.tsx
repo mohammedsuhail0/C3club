@@ -31,7 +31,7 @@ export const EventsWeek1: React.FC = () => {
       format: 'Live Screen Audit & Stress Test',
       icon: Scale,
       color: '#D97757',
-      tagline: 'Benchmarking free AI developer tools & prompt workflows live on screen.',
+      tagline: 'Benchmarking modern AI developer tools & prompt workflows live on screen.',
       takeaway: 'Learn what developer tasks are 100% automated vs. what skills get you hired.'
     },
     {
