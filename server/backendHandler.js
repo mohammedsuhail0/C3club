@@ -550,16 +550,29 @@ async function routeApi(method, pathname, url, body, req, res) {
     }
 
     try {
-      const exportUrl = getGoogleSheetExportUrl(url);
-      const fetchRes = await fetch(exportUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-      });
+      const exportUrls = getGoogleSheetExportUrls(url);
+      let fetchRes = null;
+      let lastStatus = 400;
 
-      if (!fetchRes.ok) {
+      for (const targetUrl of exportUrls) {
+        try {
+          const res = await fetch(targetUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+          });
+          if (res.ok) {
+            fetchRes = res;
+            break;
+          } else {
+            lastStatus = res.status;
+          }
+        } catch (e) {}
+      }
+
+      if (!fetchRes) {
         res.statusCode = 400;
         return res.end(JSON.stringify({
           success: false,
-          message: `Failed to fetch Google Sheet CSV (HTTP ${fetchRes.status}). Verify Sheet General Access is 'Anyone with link can view' or 'Publish to web'.`
+          message: `Failed to fetch Google Sheet CSV (HTTP ${lastStatus}). Verify Sheet General Access is 'Anyone with link can view' or 'Publish to web'.`
         }));
       }
 
@@ -683,22 +696,34 @@ async function routeApi(method, pathname, url, body, req, res) {
   return res.end(JSON.stringify({ error: 'Endpoint not found' }));
 }
 
-function getGoogleSheetExportUrl(url) {
+function getGoogleSheetExportUrls(url) {
   let exportUrl = String(url || '').trim();
   if (exportUrl.includes('/pub?output=csv') || exportUrl.includes('/export?format=csv')) {
-    return exportUrl;
+    return [exportUrl];
   }
   const idMatch = exportUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
   if (idMatch) {
     const sheetId = idMatch[1];
     const gidMatch = exportUrl.match(/[?&#]gid=([0-9]+)/);
-    const gid = gidMatch ? gidMatch[1] : '0';
-    return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+    const urls = [];
+    if (gidMatch && gidMatch[1]) {
+      urls.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gidMatch[1]}`);
+    }
+    // Try without gid: Google automatically serves the active first sheet (returns HTTP 200)
+    urls.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`);
+    // Also try known form response gid and default gid=0
+    urls.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=409707496`);
+    urls.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`);
+    return urls;
   }
   if (!exportUrl.startsWith('http')) {
-    return `https://docs.google.com/spreadsheets/d/${exportUrl}/export?format=csv&gid=0`;
+    return [
+      `https://docs.google.com/spreadsheets/d/${exportUrl}/export?format=csv`,
+      `https://docs.google.com/spreadsheets/d/${exportUrl}/export?format=csv&gid=409707496`,
+      `https://docs.google.com/spreadsheets/d/${exportUrl}/export?format=csv&gid=0`
+    ];
   }
-  return exportUrl;
+  return [exportUrl];
 }
 
 function parseCSV(text) {
