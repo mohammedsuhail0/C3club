@@ -1,0 +1,488 @@
+{
+  "communities": {
+    "0": [
+      "ref_canvas_confetti",
+      "ref_framer_motion",
+      "ref_lucide_react",
+      "ref_react",
+      "src_components_animations_particlebackground",
+      "src_components_animations_particlebackground_particlebackground",
+      "src_components_animations_tiltcard",
+      "src_components_animations_tiltcard_tiltcard",
+      "src_components_animations_tiltcard_tiltcardprops",
+      "src_components_animations_zoomheroportal",
+      "src_components_animations_zoomheroportal_zoomheroportal",
+      "src_components_animations_zoomportalscrub",
+      "src_components_animations_zoomportalscrub_zoomportalscrub",
+      "src_components_animations_zoomportalscrub_zoomportalscrubprops",
+      "src_components_animations_zoomportaltrigger",
+      "src_components_animations_zoomportaltrigger_zoomportaltrigger",
+      "src_components_animations_zoomportaltrigger_zoomportaltriggerprops",
+      "src_components_builderquiz",
+      "src_components_builderquiz_builderquiz",
+      "src_components_builderquiz_builderquizprops",
+      "src_components_campussolvers",
+      "src_components_campussolvers_campussolvers",
+      "src_components_campussolvers_campussolversprops",
+      "src_components_cohortbar",
+      "src_components_cohortbar_cohortbar",
+      "src_components_cohortbar_cohortbarprops",
+      "src_components_eventsweek1",
+      "src_components_footer",
+      "src_components_footer_footerprops",
+      "src_components_hero",
+      "src_components_hero_heroprops",
+      "src_components_manifesto",
+      "src_components_manifesto_manifesto",
+      "src_components_officeroutine",
+      "src_components_officeroutine_code2icon",
+      "src_components_officeroutine_officeroutine",
+      "src_components_passhero",
+      "src_components_passhero_passhero",
+      "src_components_passhero_passheroprops",
+      "src_components_pillars",
+      "src_components_pillars_pillars",
+      "src_components_prompttocomponent",
+      "src_components_prompttocomponent_promptoption",
+      "src_components_prompttocomponent_prompttocomponent",
+      "src_components_shipwall",
+      "src_components_shipwall_project",
+      "src_components_shipwall_shipwall",
+      "src_components_shipwall_shipwallprops",
+      "src_components_soundtoggle",
+      "src_components_soundtoggle_soundtoggle",
+      "src_components_terminaldemo",
+      "src_components_terminaldemo_terminaldemo",
+      "src_components_vibeplayground",
+      "src_components_vibeplayground_vibeplayground",
+      "src_components_whatisc3",
+      "src_utils_audio",
+      "src_utils_audio_sounds"
+    ],
+    "1": [
+      "package",
+      "package_dependencies",
+      "package_dependencies_canvas_confetti",
+      "package_dependencies_framer_motion",
+      "package_dependencies_lucide_react",
+      "package_dependencies_nodemailer",
+      "package_dependencies_react",
+      "package_dependencies_react_dom",
+      "package_name",
+      "package_private",
+      "package_scripts",
+      "package_scripts_build",
+      "package_scripts_dev",
+      "package_scripts_lint",
+      "package_scripts_preview",
+      "package_type",
+      "package_version",
+      "ref_autoprefixer",
+      "ref_nodemailer",
+      "ref_oxlint",
+      "ref_postcss",
+      "ref_react_dom",
+      "ref_tailwindcss",
+      "ref_types_canvas_confetti",
+      "ref_types_node",
+      "ref_types_nodemailer",
+      "ref_types_react",
+      "ref_types_react_dom",
+      "ref_typescript"
+    ],
+    "2": [
+      "ref_vite",
+      "ref_vitejs_plugin_react",
+      "server_backendhandler",
+      "server_backendhandler_data_file",
+      "server_backendhandler_dirname",
+      "server_backendhandler_filename",
+      "server_backendhandler_generatekeyfromphone",
+      "server_backendhandler_getmembers",
+      "server_backendhandler_handleapirequest",
+      "server_backendhandler_normalizekey",
+      "server_backendhandler_routeapi",
+      "server_backendhandler_savemembers",
+      "server_backendhandler_verifykeychecksum",
+      "server_index",
+      "server_index_server",
+      "server_mailer",
+      "server_mailer_config_file",
+      "server_mailer_createtransporter",
+      "server_mailer_dirname",
+      "server_mailer_filename",
+      "server_mailer_getemailconfig",
+      "server_mailer_saveemailconfig",
+      "server_mailer_sendacceptanceemail",
+      "server_mailer_verifyemailcredentials",
+      "vite_config",
+      "vite_config_c3backendplugin"
+    ],
+    "3": [
+      "src_components_acceptancelettermodal",
+      "src_components_acceptancelettermodal_acceptancelettermodal",
+      "src_components_acceptancelettermodal_acceptancelettermodalprops",
+      "src_components_applymodal",
+      "src_components_applymodal_applymodal",
+      "src_components_applymodal_applymodalprops",
+      "src_components_organizerportalmodal",
+      "src_components_organizerportalmodal_organizerportalmodal",
+      "src_components_organizerportalmodal_organizerportalmodalprops",
+      "src_utils_api",
+      "src_utils_api_addmemberapi",
+      "src_utils_api_emailconfig",
+      "src_utils_api_fetchmembers",
+      "src_utils_api_getemailconfigapi",
+      "src_utils_api_markprintedapi",
+      "src_utils_api_memberrecord",
+      "src_utils_api_membersresponse",
+      "src_utils_api_reviewapplicantapi",
+      "src_utils_api_saveemailconfigapi",
+      "src_utils_api_sendacceptanceemailapi",
+      "src_utils_api_submitapplicationapi",
+      "src_utils_api_syncgooglesheetapi",
+      "src_utils_api_testemailconfigapi",
+      "src_utils_api_verifykeyapi"
+    ],
+    "4": [
+      "src_app",
+      "src_app_app",
+      "src_components_accreditationstrip",
+      "src_components_accreditationstrip_accreditationstrip",
+      "src_components_animations_cursorglow",
+      "src_components_animations_cursorglow_cursorglow",
+      "src_components_animations_engineeringbackground",
+      "src_components_animations_engineeringbackground_engineeringbackground",
+      "src_components_animations_marquee",
+      "src_components_animations_marquee_marquee",
+      "src_components_animations_scrollprogress",
+      "src_components_animations_scrollprogress_scrollprogress",
+      "src_components_animations_scrollzoompreloader",
+      "src_components_animations_scrollzoompreloader_scrollzoompreloader",
+      "src_components_animations_scrollzoompreloader_scrollzoompreloaderprops",
+      "src_components_eventsweek1_eventsweek1",
+      "src_components_footer_footer",
+      "src_components_hero_hero",
+      "src_components_navbar",
+      "src_components_navbar_navbar",
+      "src_components_whatisc3_whatisc3",
+      "src_main"
+    ],
+    "5": [
+      "tsconfig_app",
+      "tsconfig_app_compileroptions",
+      "tsconfig_app_compileroptions_allowimportingtsextensions",
+      "tsconfig_app_compileroptions_erasablesyntaxonly",
+      "tsconfig_app_compileroptions_jsx",
+      "tsconfig_app_compileroptions_lib",
+      "tsconfig_app_compileroptions_module",
+      "tsconfig_app_compileroptions_moduledetection",
+      "tsconfig_app_compileroptions_moduleresolution",
+      "tsconfig_app_compileroptions_noemit",
+      "tsconfig_app_compileroptions_nofallthroughcasesinswitch",
+      "tsconfig_app_compileroptions_nounusedlocals",
+      "tsconfig_app_compileroptions_nounusedparameters",
+      "tsconfig_app_compileroptions_skiplibcheck",
+      "tsconfig_app_compileroptions_target",
+      "tsconfig_app_compileroptions_tsbuildinfofile",
+      "tsconfig_app_compileroptions_types",
+      "tsconfig_app_compileroptions_verbatimmodulesyntax",
+      "tsconfig_app_include"
+    ],
+    "6": [
+      "tsconfig_node",
+      "tsconfig_node_compileroptions",
+      "tsconfig_node_compileroptions_allowimportingtsextensions",
+      "tsconfig_node_compileroptions_erasablesyntaxonly",
+      "tsconfig_node_compileroptions_lib",
+      "tsconfig_node_compileroptions_module",
+      "tsconfig_node_compileroptions_moduledetection",
+      "tsconfig_node_compileroptions_noemit",
+      "tsconfig_node_compileroptions_nofallthroughcasesinswitch",
+      "tsconfig_node_compileroptions_nounusedlocals",
+      "tsconfig_node_compileroptions_nounusedparameters",
+      "tsconfig_node_compileroptions_skiplibcheck",
+      "tsconfig_node_compileroptions_target",
+      "tsconfig_node_compileroptions_tsbuildinfofile",
+      "tsconfig_node_compileroptions_types",
+      "tsconfig_node_compileroptions_verbatimmodulesyntax",
+      "tsconfig_node_include"
+    ],
+    "7": [
+      "package_devdependencies",
+      "package_devdependencies_autoprefixer",
+      "package_devdependencies_oxlint",
+      "package_devdependencies_postcss",
+      "package_devdependencies_tailwindcss",
+      "package_devdependencies_types_canvas_confetti",
+      "package_devdependencies_types_node",
+      "package_devdependencies_types_nodemailer",
+      "package_devdependencies_types_react",
+      "package_devdependencies_types_react_dom",
+      "package_devdependencies_typescript",
+      "package_devdependencies_vite",
+      "package_devdependencies_vitejs_plugin_react"
+    ],
+    "8": [
+      "src_components_foundingpass",
+      "src_components_foundingpass_foundingpass",
+      "src_components_foundingpass_foundingpassprops",
+      "src_utils_api_claimpassapi",
+      "src_utils_api_fetchmemberbykey",
+      "src_utils_founderauth",
+      "src_utils_founderauth_generatefounderkeyforphone",
+      "src_utils_founderauth_getorganizerprintqueue",
+      "src_utils_founderauth_master_founder_keys",
+      "src_utils_founderauth_printqueueitem",
+      "src_utils_founderauth_savepasstoorganizerqueue",
+      "src_utils_founderauth_validatefounderkey",
+      "src_utils_founderauth_verifychecksum"
+    ],
+    "9": [
+      "oxlintrc",
+      "oxlintrc_plugins",
+      "oxlintrc_rules",
+      "oxlintrc_rules_react_only_export_components",
+      "oxlintrc_rules_react_rules_of_hooks",
+      "oxlintrc_schema"
+    ],
+    "10": [
+      "src_utils_audio_soundsystem",
+      "src_utils_audio_soundsystem_init",
+      "src_utils_audio_soundsystem_playclick",
+      "src_utils_audio_soundsystem_playkey",
+      "src_utils_audio_soundsystem_playsuccess"
+    ],
+    "11": [
+      "src_components_animations_zoompreloader",
+      "src_components_animations_zoompreloader_zoompreloader",
+      "src_components_animations_zoompreloader_zoompreloaderprops"
+    ],
+    "12": [
+      "tsconfig",
+      "tsconfig_files",
+      "tsconfig_references"
+    ],
+    "13": [
+      "scripts_capture_desktop",
+      "scripts_capture_desktop_run"
+    ],
+    "14": [
+      "scripts_test_backend_and_letter",
+      "scripts_test_backend_and_letter_run"
+    ],
+    "15": [
+      "scripts_test_dark_particles",
+      "scripts_test_dark_particles_run"
+    ],
+    "16": [
+      "scripts_test_engineering_bg",
+      "scripts_test_engineering_bg_run"
+    ],
+    "17": [
+      "scripts_test_founder_key_flow",
+      "scripts_test_founder_key_flow_run"
+    ],
+    "18": [
+      "scripts_test_lean_layout",
+      "scripts_test_lean_layout_run"
+    ],
+    "19": [
+      "scripts_test_mobile_verification",
+      "scripts_test_mobile_verification_run"
+    ],
+    "20": [
+      "scripts_test_natural_scroll",
+      "scripts_test_natural_scroll_testnaturalscroll"
+    ],
+    "21": [
+      "scripts_test_natural_scroll_feel",
+      "scripts_test_natural_scroll_feel_run"
+    ],
+    "22": [
+      "scripts_test_preloader_scroll_only",
+      "scripts_test_preloader_scroll_only_run"
+    ],
+    "23": [
+      "scripts_test_preloader_seamless",
+      "scripts_test_preloader_seamless_run"
+    ],
+    "24": [
+      "scripts_test_preloader_shot",
+      "scripts_test_preloader_shot_run"
+    ],
+    "25": [
+      "scripts_test_remade_layout",
+      "scripts_test_remade_layout_run"
+    ],
+    "26": [
+      "scripts_test_split_frames",
+      "scripts_test_split_frames_run"
+    ],
+    "27": [
+      "scripts_test_story_flow",
+      "scripts_test_story_flow_run"
+    ],
+    "28": [
+      "scripts_verify_form_and_email",
+      "scripts_verify_form_and_email_run"
+    ],
+    "29": [
+      "tailwind_config",
+      "tailwindcss"
+    ],
+    "30": [
+      "postcss_config"
+    ],
+    "31": [
+      "scripts_test_site"
+    ]
+  },
+  "cohesion": {
+    "0": 0.08395989974937343,
+    "1": 0.06896551724137931,
+    "2": 0.15076923076923077,
+    "3": 0.18115942028985507,
+    "4": 0.12554112554112554,
+    "5": 0.10526315789473684,
+    "6": 0.11764705882352941,
+    "7": 0.15384615384615385,
+    "8": 0.24358974358974358,
+    "9": 0.3333333333333333,
+    "10": 0.7,
+    "11": 0.6666666666666666,
+    "12": 0.6666666666666666,
+    "13": 1.0,
+    "14": 1.0,
+    "15": 1.0,
+    "16": 1.0,
+    "17": 1.0,
+    "18": 1.0,
+    "19": 1.0,
+    "20": 1.0,
+    "21": 1.0,
+    "22": 1.0,
+    "23": 1.0,
+    "24": 1.0,
+    "25": 1.0,
+    "26": 1.0,
+    "27": 1.0,
+    "28": 1.0,
+    "29": 1.0,
+    "30": 1.0,
+    "31": 1.0
+  },
+  "gods": [
+    {
+      "id": "ref_react",
+      "label": "react",
+      "degree": 36
+    },
+    {
+      "id": "ref_lucide_react",
+      "label": "lucide-react",
+      "degree": 26
+    },
+    {
+      "id": "ref_framer_motion",
+      "label": "framer-motion",
+      "degree": 23
+    },
+    {
+      "id": "src_utils_audio_sounds",
+      "label": "sounds",
+      "degree": 23
+    },
+    {
+      "id": "tsconfig_app_compileroptions",
+      "label": "compilerOptions",
+      "degree": 17
+    },
+    {
+      "id": "tsconfig_node_compileroptions",
+      "label": "compilerOptions",
+      "degree": 15
+    },
+    {
+      "id": "server_backendhandler_routeapi",
+      "label": "routeApi()",
+      "degree": 11
+    },
+    {
+      "id": "src_components_organizerportalmodal_organizerportalmodal",
+      "label": "OrganizerPortalModal()",
+      "degree": 11
+    },
+    {
+      "id": "src_components_animations_tiltcard_tiltcard",
+      "label": "TiltCard()",
+      "degree": 8
+    },
+    {
+      "id": "server_backendhandler_handleapirequest",
+      "label": "handleApiRequest()",
+      "degree": 6
+    }
+  ],
+  "surprises": [
+    {
+      "source": "c3BackendPlugin()",
+      "target": "handleApiRequest()",
+      "source_files": [
+        "vite.config.ts",
+        "server/backendHandler.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; peripheral node `c3BackendPlugin()` unexpectedly reaches hub `handleApiRequest()`"
+    },
+    {
+      "source": "server",
+      "target": "handleApiRequest()",
+      "source_files": [
+        "server/index.js",
+        "server/backendHandler.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "peripheral node `server` unexpectedly reaches hub `handleApiRequest()`"
+    },
+    {
+      "source": "App()",
+      "target": "fetchMemberByKey()",
+      "source_files": [
+        "src/App.tsx",
+        "src/utils/api.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "AcceptanceLetterModalProps",
+      "target": "MemberRecord",
+      "source_files": [
+        "src/components/AcceptanceLetterModal.tsx",
+        "src/utils/api.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "peripheral node `AcceptanceLetterModalProps` unexpectedly reaches hub `MemberRecord`"
+    },
+    {
+      "source": "OrganizerPortalModalProps",
+      "target": "MemberRecord",
+      "source_files": [
+        "src/components/OrganizerPortalModal.tsx",
+        "src/utils/api.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "peripheral node `OrganizerPortalModalProps` unexpectedly reaches hub `MemberRecord`"
+    }
+  ],
+  "tokens": {
+    "input": 0,
+    "output": 0
+  }
+}
