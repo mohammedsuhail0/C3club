@@ -26,7 +26,7 @@ To make sending bulletproof and seamless:
    - Direct link to view/print official acceptance letter
    - Direct link to claim 3D pass
    - Workspace venue (Lab 3) and timings (Monday – Thursday, 10:00 AM – 1:00 PM)
-   - Official sign-off by Mohammad Bilal (Lead Organizer & Student Convener)
+   - Official sign-off by Mohammed Suhail & Mohammad Bilal (Founding Co-Leads)
 4. Just click **Send** in Gmail! Zero passwords or complex setups needed.
 
 ---

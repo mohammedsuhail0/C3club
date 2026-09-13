@@ -127,8 +127,8 @@ Workspace Schedule:
 Present this pass on Monday morning to collect your physical NFC campus badge.
 
 See you on Monday!
-— Mohammad Bilal (Lead Organizer & Student Convener)
-Department of CSE · ISL Engineering College`;
+— Mohammed Suhail & Mohammad Bilal (Founding Co-Leads)
+C3 Collective · Department of CSE · ISL Engineering College`;
 
   const senderEmail = config.user || 'c3.collective.in@gmail.com';
   const mailto = `mailto:${encodeURIComponent(member.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainTextBody)}`;
@@ -217,10 +217,10 @@ Department of CSE · ISL Engineering College`;
           <tr>
             <td>
               <div style="font-family:Georgia,serif;font-style:italic;font-size:15px;font-weight:bold;color:#CC5A36;">
-                Mohammad Bilal
+                Mohammed Suhail &amp; Mohammad Bilal
               </div>
               <div style="font-size:11px;color:#1F1E1B;font-weight:600;">
-                Lead Organizer &amp; Student Convener
+                Founding Co-Leads (Flat Collective &bull; No Hierarchy)
               </div>
               <div style="font-size:10px;color:#8C8275;font-family:monospace;">
                 C3 Collective &bull; Dept. of CSE &bull; ISL Engineering College

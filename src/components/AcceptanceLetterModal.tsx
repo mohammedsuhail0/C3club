@@ -203,9 +203,9 @@ export const AcceptanceLetterModal: React.FC<AcceptanceLetterModalProps> = ({
             <div className="pt-6 border-t border-[#E3DCCF] grid grid-cols-2 gap-4 text-xs font-sans">
               <div>
                 <div className="font-serif italic font-bold text-base text-[#CC5A36] pb-1">
-                  Mohammad Bilal
+                  Mohammed Suhail &amp; Mohammad Bilal
                 </div>
-                <p className="font-semibold text-[#1F1E1B]">Lead Organizer & Student Convener</p>
+                <p className="font-semibold text-[#1F1E1B]">Founding Co-Leads (Flat Collective)</p>
                 <p className="text-[#8C8275] text-[11px] font-mono">C3 Collective · ISLEC</p>
               </div>
 
