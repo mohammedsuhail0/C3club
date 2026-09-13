@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::selection {
+    background-color: rgba(204, 90, 54, 0.2);
+    color: #CC5A36;
+  }
+}
+
+/* Claude Custom Glassmorphism & Paper Morphisms */
+.claude-glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(232, 226, 215, 0.85);
+}
+
+.dark .claude-glass {
+  background: rgba(33, 31, 28, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(54, 50, 44, 0.85);
+}
+
+.claude-card {
+  background: #FFFFFF;
+  border: 1px solid #E8E2D7;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .claude-card {
+  background: #211F1C;
+  border: 1px solid #36322C;
+}
+
+.claude-card:hover {
+  border-color: #CC5A36;
+  box-shadow: 0 12px 30px -6px rgba(204, 90, 54, 0.12);
+  transform: translateY(-2px);
+}
+
+/* Subtle editorial paper texture overlay */
+.bg-paper-pattern {
+  background-image: radial-gradient(rgba(204, 90, 54, 0.04) 1px, transparent 0);
+  background-size: 28px 28px;
+}
+
+.dark .bg-paper-pattern {
+  background-image: radial-gradient(rgba(204, 90, 54, 0.07) 1px, transparent 0);
+  background-size: 28px 28px;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF8F5;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #131211;
+}
+::-webkit-scrollbar-thumb {
+  background: #D9D2C7;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #CC5A36;
+}

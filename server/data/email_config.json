@@ -1,0 +1,11 @@
+{
+  "enabled": false,
+  "service": "gmail",
+  "user": "c3.collective.in@gmail.com",
+  "pass": "",
+  "fromName": "C3 Admissions Council · ISLEC",
+  "fromEmail": "c3.collective.in@gmail.com",
+  "host": "smtp.gmail.com",
+  "port": 465,
+  "updatedAt": "2026-09-14T03:29:00.000Z"
+}
