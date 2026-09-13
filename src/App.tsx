@@ -9,6 +9,7 @@ import { FoundingPass } from './components/FoundingPass';
 import { ApplyModal } from './components/ApplyModal';
 import { AcceptanceLetterModal } from './components/AcceptanceLetterModal';
 import { OrganizerPortalModal } from './components/OrganizerPortalModal';
+import { CommandCenterPage } from './components/CommandCenterPage';
 import { Footer } from './components/Footer';
 import { ScrollProgress } from './components/animations/ScrollProgress';
 import { CursorGlow } from './components/animations/CursorGlow';
@@ -19,12 +20,24 @@ import { fetchMemberByKey, MemberRecord } from './utils/api';
 
 export function App() {
   const [isApplyOpen, setIsApplyOpen] = useState<boolean>(false);
+  const [isAdminMode, setIsAdminMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+      const search = window.location.search;
+      if (path === '/admin' || path.startsWith('/admin') || hash === '#admin' || hash.startsWith('#admin') || search.includes('admin=')) {
+        return true;
+      }
+    }
+    return false;
+  });
   const [isPreloaderDone, setIsPreloaderDone] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const search = window.location.search;
       const hash = window.location.hash;
+      const path = window.location.pathname;
       const params = new URLSearchParams(search || (hash.includes('?') ? hash.split('?')[1] : ''));
-      return !!(params.get('letter') || params.get('acceptance') || params.get('code') || params.get('fnd') || params.get('admin') || params.get('apply'));
+      return !!(path === '/admin' || hash === '#admin' || params.get('letter') || params.get('acceptance') || params.get('code') || params.get('fnd') || params.get('admin') || params.get('apply'));
     }
     return false;
   });
@@ -80,6 +93,30 @@ export function App() {
     }, 150);
   };
 
+  if (isAdminMode) {
+    return (
+      <>
+        <CommandCenterPage
+          onNavigateHome={() => {
+            setIsAdminMode(false);
+            setIsOrganizerOpen(false);
+            window.history.replaceState(null, '', '/');
+          }}
+          onViewLetter={(member) => {
+            setLetterMember(member);
+            setIsLetterOpen(true);
+          }}
+        />
+        <AcceptanceLetterModal
+          isOpen={isLetterOpen}
+          onClose={() => setIsLetterOpen(false)}
+          member={letterMember}
+          onClaimPass={handleClaimFromLetter}
+        />
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-claude-bg dark:bg-claude-darkBg text-claude-text dark:text-claude-darkText transition-colors duration-200 bg-paper-pattern flex flex-col font-sans relative overflow-x-hidden">
       
@@ -126,7 +163,10 @@ export function App() {
         {/* 7. Minimal Footer with Organizer Command Link */}
         <Footer 
           onOpenApply={() => setIsApplyOpen(true)}
-          onOpenOrganizer={() => setIsOrganizerOpen(true)}
+          onOpenOrganizer={() => {
+            setIsAdminMode(true);
+            window.location.hash = 'admin';
+          }}
         />
       </main>
 

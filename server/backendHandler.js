@@ -45,24 +45,51 @@ function verifyKeyChecksum(key) {
   return check === expectedCheck;
 }
 
+let memoryCache = null;
+
+function getEffectiveDataFile() {
+  if (process.env.VERCEL) {
+    const tmpFile = path.join('/tmp', 'c3_members.json');
+    if (!fs.existsSync(tmpFile)) {
+      try {
+        if (fs.existsSync(DATA_FILE)) {
+          fs.copyFileSync(DATA_FILE, tmpFile);
+        } else {
+          fs.writeFileSync(tmpFile, '[]', 'utf-8');
+        }
+      } catch (e) {
+        console.warn('Fallback to in-memory store:', e.message);
+      }
+    }
+    return tmpFile;
+  }
+  return DATA_FILE;
+}
+
 function getMembers() {
   try {
-    if (!fs.existsSync(DATA_FILE)) {
-      return [];
+    const targetFile = getEffectiveDataFile();
+    if (fs.existsSync(targetFile)) {
+      const data = fs.readFileSync(targetFile, 'utf-8');
+      memoryCache = JSON.parse(data);
+      return memoryCache;
     }
-    const data = fs.readFileSync(DATA_FILE, 'utf-8');
-    return JSON.parse(data);
+    if (memoryCache) return memoryCache;
+    return [];
   } catch (err) {
-    console.error('Error reading members.json:', err);
+    if (memoryCache) return memoryCache;
+    console.error('Error reading members:', err);
     return [];
   }
 }
 
 function saveMembers(members) {
+  memoryCache = members;
   try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(members, null, 2), 'utf-8');
+    const targetFile = getEffectiveDataFile();
+    fs.writeFileSync(targetFile, JSON.stringify(members, null, 2), 'utf-8');
   } catch (err) {
-    console.error('Error writing members.json:', err);
+    console.warn('Could not write to disk, saved in-memory:', err.message);
   }
 }
 
