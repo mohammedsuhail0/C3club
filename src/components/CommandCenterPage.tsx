@@ -873,9 +873,12 @@ function onFormSubmit(e) {
                                 <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full uppercase font-semibold ${
                                   member.source === 'google_form'
                                     ? 'bg-purple-950/60 text-purple-300 border border-purple-800/40'
+                                    : member.source === 'google_sheet_sync'
+                                    ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/40'
                                     : 'bg-blue-950/60 text-blue-300 border border-blue-800/40'
                                 }`}>
-                                  {member.source === 'google_form' ? 'Google Form' : 'Website'}
+                                  {member.source === 'google_form' ? 'Google Form' : 
+                                   member.source === 'google_sheet_sync' ? 'Google Sheet' : 'Website'}
                                 </span>
                               </td>
 
@@ -1434,9 +1437,12 @@ function onFormSubmit(e) {
                       <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full uppercase font-semibold ${
                         selectedApplicant.source === 'google_form'
                           ? 'bg-purple-950/60 text-purple-300 border border-purple-800/40'
+                          : selectedApplicant.source === 'google_sheet_sync'
+                          ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/40'
                           : 'bg-blue-950/60 text-blue-300 border border-blue-800/40'
                       }`}>
-                        {selectedApplicant.source === 'google_form' ? 'Google Form' : 'Website'}
+                        {selectedApplicant.source === 'google_form' ? 'Google Form' : 
+                         selectedApplicant.source === 'google_sheet_sync' ? 'Google Sheet' : 'Website'}
                       </span>
                     </div>
                     <p className="text-xs font-mono text-[#9E9587] mt-0.5">
@@ -1468,29 +1474,90 @@ function onFormSubmit(e) {
                   </div>
                 </div>
 
-                {/* Screening Question Responses */}
-                <div className="space-y-4">
+                {/* Candidate Screening Responses */}
+                <div className="space-y-3.5">
                   <h4 className="text-xs font-mono uppercase tracking-wider text-[#CC5A36] font-bold">
                     Candidate Screening Responses
                   </h4>
 
+                  {/* Built / Designed */}
                   <div className="p-4 rounded-2xl bg-[#12100C] border border-[#2E2922] space-y-1.5">
                     <span className="text-[11px] font-mono text-[#8C8275] block font-semibold">
-                      What do you want to build at C3?
+                      What is one thing you have built, designed, or broken?
                     </span>
-                    <p className="text-xs font-sans text-white leading-relaxed">
-                      {selectedApplicant.answers?.projectIdea || 'No project description provided.'}
+                    <p className="text-xs font-sans text-white leading-relaxed whitespace-pre-wrap">
+                      {selectedApplicant.answers?.built || selectedApplicant.answers?.projectIdea || 'No description provided.'}
                     </p>
                   </div>
 
+                  {/* AI & Coding Experience */}
+                  {selectedApplicant.answers?.experience && (
+                    <div className="p-4 rounded-2xl bg-[#12100C] border border-[#2E2922] space-y-1.5">
+                      <span className="text-[11px] font-mono text-[#8C8275] block font-semibold">
+                        Experience with AI tools &amp; coding workflows
+                      </span>
+                      <p className="text-xs font-sans text-white leading-relaxed whitespace-pre-wrap">
+                        {selectedApplicant.answers.experience}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 48-Hour Weekend Shipping Scenario */}
+                  {selectedApplicant.answers?.weekendScenario && (
+                    <div className="p-4 rounded-2xl bg-[#12100C] border border-[#2E2922] space-y-1.5">
+                      <span className="text-[11px] font-mono text-[#8C8275] block font-semibold">
+                        Weekend Shipping Scenario (48 Hours Prototype)
+                      </span>
+                      <p className="text-xs font-sans text-white leading-relaxed whitespace-pre-wrap">
+                        {selectedApplicant.answers.weekendScenario}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Motivation / Why CCC */}
                   <div className="p-4 rounded-2xl bg-[#12100C] border border-[#2E2922] space-y-1.5">
                     <span className="text-[11px] font-mono text-[#8C8275] block font-semibold">
-                      Why do you want to join the founding cohort?
+                      Why build CCC instead of joining a conventional club?
                     </span>
-                    <p className="text-xs font-sans text-white leading-relaxed">
+                    <p className="text-xs font-sans text-white leading-relaxed whitespace-pre-wrap">
                       {selectedApplicant.answers?.motivation || 'No motivation statement provided.'}
                     </p>
                   </div>
+
+                  {/* Weekly Commitment */}
+                  {selectedApplicant.answers?.commitment && (
+                    <div className="p-3.5 rounded-2xl bg-[#12100C] border border-[#2E2922] flex items-center justify-between">
+                      <span className="text-[11px] font-mono text-[#8C8275] font-semibold">
+                        Estimated Weekly Commitment:
+                      </span>
+                      <span className="text-xs font-mono font-bold text-emerald-400">
+                        {selectedApplicant.answers.commitment}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Portfolio & Links */}
+                  {selectedApplicant.answers?.links && (
+                    <div className="p-3.5 rounded-2xl bg-[#12100C] border border-[#2E2922] space-y-1">
+                      <span className="text-[11px] font-mono text-[#8C8275] block font-semibold">
+                        Links &amp; Portfolio:
+                      </span>
+                      <div className="text-xs font-mono text-[#CC5A36] break-all">
+                        {selectedApplicant.answers.links.split(/[\s,]+/).filter(Boolean).map((link, idx) => (
+                          <div key={idx}>
+                            {link.startsWith('http') ? (
+                              <a href={link} target="_blank" rel="noreferrer" className="hover:underline flex items-center gap-1">
+                                <span>{link}</span>
+                                <ExternalLink className="w-3 h-3 shrink-0" />
+                              </a>
+                            ) : (
+                              <span>{link}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Track Assignment */}
@@ -1499,16 +1566,16 @@ function onFormSubmit(e) {
                     Cohort Track / Role
                   </label>
                   <select
-                    value={selectedApplicant.role || 'Founding Builder'}
+                    value={selectedApplicant.role || 'Technical & AI Architect'}
                     onChange={(e) => handleReviewDecision(selectedApplicant.id, selectedApplicant.status === 'accepted' ? 'accept' : 'accept', e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-[#12100C] border border-[#2E2922] rounded-xl text-xs font-mono text-white focus:outline-none focus:border-[#CC5A36]"
                   >
-                    <option value="Founding Builder">Founding Builder</option>
+                    <option value="Technical & AI Architect">Technical &amp; AI Architect</option>
+                    <option value="Project Founder">Project Founder</option>
+                    <option value="Design & Creative Lead">Design &amp; Creative Lead</option>
+                    <option value="Growth & Community Lead">Growth &amp; Community Lead</option>
                     <option value="Vibe Coder / Shipper">Vibe Coder / Shipper</option>
-                    <option value="Agentic AI Engineer">Agentic AI Engineer</option>
-                    <option value="Full Stack Systems Hacker">Full Stack Systems Hacker</option>
-                    <option value="Technical Founder / Lead">Technical Founder / Lead</option>
-                    <option value="Prompt Engineer / Researcher">Prompt Engineer / Researcher</option>
+                    <option value="Founding Builder">Founding Builder</option>
                   </select>
                 </div>
 

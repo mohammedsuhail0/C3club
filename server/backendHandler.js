@@ -530,48 +530,89 @@ async function routeApi(method, pathname, url, body, req, res) {
       const rows = parseCSV(csvText);
 
       let addedCount = 0;
+      let updatedCount = 0;
       for (const r of rows) {
         let name = '';
         let phone = '';
         let email = '';
-        let branch = 'CSE';
-        let year = '3rd Year';
-        let projectIdea = '';
+        let branchRaw = '';
+        let yearRaw = '';
+        let roleRaw = '';
+        let links = '';
+        let built = '';
+        let experience = '';
+        let weekendScenario = '';
         let motivation = '';
+        let commitment = '';
 
         for (const [colName, val] of Object.entries(r)) {
           const col = colName.toLowerCase();
           if (!name && col.includes('name')) name = val;
           else if (!phone && (col.includes('phone') || col.includes('whatsapp') || col.includes('mobile') || col.includes('contact') || col.includes('number'))) phone = val;
           else if (!email && col.includes('email')) email = val;
-          else if (col.includes('branch') || col.includes('dept')) branch = val || branch;
-          else if (col.includes('year')) year = val || year;
-          else if (!projectIdea && (col.includes('build') || col.includes('project') || col.includes('idea'))) projectIdea = val;
-          else if (!motivation && (col.includes('why') || col.includes('motivation') || col.includes('reason'))) motivation = val;
+          else if (col.includes('branch') || col.includes('department') || col.includes('study')) branchRaw = val;
+          else if (col.includes('year') && !branchRaw) yearRaw = val;
+          else if (col.includes('role')) roleRaw = val;
+          else if (col.includes('link') || col.includes('github') || col.includes('portfolio') || col.includes('linkedin')) links = val;
+          else if (col.includes('built') || col.includes('broken')) built = val;
+          else if (col.includes('experience') || col.includes('workflows')) experience = val;
+          else if (col.includes('weekend') || col.includes('48 hours') || col.includes('scenario')) weekendScenario = val;
+          else if (col.includes('why') || col.includes('motivation') || col.includes('instead of')) motivation = val;
+          else if (col.includes('commitment') || col.includes('weekly') || col.includes('hours')) commitment = val;
         }
 
         if (name && phone) {
           const cleanPhone = String(phone).trim();
           const cleanEmail = String(email || '').trim().toLowerCase();
-          const exists = members.find(m => m.phone === cleanPhone || (cleanEmail && m.email && m.email.toLowerCase() === cleanEmail));
+          const { branch, year } = parseBranchAndYear(branchRaw || yearRaw);
+          const role = parseRole(roleRaw);
 
-          if (!exists) {
+          const existingIndex = members.findIndex(m => 
+            m.phone === cleanPhone || (cleanEmail && m.email && m.email.toLowerCase() === cleanEmail)
+          );
+
+          const answersObj = {
+            projectIdea: built || weekendScenario || '',
+            motivation: motivation || '',
+            built: built || '',
+            experience: experience || '',
+            weekendScenario: weekendScenario || '',
+            links: links || '',
+            commitment: commitment || ''
+          };
+
+          if (existingIndex !== -1) {
+            // Update existing member with smarter parsed branch, year, and detailed answers
+            const existing = members[existingIndex];
+            existing.branch = branch;
+            existing.year = year;
+            if (!existing.role || existing.role === 'Vibe Coder / Shipper') {
+              existing.role = role;
+            }
+            existing.source = 'google_sheet_sync';
+            existing.answers = {
+              ...(existing.answers || {}),
+              ...answersObj
+            };
+            updatedCount++;
+          } else {
+            // Add new applicant
             members.push({
               id: `fnd_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 5)}`,
               name: String(name).trim(),
               email: cleanEmail,
               phone: cleanPhone,
-              branch: String(branch).trim(),
-              year: String(year).trim(),
+              branch,
+              year,
               founderKey: '',
               status: 'pending_review',
-              role: 'Vibe Coder / Shipper',
+              role,
               customRole: '',
               claimedAt: null,
               printedAt: null,
               emailSentAt: null,
               source: 'google_sheet_sync',
-              answers: { projectIdea, motivation },
+              answers: answersObj,
               createdAt: new Date().toISOString()
             });
             addedCount++;
@@ -579,7 +620,7 @@ async function routeApi(method, pathname, url, body, req, res) {
         }
       }
 
-      if (addedCount > 0) {
+      if (addedCount > 0 || updatedCount > 0) {
         saveMembers(members);
       }
 
@@ -678,4 +719,49 @@ function parseCSV(text) {
     rows.push(obj);
   }
   return rows;
+}
+
+function parseBranchAndYear(raw) {
+  if (!raw) return { branch: 'CSE', year: '3rd Year' };
+  const str = String(raw).trim();
+
+  let year = '';
+  if (/(\bIV\b|\b4th\b|\bfourth\b|\bfinal\b|2021[-–]25|2022[-–]26)/i.test(str)) {
+    year = '4th Year';
+  } else if (/(\bIII\b|\b3rd\b|\bthird\b|2023[-–]27)/i.test(str)) {
+    year = '3rd Year';
+  } else if (/(\bII\b|\b2nd\b|\bsecond\b|2024[-–]28)/i.test(str)) {
+    year = '2nd Year';
+  } else if (/(\b1st\b|\bfirst\b|2025[-–]29)/i.test(str)) {
+    year = '1st Year';
+  }
+
+  let branch = '';
+  const upper = str.toUpperCase();
+  if (upper.includes('AI') && upper.includes('DS')) branch = 'AI&DS';
+  else if (upper.includes('AI') && upper.includes('ML')) branch = 'AI&ML';
+  else if (upper.includes('CSE') || upper.includes('COMPUTER')) branch = 'CSE';
+  else if (/\bIT\b/.test(upper) || upper.includes('INFORMATION')) branch = 'IT';
+  else if (/\bECE\b/.test(upper) || upper.includes('ELECTRONIC')) branch = 'ECE';
+  else if (/\bEEE\b/.test(upper) || upper.includes('ELECTRICAL')) branch = 'EEE';
+  else if (/\bMECH\b/.test(upper) || upper.includes('MECHANICAL')) branch = 'MECH';
+  else if (/\bCIVIL\b/.test(upper)) branch = 'CIVIL';
+  else {
+    branch = str.split(/[,&]/)[0].trim();
+  }
+
+  return {
+    branch: branch || 'CSE',
+    year: year || '3rd Year'
+  };
+}
+
+function parseRole(raw) {
+  if (!raw) return 'Technical & AI Architect';
+  const str = String(raw);
+  if (str.includes('Technical & AI Architect') || str.includes('Prompt Engineering')) return 'Technical & AI Architect';
+  if (str.includes('Project Founder') || str.includes('Lead your own startup')) return 'Project Founder';
+  if (str.includes('Design & Creative Lead') || str.includes('UI/UX')) return 'Design & Creative Lead';
+  if (str.includes('Growth') || str.includes('Community')) return 'Growth & Community Lead';
+  return str.split(/[,(]/)[0].trim() || 'Technical & AI Architect';
 }
