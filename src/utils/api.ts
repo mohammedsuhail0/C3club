@@ -265,3 +265,23 @@ export async function syncGoogleSheetApi(rows: Record<string, string>[]): Promis
     return { success: false, addedCount: 0, total: 0 };
   }
 }
+
+export async function syncGoogleSheetFromUrlApi(url: string): Promise<{ 
+  success: boolean; 
+  addedCount: number; 
+  total: number; 
+  message?: string;
+  members?: MemberRecord[];
+}> {
+  try {
+    const res = await fetch('/api/sync-sheet-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    return await res.json();
+  } catch (e: any) {
+    console.error('Failed to sync sheet from URL:', e);
+    return { success: false, addedCount: 0, total: 0, message: e.message || 'Network error syncing sheet' };
+  }
+}

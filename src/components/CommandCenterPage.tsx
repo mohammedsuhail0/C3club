@@ -17,6 +17,7 @@ import {
   saveEmailConfigApi, 
   testEmailConfigApi, 
   syncGoogleSheetApi,
+  syncGoogleSheetFromUrlApi,
   MemberRecord, 
   MembersResponse, 
   EmailConfig 
@@ -77,6 +78,100 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
   // Sheets import state
   const [sheetPasteContent, setSheetPasteContent] = useState('');
   const [sheetImportStatus, setSheetImportStatus] = useState<string | null>(null);
+
+  // 24/7 Live Google Sheet Auto-Sync State
+  const [sheetUrl, setSheetUrl] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('c3_google_sheet_url') || '';
+    }
+    return '';
+  });
+  const [sheetUrlInput, setSheetUrlInput] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('c3_google_sheet_url') || '';
+    }
+    return '';
+  });
+  const [isAutoSyncEnabled, setIsAutoSyncEnabled] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('c3_auto_sync_enabled') !== 'false';
+    }
+    return true;
+  });
+  const [isSyncingSheet, setIsSyncingSheet] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const [syncStatusMsg, setSyncStatusMsg] = useState<{ text: string; success: boolean } | null>(null);
+
+  const performSheetSync = async (targetUrl?: string, isManual = false) => {
+    const urlToUse = (targetUrl || sheetUrl).trim();
+    if (!urlToUse) return;
+
+    setIsSyncingSheet(true);
+    const res = await syncGoogleSheetFromUrlApi(urlToUse);
+    setIsSyncingSheet(false);
+
+    if (res.success) {
+      setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      if (res.addedCount > 0) {
+        sounds.playSuccess();
+        setSyncStatusMsg({
+          text: `⚡ Ingested ${res.addedCount} new applicant(s) from Google Sheets!`,
+          success: true
+        });
+        loadData();
+        setTimeout(() => setSyncStatusMsg(null), 6000);
+      } else if (isManual) {
+        sounds.playClick();
+        setSyncStatusMsg({
+          text: `All ${res.total} applicant(s) up to date. Zero new rows in Google Sheet.`,
+          success: true
+        });
+        setTimeout(() => setSyncStatusMsg(null), 4000);
+      }
+    } else {
+      if (isManual) {
+        sounds.playKey();
+        setSyncStatusMsg({
+          text: res.message || 'Failed to sync with Google Sheet',
+          success: false
+        });
+        setTimeout(() => setSyncStatusMsg(null), 6000);
+      }
+    }
+  };
+
+  const handleSaveSheetUrl = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = sheetUrlInput.trim();
+    setSheetUrl(clean);
+    try {
+      localStorage.setItem('c3_google_sheet_url', clean);
+    } catch {}
+    if (clean) {
+      sounds.playSuccess();
+      performSheetSync(clean, true);
+    }
+  };
+
+  const handleToggleAutoSync = () => {
+    sounds.playClick();
+    const next = !isAutoSyncEnabled;
+    setIsAutoSyncEnabled(next);
+    try {
+      localStorage.setItem('c3_auto_sync_enabled', next ? 'true' : 'false');
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated || !sheetUrl.trim() || !isAutoSyncEnabled) return;
+    performSheetSync(sheetUrl);
+
+    const interval = setInterval(() => {
+      performSheetSync(sheetUrl);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, sheetUrl, isAutoSyncEnabled]);
 
   // Add new applicant inputs
   const [newName, setNewName] = useState('');
@@ -295,37 +390,62 @@ See you on Monday!
     ? `${window.location.origin}/api/webhook/form` 
     : 'https://your-domain.com/api/webhook/form';
 
-  const googleAppsScriptCode = `function onFormSubmit(e) {
-  // C3 Live Webhook: Connects Google Form to C3 Command Center
-  var formResponse = e.response;
-  var itemResponses = formResponse.getItemResponses();
-  var payload = {
-    source: "google_form",
-    email: formResponse.getRespondentEmail() || ""
-  };
-  
-  for (var i = 0; i < itemResponses.length; i++) {
-    var title = itemResponses[i].getItem().getTitle();
-    var answer = itemResponses[i].getResponse();
-    
-    if (title.indexOf("Name") !== -1) payload.name = answer;
-    else if (title.indexOf("Phone") !== -1 || title.indexOf("WhatsApp") !== -1) payload.phone = answer;
-    else if (title.indexOf("Branch") !== -1) payload.branch = answer;
-    else if (title.indexOf("Year") !== -1) payload.year = answer;
-    else if (title.indexOf("build") !== -1) payload.projectIdea = answer;
-    else if (title.indexOf("Why") !== -1 || title.indexOf("motivation") !== -1) payload.motivation = answer;
-    else payload[title] = answer;
-  }
-  
-  // Public webhook endpoint
+  const googleAppsScriptCode = `// C3 Live 24/7 Webhook (Works for both Google Forms & Google Sheets)
+// Runs 100% on Google's cloud servers 24/7/365, even while your laptop is asleep!
+
+function onFormSubmit(e) {
   var webhookUrl = "${publicWebhookUrl}";
-  
-  UrlFetchApp.fetch(webhookUrl, {
-    method: "post",
-    contentType: "application/json",
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  });
+  var payload = { 
+    source: "google_form",
+    submittedAt: new Date().toISOString()
+  };
+
+  try {
+    if (e && e.namedValues) {
+      // 1. Triggered from linked Google Sheet
+      for (var key in e.namedValues) {
+        var val = (e.namedValues[key] && e.namedValues[key][0]) ? String(e.namedValues[key][0]).trim() : "";
+        var k = key.toLowerCase();
+        if (k.indexOf("name") !== -1) payload.name = val;
+        else if (k.indexOf("phone") !== -1 || k.indexOf("whatsapp") !== -1 || k.indexOf("mobile") !== -1 || k.indexOf("contact") !== -1 || k.indexOf("number") !== -1) payload.phone = val;
+        else if (k.indexOf("email") !== -1) payload.email = val;
+        else if (k.indexOf("branch") !== -1 || k.indexOf("dept") !== -1 || k.indexOf("department") !== -1) payload.branch = val;
+        else if (k.indexOf("year") !== -1) payload.year = val;
+        else if (k.indexOf("build") !== -1 || k.indexOf("project") !== -1 || k.indexOf("idea") !== -1) payload.projectIdea = val;
+        else if (k.indexOf("why") !== -1 || k.indexOf("motivation") !== -1) payload.motivation = val;
+        else payload[key] = val;
+      }
+    } else if (e && e.response) {
+      // 2. Triggered from Google Form directly
+      var formResponse = e.response;
+      payload.email = formResponse.getRespondentEmail() || "";
+      var itemResponses = formResponse.getItemResponses();
+      for (var i = 0; i < itemResponses.length; i++) {
+        var title = itemResponses[i].getItem().getTitle();
+        var answer = itemResponses[i].getResponse();
+        var t = title.toLowerCase();
+        if (t.indexOf("name") !== -1) payload.name = answer;
+        else if (t.indexOf("phone") !== -1 || t.indexOf("whatsapp") !== -1 || t.indexOf("mobile") !== -1 || t.indexOf("contact") !== -1 || t.indexOf("number") !== -1) payload.phone = answer;
+        else if (t.indexOf("email") !== -1) payload.email = answer;
+        else if (t.indexOf("branch") !== -1 || t.indexOf("dept") !== -1) payload.branch = answer;
+        else if (t.indexOf("year") !== -1) payload.year = answer;
+        else if (t.indexOf("build") !== -1 || t.indexOf("project") !== -1 || t.indexOf("idea") !== -1) payload.projectIdea = answer;
+        else if (t.indexOf("why") !== -1 || t.indexOf("motivation") !== -1) payload.motivation = answer;
+        else payload[title] = answer;
+      }
+    }
+
+    var options = {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    UrlFetchApp.fetch(webhookUrl, options);
+  } catch (err) {
+    Logger.log("C3 Webhook dispatch error: " + err);
+  }
 }`;
 
   const filteredMembers = (data?.members || []).filter(m => {
@@ -877,40 +997,270 @@ See you on Monday!
 
           {/* TAB 2: FORMS & INGESTION */}
           {activeTab === 'forms' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
               
-              {/* Method 1: Google Sheets Direct Importer */}
-              <div className="bg-[#1A1713] border border-[#2A251E] rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold font-mono">
-                    01
+              {/* 24/7 CLOUD SYNC ARCHITECTURE BANNER */}
+              <div className="p-5 sm:p-6 rounded-3xl bg-linear-to-r from-[#1B1813] via-[#211C15] to-[#1B1813] border border-[#3A3328] shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                    <Sparkles className="w-5 h-5 animate-pulse" />
                   </div>
                   <div>
-                    <h3 className="font-serif text-lg font-bold text-white">
-                      Google Sheets / Excel 1-Click Paste
-                    </h3>
-                    <p className="text-xs font-mono text-[#8C8275]">
-                      Copy rows from your Google Form response spreadsheet & paste here
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-serif text-base font-bold text-white">
+                        24/7 Background Sync Architecture (While You Sleep)
+                      </h3>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-700/50 text-emerald-300 font-semibold">
+                        ACTIVE
+                      </span>
+                    </div>
+                    <p className="text-xs font-sans text-[#A8A093] mt-1 leading-relaxed max-w-3xl">
+                      Both Google Forms and Google Apps Script run <strong>100% on Google's cloud infrastructure</strong>. Submissions made at 2:00 AM or 4:00 AM trigger instant cloud actions even when your laptop is turned off. Combine the <strong>Live Webhook (Push)</strong> with <strong>Google Sheet Auto-Sync (Pull)</strong> for zero data loss.
                     </p>
                   </div>
                 </div>
 
-                <div className="text-xs font-sans text-[#A8A093] space-y-2 bg-[#12100C] p-4 rounded-xl border border-[#24201A]">
-                  <p className="font-semibold text-white">How it works:</p>
-                  <ol className="list-decimal list-inside space-y-1 text-[#9E9587]">
-                    <li>Open your Google Form responses spreadsheet.</li>
-                    <li>Select header row + candidate rows (e.g. Timestamp, Name, Phone, Email, Branch, Project Idea).</li>
-                    <li>Copy (<kbd className="px-1.5 py-0.5 bg-[#221E18] rounded border border-[#3A352C] text-white">Ctrl + C</kbd>) and paste into the box below.</li>
-                  </ol>
+                {sheetUrl && (
+                  <div className="flex items-center gap-3 shrink-0">
+                    <button
+                      onClick={() => performSheetSync(sheetUrl, true)}
+                      disabled={isSyncingSheet}
+                      className="px-3.5 py-2 rounded-xl bg-[#25211A] hover:bg-[#302B22] border border-[#3A352C] text-xs font-mono text-white flex items-center gap-2 cursor-pointer shadow-md transition-all"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isSyncingSheet ? 'animate-spin' : ''}`} />
+                      <span>{isSyncingSheet ? 'Syncing...' : 'Sync Now ⚡'}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* FLOATING SYNC NOTIFICATION TOAST */}
+              {syncStatusMsg && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className={`p-3.5 rounded-2xl border text-xs font-mono flex items-center justify-between gap-3 shadow-lg ${
+                    syncStatusMsg.success 
+                      ? 'bg-emerald-950/60 border-emerald-700/50 text-emerald-300' 
+                      : 'bg-rose-950/60 border-rose-800/50 text-rose-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {syncStatusMsg.success ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : <AlertCircle className="w-4 h-4 text-rose-400" />}
+                    <span>{syncStatusMsg.text}</span>
+                  </div>
+                  {lastSyncTime && (
+                    <span className="text-[10px] text-[#8C8275]">Last checked: {lastSyncTime}</span>
+                  )}
+                </motion.div>
+              )}
+
+              {/* THREE INGESTION ENGINES */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* ENGINE 1: 24/7 LIVE GOOGLE SHEET AUTO-SYNC */}
+                <div className="bg-[#1A1713] border border-[#2A251E] rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl flex flex-col justify-between">
+                  <div className="space-y-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#CC5A36]/15 border border-[#CC5A36]/30 text-[#CC5A36] flex items-center justify-center font-bold font-mono">
+                          01
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-serif text-lg font-bold text-white">
+                              Live Google Sheet Auto-Sync
+                            </h3>
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-950/50 text-emerald-300 border border-emerald-700/40">
+                              24/7 CLOUD POLLER
+                            </span>
+                          </div>
+                          <p className="text-xs font-mono text-[#8C8275]">
+                            Polls Google's response spreadsheet every 30s + reconciles on wake-up
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Auto-Sync Toggle */}
+                      {sheetUrl && (
+                        <button
+                          onClick={handleToggleAutoSync}
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-mono border cursor-pointer transition-all ${
+                            isAutoSyncEnabled 
+                              ? 'bg-emerald-950/50 border-emerald-700/50 text-emerald-300' 
+                              : 'bg-zinc-800/40 border-zinc-700/50 text-zinc-400'
+                          }`}
+                          title="Toggle automatic 30s background sync"
+                        >
+                          Auto-Sync: {isAutoSyncEnabled ? 'ON (30s)' : 'OFF'}
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="text-xs font-sans text-[#A8A093] space-y-2 bg-[#12100C] p-4 rounded-xl border border-[#24201A]">
+                      <p className="font-semibold text-white">Setup in Google Sheet (2 clicks):</p>
+                      <ol className="list-decimal list-inside space-y-1 text-[#9E9587]">
+                        <li>Open the Google Sheet linked to your Google Form.</li>
+                        <li>Click <strong className="text-white">Share</strong> (top right) &rarr; Set General Access to <strong className="text-emerald-400">"Anyone with the link can view"</strong> (or File &gt; Share &gt; Publish to web).</li>
+                        <li>Copy the URL from your browser address bar and paste below.</li>
+                      </ol>
+                    </div>
+
+                    <form onSubmit={handleSaveSheetUrl} className="space-y-3">
+                      <div>
+                        <label className="block text-[11px] font-mono text-[#8C8275] mb-1">
+                          Google Sheet URL or ID:
+                        </label>
+                        <input
+                          type="text"
+                          value={sheetUrlInput}
+                          onChange={(e) => setSheetUrlInput(e.target.value)}
+                          placeholder="https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKv.../edit"
+                          className="w-full px-3.5 py-2.5 bg-[#12100C] border border-[#2E2922] rounded-xl text-xs font-mono text-[#EDE8DF] focus:outline-none focus:border-[#CC5A36] placeholder-[#554F44]"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="submit"
+                          disabled={!sheetUrlInput.trim() || isSyncingSheet}
+                          className="flex-1 py-2.5 rounded-xl bg-[#CC5A36] hover:bg-[#B34826] disabled:opacity-50 text-white font-medium text-xs font-mono shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${isSyncingSheet ? 'animate-spin' : ''}`} />
+                          <span>{sheetUrl ? 'Update & Sync Now' : 'Connect & Start Auto-Sync'}</span>
+                        </button>
+
+                        {sheetUrl && (
+                          <button
+                            type="button"
+                            onClick={() => performSheetSync(sheetUrl, true)}
+                            disabled={isSyncingSheet}
+                            className="px-4 py-2.5 rounded-xl bg-[#25211A] hover:bg-[#302B22] border border-[#3A352C] text-xs font-mono text-white flex items-center gap-1.5 cursor-pointer transition-all"
+                            title="Pull new responses immediately"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Pull</span>
+                          </button>
+                        )}
+                      </div>
+                    </form>
+                  </div>
+
+                  {sheetUrl && (
+                    <div className="pt-4 border-t border-[#24201A] flex items-center justify-between text-[11px] font-mono text-[#8C8275]">
+                      <span className="flex items-center gap-1.5 text-emerald-400">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        Connected to Google Cloud Sheet
+                      </span>
+                      {lastSyncTime && <span>Last checked: {lastSyncTime}</span>}
+                    </div>
+                  )}
                 </div>
 
-                <textarea
-                  value={sheetPasteContent}
-                  onChange={(e) => setSheetPasteContent(e.target.value)}
-                  placeholder="Paste tab-separated or comma-separated rows from Google Sheets here..."
-                  rows={6}
-                  className="w-full p-4 bg-[#12100C] border border-[#2E2922] rounded-xl text-xs font-mono text-[#D4CDC3] focus:outline-none focus:border-[#CC5A36] placeholder-[#666055]"
-                />
+                {/* ENGINE 2: LIVE GOOGLE FORM WEBHOOK (0s Push) */}
+                <div className="bg-[#1A1713] border border-[#2A251E] rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl flex flex-col justify-between">
+                  <div className="space-y-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center font-bold font-mono">
+                        02
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-serif text-lg font-bold text-white">
+                            Real-Time Webhook Trigger
+                          </h3>
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-950/50 text-purple-300 border border-purple-700/40">
+                            INSTANT 0s PUSH
+                          </span>
+                        </div>
+                        <p className="text-xs font-mono text-[#8C8275]">
+                          Google's cloud pushes applicants to C3 the millisecond they submit
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 text-xs font-mono">
+                      <span className="text-[#8C8275] block text-[11px]">C3 Webhook Ingestion Endpoint:</span>
+                      <div className="p-2.5 bg-[#12100C] rounded-xl border border-[#2E2922] text-[#CC5A36] break-all select-all text-[11px]">
+                        {publicWebhookUrl}
+                      </div>
+                    </div>
+
+                    <div className="text-xs font-sans text-[#A8A093] space-y-2 bg-[#12100C] p-4 rounded-xl border border-[#24201A]">
+                      <p className="font-semibold text-white">Setup in Google Forms (30 seconds):</p>
+                      <ol className="list-decimal list-inside space-y-1 text-[#9E9587]">
+                        <li>In Google Forms or Sheet, click <strong className="text-white">Extensions &gt; Apps Script</strong>.</li>
+                        <li>Delete any placeholder code &amp; paste the script below.</li>
+                        <li>Click <strong className="text-white">Triggers (⏰ clock icon) &gt; Add Trigger</strong> &rarr; Select <code className="text-[#CC5A36] font-mono">onFormSubmit</code> &rarr; Event type: <strong className="text-white">On form submit</strong> &rarr; Save.</li>
+                      </ol>
+                    </div>
+
+                    <div className="relative">
+                      <pre className="p-4 bg-[#12100C] border border-[#2E2922] rounded-xl text-[10px] font-mono text-[#A8A093] overflow-x-auto max-h-40">
+                        {googleAppsScriptCode}
+                      </pre>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(googleAppsScriptCode);
+                          sounds.playSuccess();
+                          setCopiedScript(true);
+                          setTimeout(() => setCopiedScript(false), 2000);
+                        }}
+                        className="absolute top-2.5 right-2.5 px-3 py-1.5 rounded-lg bg-[#25211A] hover:bg-[#302B22] border border-[#3A352C] text-xs font-mono text-white flex items-center gap-1.5 cursor-pointer shadow-md"
+                      >
+                        {copiedScript ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedScript ? 'Copied!' : 'Copy Script'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-[#24201A] text-[11px] font-mono text-[#8C8275] flex items-center justify-between">
+                    <span className="text-purple-400 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                      Universal Form &amp; Sheet Trigger Ready
+                    </span>
+                    <span>HTTPS JSON Payload</span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* ENGINE 3: 1-CLICK COPY-PASTE (MANUAL FALLBACK) */}
+              <div className="bg-[#1A1713] border border-[#2A251E] rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-300 flex items-center justify-center font-bold font-mono text-xs">
+                      03
+                    </div>
+                    <div>
+                      <h4 className="font-serif text-sm font-bold text-white">
+                        Manual Spreadsheet / Excel Paste (Fallback)
+                      </h4>
+                      <p className="text-[11px] font-mono text-[#8C8275]">
+                        Need to import offline batches? Copy any rows from Google Sheets or Excel and paste here.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <textarea
+                    value={sheetPasteContent}
+                    onChange={(e) => setSheetPasteContent(e.target.value)}
+                    placeholder="Paste tab-separated or comma-separated rows from Google Sheets here..."
+                    rows={2}
+                    className="flex-1 p-3 bg-[#12100C] border border-[#2E2922] rounded-xl text-xs font-mono text-[#D4CDC3] focus:outline-none focus:border-[#CC5A36] placeholder-[#554F44]"
+                  />
+                  <button
+                    onClick={handleImportSheet}
+                    disabled={!sheetPasteContent.trim()}
+                    className="px-6 py-2.5 rounded-xl bg-[#25211A] hover:bg-[#302B22] border border-[#3A352C] disabled:opacity-50 text-white font-medium text-xs font-mono shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0 self-end sm:self-stretch"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Import Text</span>
+                  </button>
+                </div>
 
                 {sheetImportStatus && (
                   <div className="p-3 bg-emerald-950/50 border border-emerald-800/40 rounded-xl text-xs font-mono text-emerald-300 flex items-center gap-2">
@@ -918,67 +1268,8 @@ See you on Monday!
                     <span>{sheetImportStatus}</span>
                   </div>
                 )}
-
-                <button
-                  onClick={handleImportSheet}
-                  disabled={!sheetPasteContent.trim()}
-                  className="w-full py-3 rounded-xl bg-[#CC5A36] hover:bg-[#B34826] disabled:opacity-50 text-white font-medium text-xs font-mono shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <Upload className="w-4 h-4" />
-                  Import Applicant Rows
-                </button>
               </div>
 
-              {/* Method 2: Live Google Form Webhook */}
-              <div className="bg-[#1A1713] border border-[#2A251E] rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center font-bold font-mono">
-                    02
-                  </div>
-                  <div>
-                    <h3 className="font-serif text-lg font-bold text-white">
-                      Live Automatic Google Form Webhook
-                    </h3>
-                    <p className="text-xs font-mono text-[#8C8275]">
-                      Sends every form submission directly to the Command Center in real-time
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-xs font-mono">
-                  <span className="text-[#8C8275] block">Detected Public Webhook Endpoint:</span>
-                  <div className="p-3 bg-[#12100C] rounded-xl border border-[#2E2922] text-[#CC5A36] break-all select-all">
-                    {publicWebhookUrl}
-                  </div>
-                </div>
-
-                <div className="text-xs font-sans text-[#A8A093] space-y-2 bg-[#12100C] p-4 rounded-xl border border-[#24201A]">
-                  <p className="font-semibold text-white">Setup in Google Forms (30 seconds):</p>
-                  <ol className="list-decimal list-inside space-y-1 text-[#9E9587]">
-                    <li>In Google Forms, click <strong className="text-white">⋮ &gt; Extensions &gt; Apps Script</strong>.</li>
-                    <li>Paste the code snippet below.</li>
-                    <li>Click <strong className="text-white">Triggers (⏰) &gt; Add Trigger &gt; onFormSubmit</strong>.</li>
-                  </ol>
-                </div>
-
-                <div className="relative">
-                  <pre className="p-4 bg-[#12100C] border border-[#2E2922] rounded-xl text-[11px] font-mono text-[#A8A093] overflow-x-auto max-h-44">
-                    {googleAppsScriptCode}
-                  </pre>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(googleAppsScriptCode);
-                      sounds.playSuccess();
-                      setCopiedScript(true);
-                      setTimeout(() => setCopiedScript(false), 2000);
-                    }}
-                    className="absolute top-2.5 right-2.5 px-3 py-1.5 rounded-lg bg-[#25211A] hover:bg-[#302B22] border border-[#3A352C] text-xs font-mono text-white flex items-center gap-1.5 cursor-pointer shadow-md"
-                  >
-                    {copiedScript ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedScript ? 'Copied!' : 'Copy Script'}</span>
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 

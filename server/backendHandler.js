@@ -504,7 +504,178 @@ async function routeApi(method, pathname, url, body, req, res) {
     }));
   }
 
+  // 13. POST /api/sync-sheet-url (Fetch live Google Sheet CSV & auto-sync 24/7)
+  if (method === 'POST' && pathname === '/api/sync-sheet-url') {
+    const { url } = body;
+    if (!url) {
+      res.statusCode = 400;
+      return res.end(JSON.stringify({ success: false, message: 'Google Sheet URL or ID is required' }));
+    }
+
+    try {
+      const exportUrl = getGoogleSheetExportUrl(url);
+      const fetchRes = await fetch(exportUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+      });
+
+      if (!fetchRes.ok) {
+        res.statusCode = 400;
+        return res.end(JSON.stringify({
+          success: false,
+          message: `Failed to fetch Google Sheet CSV (HTTP ${fetchRes.status}). Verify Sheet General Access is 'Anyone with link can view' or 'Publish to web'.`
+        }));
+      }
+
+      const csvText = await fetchRes.text();
+      const rows = parseCSV(csvText);
+
+      let addedCount = 0;
+      for (const r of rows) {
+        let name = '';
+        let phone = '';
+        let email = '';
+        let branch = 'CSE';
+        let year = '3rd Year';
+        let projectIdea = '';
+        let motivation = '';
+
+        for (const [colName, val] of Object.entries(r)) {
+          const col = colName.toLowerCase();
+          if (!name && col.includes('name')) name = val;
+          else if (!phone && (col.includes('phone') || col.includes('whatsapp') || col.includes('mobile') || col.includes('contact') || col.includes('number'))) phone = val;
+          else if (!email && col.includes('email')) email = val;
+          else if (col.includes('branch') || col.includes('dept')) branch = val || branch;
+          else if (col.includes('year')) year = val || year;
+          else if (!projectIdea && (col.includes('build') || col.includes('project') || col.includes('idea'))) projectIdea = val;
+          else if (!motivation && (col.includes('why') || col.includes('motivation') || col.includes('reason'))) motivation = val;
+        }
+
+        if (name && phone) {
+          const cleanPhone = String(phone).trim();
+          const cleanEmail = String(email || '').trim().toLowerCase();
+          const exists = members.find(m => m.phone === cleanPhone || (cleanEmail && m.email && m.email.toLowerCase() === cleanEmail));
+
+          if (!exists) {
+            members.push({
+              id: `fnd_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 5)}`,
+              name: String(name).trim(),
+              email: cleanEmail,
+              phone: cleanPhone,
+              branch: String(branch).trim(),
+              year: String(year).trim(),
+              founderKey: '',
+              status: 'pending_review',
+              role: 'Vibe Coder / Shipper',
+              customRole: '',
+              claimedAt: null,
+              printedAt: null,
+              emailSentAt: null,
+              source: 'google_sheet_sync',
+              answers: { projectIdea, motivation },
+              createdAt: new Date().toISOString()
+            });
+            addedCount++;
+          }
+        }
+      }
+
+      if (addedCount > 0) {
+        saveMembers(members);
+      }
+
+      return res.end(JSON.stringify({
+        success: true,
+        addedCount,
+        total: members.length,
+        totalRowsParsed: rows.length,
+        members
+      }));
+    } catch (err) {
+      console.error('Error syncing sheet from URL:', err);
+      res.statusCode = 500;
+      return res.end(JSON.stringify({
+        success: false,
+        message: `Sync failed: ${err.message}`
+      }));
+    }
+  }
+
   // 404 for unknown /api routes
   res.statusCode = 404;
   return res.end(JSON.stringify({ error: 'Endpoint not found' }));
+}
+
+function getGoogleSheetExportUrl(url) {
+  let exportUrl = String(url || '').trim();
+  if (exportUrl.includes('/pub?output=csv') || exportUrl.includes('/export?format=csv')) {
+    return exportUrl;
+  }
+  const idMatch = exportUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (idMatch) {
+    const sheetId = idMatch[1];
+    const gidMatch = exportUrl.match(/[?&#]gid=([0-9]+)/);
+    const gid = gidMatch ? gidMatch[1] : '0';
+    return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+  }
+  if (!exportUrl.startsWith('http')) {
+    return `https://docs.google.com/spreadsheets/d/${exportUrl}/export?format=csv&gid=0`;
+  }
+  return exportUrl;
+}
+
+function parseCSV(text) {
+  if (!text || typeof text !== 'string') return [];
+  const lines = [];
+  let row = [];
+  let currentToken = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentToken += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      row.push(currentToken.trim());
+      currentToken = '';
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') {
+        i++;
+      }
+      row.push(currentToken.trim());
+      currentToken = '';
+      if (row.length > 0 && row.some(cell => cell.length > 0)) {
+        lines.push(row);
+      }
+      row = [];
+    } else {
+      currentToken += char;
+    }
+  }
+  if (currentToken.length > 0 || row.length > 0) {
+    row.push(currentToken.trim());
+    if (row.some(cell => cell.length > 0)) {
+      lines.push(row);
+    }
+  }
+
+  if (lines.length < 2) return [];
+  const headers = lines[0].map(h => h.replace(/^["']|["']$/g, '').trim());
+  const rows = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i];
+    const obj = {};
+    headers.forEach((header, idx) => {
+      obj[header] = (values[idx] || '').replace(/^["']|["']$/g, '').trim();
+    });
+    rows.push(obj);
+  }
+  return rows;
 }
