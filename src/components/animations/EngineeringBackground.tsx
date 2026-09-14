@@ -249,25 +249,19 @@ const VALID_MODES: BgMode[] = SCIENTIFIC_BG_MODES.map((b) => b.id);
 function resolveInitialBg(): BgMode {
   if (typeof window === 'undefined') return 'topo';
 
-  // 1. URL search param (?bg=topo, ?bg=lorenz, etc.)
+  // 1. URL search param (?bg=topo, ?bg=lorenz, etc.) for testing/demos
   const params = new URLSearchParams(window.location.search);
   const qBg = params.get('bg') as BgMode | null;
   if (qBg && VALID_MODES.includes(qBg)) {
     return qBg;
   }
 
-  // 2. Port-specific mapping (Ports 5001 - 5020)
+  // 2. Port-specific mapping (Ports 5001 - 5020) for local multi-port testing
   const port = parseInt(window.location.port, 10);
   const matched = SCIENTIFIC_BG_MODES.find((m) => m.port === port);
   if (matched) return matched.id;
 
-  // 3. Stored user preference
-  const saved = localStorage.getItem('c3_bg_mode') as BgMode | null;
-  if (saved && VALID_MODES.includes(saved)) {
-    return saved;
-  }
-
-  // Final Official Default: Fluid Topo Waves
+  // Official Permanent Production Default
   return 'topo';
 }
 
@@ -276,10 +270,16 @@ export const EngineeringBackground: React.FC = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
+
+  // Studio UI is strictly hidden on the main website / production.
+  // It ONLY renders if explicitly requested with ?studio=true in the URL.
+  const isStudioAllowed = typeof window !== 'undefined' && (
+    new URLSearchParams(window.location.search).get('studio') === 'true' ||
+    (parseInt(window.location.port, 10) >= 5001 && parseInt(window.location.port, 10) <= 5020)
+  );
+
   const [isDismissed, setIsDismissed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('studio') === 'true') return false;
     return localStorage.getItem('c3_bg_studio_dismissed') === 'true';
   });
 
@@ -294,7 +294,6 @@ export const EngineeringBackground: React.FC = () => {
   const switchBackground = (newMode: BgMode) => {
     setActiveBg(newMode);
     sounds.playClick();
-    localStorage.setItem('c3_bg_mode', newMode);
 
     const url = new URL(window.location.href);
     url.searchParams.set('bg', newMode);
@@ -342,11 +341,12 @@ export const EngineeringBackground: React.FC = () => {
       {activeBg === 'orbital' && <OrbitalBackground />}
       {activeBg === 'spectrogram' && <SpectrogramBackground />}
 
-      {/* Floating Scientific BG Studio Comparison Switcher */}
-      <aside
-        aria-label="C3 Background Studio Switcher"
-        className="fixed bottom-5 left-5 z-40 pointer-events-auto select-none font-mono tracking-tight"
-      >
+      {/* Floating Scientific BG Studio Comparison Switcher - strictly hidden on production unless ?studio=true */}
+      {isStudioAllowed && (
+        <aside
+          aria-label="C3 Background Studio Switcher"
+          className="fixed bottom-5 left-5 z-40 pointer-events-auto select-none font-mono tracking-tight"
+        >
         {isDismissed ? (
           <button
             onClick={() => {
@@ -520,6 +520,7 @@ export const EngineeringBackground: React.FC = () => {
           </div>
         )}
       </aside>
+      )}
     </>
   );
 };
