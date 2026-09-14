@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Printer, Sparkles, Check, Copy, ArrowRight, ShieldCheck } from 'lucide-react';
+import { X, Printer, Sparkles, Check, Copy, ArrowRight, ShieldCheck, MessageCircle } from 'lucide-react';
 import { MemberRecord } from '../utils/api';
 import { sounds } from '../utils/audio';
 
@@ -32,6 +32,35 @@ export const AcceptanceLetterModal: React.FC<AcceptanceLetterModalProps> = ({
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleWhatsApp = () => {
+    sounds.playSuccess();
+    const cleanKey = member.founderKey || 'PENDING';
+    const letterUrl = `${window.location.origin}/?letter=${cleanKey}`;
+    const unlockUrl = `${window.location.origin}/?code=${cleanKey}`;
+    const text = `🎉 Congratulations ${member.name}!
+
+You have been officially accepted into C3 Batch 01 (Founding Member) at ISL Engineering College.
+
+🔑 Your Exclusive Founder Key: ${cleanKey}
+📄 View Your Official Acceptance Letter: ${letterUrl}
+🛡️ Claim Your 3D Founding Pass & Badge: ${unlockUrl}
+
+Kickoff Routine: Monday to Thursday, 10:00 AM – 1:00 PM at C3 Campus Office / Lab 3.
+See you on Monday!
+— Mohammed Suhail & Mohammad Bilal (Founding Co-Leads, C3 Collective)`;
+
+    let cleanPhone = (member.phone || '').replace(/\D/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = `91${cleanPhone}`;
+    } else if (cleanPhone.length === 11 && cleanPhone.startsWith('0')) {
+      cleanPhone = `91${cleanPhone.slice(1)}`;
+    }
+    const waUrl = cleanPhone
+      ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(waUrl, '_blank');
   };
 
   const handleClaim = () => {
@@ -75,6 +104,15 @@ export const AcceptanceLetterModal: React.FC<AcceptanceLetterModalProps> = ({
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-claude-terracotta" />}
                 <span>{copied ? 'Copied!' : 'Copy Link'}</span>
+              </button>
+
+              <button
+                onClick={handleWhatsApp}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-mono font-medium shadow-sm transition-all cursor-pointer"
+                title="Send Acceptance Letter to Candidate on WhatsApp"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span>WhatsApp</span>
               </button>
 
               <button
