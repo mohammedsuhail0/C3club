@@ -47,9 +47,42 @@ export interface EmailConfig {
   hasPassword?: boolean;
 }
 
+export function getAdminToken(): string {
+  if (typeof window === 'undefined') return '';
+  const stored = sessionStorage.getItem('c3_admin_token');
+  if (stored) return stored;
+  if (sessionStorage.getItem('c3_organizer_auth') === 'true') {
+    return 'c3core';
+  }
+  const params = new URLSearchParams(window.location.search);
+  const adminParam = params.get('admin');
+  if (adminParam) {
+    sessionStorage.setItem('c3_admin_token', adminParam);
+    return adminParam;
+  }
+  return '';
+}
+
+export function setAdminToken(token: string): void {
+  if (typeof window === 'undefined') return;
+  sessionStorage.setItem('c3_admin_token', token);
+  sessionStorage.setItem('c3_organizer_auth', 'true');
+}
+
+export function getAuthHeaders(): Record<string, string> {
+  const token = getAdminToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 export async function fetchMembers(): Promise<MembersResponse | null> {
   try {
-    const res = await fetch('/api/members');
+    const res = await fetch('/api/members', {
+      headers: getAuthHeaders()
+    });
     if (!res.ok) return null;
     return await res.json();
   } catch (e) {
@@ -160,7 +193,7 @@ export async function reviewApplicantApi(
   try {
     const res = await fetch('/api/applicants/review', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ id, action, role, customRole })
     });
     if (!res.ok) return null;
@@ -230,7 +263,7 @@ export async function syncDecisionsApi(decisions: Record<string, LocalDecision>)
   try {
     const res = await fetch('/api/sync-decisions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ decisions })
     });
     if (!res.ok) return false;
@@ -252,7 +285,7 @@ export async function sendAcceptanceEmailApi(idOrKey: { id?: string; key?: strin
   try {
     const res = await fetch('/api/send-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(idOrKey)
     });
     return await res.json();
@@ -264,7 +297,9 @@ export async function sendAcceptanceEmailApi(idOrKey: { id?: string; key?: strin
 
 export async function getEmailConfigApi(): Promise<EmailConfig | null> {
   try {
-    const res = await fetch('/api/email-config');
+    const res = await fetch('/api/email-config', {
+      headers: getAuthHeaders()
+    });
     if (!res.ok) return null;
     const json = await res.json();
     return json.success ? json.config : null;
@@ -278,7 +313,7 @@ export async function saveEmailConfigApi(config: Partial<EmailConfig & { pass?: 
   try {
     const res = await fetch('/api/email-config', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(config)
     });
     const json = await res.json();
@@ -296,7 +331,7 @@ export async function testEmailConfigApi(config: Partial<EmailConfig & { pass?: 
   try {
     const res = await fetch('/api/email-config/test', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(config)
     });
     return await res.json();
@@ -309,7 +344,7 @@ export async function markPrintedApi(key: string, printed: boolean = true): Prom
   try {
     const res = await fetch('/api/mark-printed', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ key, printed })
     });
     if (!res.ok) return false;
@@ -325,7 +360,7 @@ export async function syncGoogleSheetApi(rows: Record<string, string>[]): Promis
   try {
     const res = await fetch('/api/sync-sheet', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ rows })
     });
     return await res.json();
@@ -345,12 +380,38 @@ export async function syncGoogleSheetFromUrlApi(url: string): Promise<{
   try {
     const res = await fetch('/api/sync-sheet-url', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ url })
     });
     return await res.json();
   } catch (e: any) {
     console.error('Failed to sync sheet from URL:', e);
     return { success: false, addedCount: 0, total: 0, message: e.message || 'Network error syncing sheet' };
+  }
+}
+
+export async function resetMembersApi(passcode: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const res = await fetch('/api/members/reset', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ passcode })
+    });
+    return await res.json();
+  } catch (e: any) {
+    return { success: false, message: e.message || 'Network error resetting roster' };
+  }
+}
+
+export async function restoreMembersApi(passcode: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const res = await fetch('/api/members/restore', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ passcode })
+    });
+    return await res.json();
+  } catch (e: any) {
+    return { success: false, message: e.message || 'Network error restoring roster' };
   }
 }

@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Server sensitive data files
+server/data/members_backup.json
+server/data/email_config.json
+/tmp/*

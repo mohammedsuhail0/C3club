@@ -16,6 +16,7 @@ import {
   saveEmailConfigApi, 
   testEmailConfigApi, 
   syncGoogleSheetApi,
+  setAdminToken,
   MemberRecord, 
   MembersResponse, 
   EmailConfig 
@@ -38,7 +39,15 @@ export const OrganizerPortalModal: React.FC<OrganizerPortalModalProps> = ({
       const p = new URLSearchParams(window.location.search);
       const h = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '';
       const hp = new URLSearchParams(h);
-      if (p.get('admin') === 'c3core' || hp.get('admin') === 'c3core' || sessionStorage.getItem('c3_organizer_auth') === 'true') {
+      const adminVal = p.get('admin') || hp.get('admin');
+      if (adminVal) {
+        setAdminToken(adminVal);
+        return true;
+      }
+      if (sessionStorage.getItem('c3_organizer_auth') === 'true') {
+        if (!sessionStorage.getItem('c3_admin_token')) {
+          setAdminToken('c3core');
+        }
         return true;
       }
     }
@@ -137,11 +146,12 @@ export const OrganizerPortalModal: React.FC<OrganizerPortalModalProps> = ({
 
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passcode.toLowerCase() === 'c3core' || passcode.toLowerCase() === 'c3admin') {
+    const cleanPass = passcode.trim();
+    if (cleanPass.toLowerCase() === 'c3core' || cleanPass.toLowerCase() === 'c3admin') {
       sounds.playSuccess();
+      setAdminToken(cleanPass);
       setIsAuthenticated(true);
       setPasscodeError(false);
-      try { sessionStorage.setItem('c3_organizer_auth', 'true'); } catch {}
       loadData();
       loadEmailConfig();
     } else {

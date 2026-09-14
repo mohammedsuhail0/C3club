@@ -7,9 +7,44 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONFIG_FILE = path.join(__dirname, 'data', 'email_config.json');
 
+function getEffectiveConfigFile() {
+  if (process.env.VERCEL) {
+    const tmpFile = path.join('/tmp', 'c3_email_config.json');
+    if (!fs.existsSync(tmpFile) && fs.existsSync(CONFIG_FILE)) {
+      try {
+        fs.copyFileSync(CONFIG_FILE, tmpFile);
+      } catch (e) {}
+    }
+    return tmpFile;
+  }
+  return CONFIG_FILE;
+}
+
+export function isValidGoogleScriptUrl(url) {
+  if (!url) return false;
+  try {
+    const parsed = new URL(String(url).trim());
+    return parsed.protocol === 'https:' &&
+           parsed.hostname === 'script.google.com' &&
+           parsed.pathname.startsWith('/macros/s/');
+  } catch {
+    return false;
+  }
+}
+
+export function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 export function getEmailConfig() {
   try {
-    if (!fs.existsSync(CONFIG_FILE)) {
+    const targetFile = getEffectiveConfigFile();
+    if (!fs.existsSync(targetFile)) {
       return {
         enabled: false,
         service: 'gmail',
@@ -19,7 +54,7 @@ export function getEmailConfig() {
         fromEmail: ''
       };
     }
-    return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+    return JSON.parse(fs.readFileSync(targetFile, 'utf-8'));
   } catch (err) {
     return { enabled: false, service: 'gmail', user: '', pass: '', fromName: 'C3 Admissions Council', fromEmail: '' };
   }
@@ -27,14 +62,23 @@ export function getEmailConfig() {
 
 export function saveEmailConfig(config) {
   try {
+    const targetFile = getEffectiveConfigFile();
     const current = getEmailConfig();
+    
+    let scriptUrl = config.scriptUrl !== undefined ? config.scriptUrl : current.scriptUrl;
+    if (scriptUrl && !isValidGoogleScriptUrl(scriptUrl)) {
+      console.warn('Rejected invalid scriptUrl:', scriptUrl);
+      scriptUrl = '';
+    }
+
     const updated = {
       ...current,
       ...config,
+      scriptUrl,
       pass: (config.pass && !config.pass.includes('••')) ? config.pass : current.pass,
       updatedAt: new Date().toISOString()
     };
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(updated, null, 2), 'utf-8');
+    fs.writeFileSync(targetFile, JSON.stringify(updated, null, 2), 'utf-8');
     return updated;
   } catch (err) {
     console.error('Failed to save email config:', err);
@@ -66,6 +110,9 @@ function createTransporter(config) {
 
 export async function verifyEmailCredentials(testConfig) {
   if (testConfig.scriptUrl) {
+    if (!isValidGoogleScriptUrl(testConfig.scriptUrl)) {
+      return { success: false, message: 'Invalid scriptUrl: Only official Google Apps Script URLs (https://script.google.com/macros/s/...) are permitted.' };
+    }
     try {
       await fetch(testConfig.scriptUrl, {
         method: 'POST',
@@ -134,6 +181,13 @@ C3 Collective · Department of CSE · ISL Engineering College`;
   const mailto = `mailto:${encodeURIComponent(member.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainTextBody)}`;
   const gmailUrl = `https://mail.google.com/mail/?authuser=${encodeURIComponent(senderEmail)}&view=cm&fs=1&to=${encodeURIComponent(member.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainTextBody)}`;
 
+  const safeName = escapeHtml(member.name);
+  const safeRole = escapeHtml(member.role || 'Founding Builder');
+  const safeKey = escapeHtml(cleanKey);
+  const safeRefCode = escapeHtml(refCode);
+  const safePassUrl = escapeHtml(passUrl);
+  const safeLetterUrl = escapeHtml(letterUrl);
+
   const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -155,13 +209,13 @@ C3 Collective · Department of CSE · ISL Engineering College`;
     <tr>
       <td style="padding:32px 28px;">
         <div style="font-size:11px;font-family:monospace;color:#8C8275;margin-bottom:12px;">
-          REF: ${refCode} &bull; BATCH 01 CORE
+          REF: ${safeRefCode} &bull; BATCH 01 CORE
         </div>
         <h1 style="margin:0 0 16px 0;font-family:Georgia,serif;font-size:22px;font-weight:bold;color:#1F1E1B;line-height:1.3;">
           Official Notice of Admission: Founding Cohort (Batch 01)
         </h1>
         <p style="font-size:15px;line-height:1.6;color:#38342E;">
-          Dear <strong>${member.name}</strong>,
+          Dear <strong>${safeName}</strong>,
         </p>
         <p style="font-size:14px;line-height:1.6;color:#4A443B;">
           Congratulations! On behalf of the <strong>C3 Collective</strong> and the Department of Computer Science &amp; Engineering at ISL Engineering College, we are pleased to inform you that your application for <strong>Batch 01</strong> has been officially approved.
@@ -173,7 +227,7 @@ C3 Collective · Department of CSE · ISL Engineering College`;
                 Exclusive Founder Access Key
               </div>
               <div style="font-size:32px;font-family:monospace;font-weight:bold;color:#CC5A36;letter-spacing:4px;margin:8px 0;">
-                ${cleanKey}
+                ${safeKey}
               </div>
               <div style="font-size:12px;color:#666055;">
                 Use this pure key to unlock your 3D Pass and claim your campus badge.
@@ -184,14 +238,14 @@ C3 Collective · Department of CSE · ISL Engineering College`;
         <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:24px 0;">
           <tr>
             <td align="center" style="padding-bottom:12px;">
-              <a href="${passUrl}" target="_blank" style="display:inline-block;background-color:#CC5A36;color:#ffffff;text-decoration:none;font-size:14px;font-weight:bold;padding:14px 28px;border-radius:10px;">
+              <a href="${safePassUrl}" target="_blank" style="display:inline-block;background-color:#CC5A36;color:#ffffff;text-decoration:none;font-size:14px;font-weight:bold;padding:14px 28px;border-radius:10px;">
                 Claim &amp; Customize 3D Founding Pass &rarr;
               </a>
             </td>
           </tr>
           <tr>
             <td align="center">
-              <a href="${letterUrl}" target="_blank" style="display:inline-block;color:#666055;text-decoration:underline;font-size:12px;font-family:monospace;">
+              <a href="${safeLetterUrl}" target="_blank" style="display:inline-block;color:#666055;text-decoration:underline;font-size:12px;font-family:monospace;">
                 View &amp; Print Official Acceptance Letter
               </a>
             </td>
@@ -203,7 +257,7 @@ C3 Collective · Department of CSE · ISL Engineering College`;
               <div style="font-weight:bold;font-family:monospace;color:#CC5A36;margin-bottom:8px;">
                 INDUCTION &amp; WORKSPACE SCHEDULE:
               </div>
-              <div>&bull; <strong>Assigned Role:</strong> ${member.role || 'Vibe Coder / Shipper'}</div>
+              <div>&bull; <strong>Assigned Role:</strong> ${safeRole}</div>
               <div>&bull; <strong>Venue:</strong> C3 Campus Office / Innovation Lab 3 &bull; ISLEC Campus</div>
               <div>&bull; <strong>Timings:</strong> Monday to Thursday &bull; 10:00 AM &ndash; 1:00 PM</div>
               <div>&bull; <strong>Physical NFC Badge:</strong> Ready for collection at the desk upon showing your digital pass.</div>
@@ -243,7 +297,7 @@ C3 Collective · Department of CSE · ISL Engineering College`;
 </html>`;
 
   // Branch A: Google Apps Script Web App (Zero-password native Gmail dispatch)
-  if (config.scriptUrl) {
+  if (config.scriptUrl && isValidGoogleScriptUrl(config.scriptUrl)) {
     try {
       await fetch(config.scriptUrl, {
         method: 'POST',

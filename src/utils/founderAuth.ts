@@ -92,12 +92,17 @@ const PRINT_QUEUE_STORAGE_KEY = 'c3_organizer_print_queue';
 export function savePassToOrganizerQueue(item: Omit<PrintQueueItem, 'id' | 'claimedAt'>): void {
   try {
     const existingRaw = localStorage.getItem(PRINT_QUEUE_STORAGE_KEY);
-    const list: PrintQueueItem[] = existingRaw ? JSON.parse(existingRaw) : [];
+    let list: PrintQueueItem[] = existingRaw ? JSON.parse(existingRaw) : [];
     
-    // Check if already in queue by serial
+    // Cap list to prevent storage bloat
+    if (list.length > 10) {
+      list = list.slice(-5);
+    }
+
     const existingIndex = list.findIndex(p => p.serial === item.serial);
     const newEntry: PrintQueueItem = {
       ...item,
+      dataUrl: '', // Omit heavy base64 image data to prevent QuotaExceededError in browser
       id: `print-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       claimedAt: new Date().toISOString()
     };
@@ -110,7 +115,7 @@ export function savePassToOrganizerQueue(item: Omit<PrintQueueItem, 'id' | 'clai
 
     localStorage.setItem(PRINT_QUEUE_STORAGE_KEY, JSON.stringify(list));
   } catch (err) {
-    console.error('Failed to save pass to organizer queue:', err);
+    // Gracefully suppress storage quota or privacy mode errors
   }
 }
 

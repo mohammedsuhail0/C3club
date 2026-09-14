@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import {
   sendAcceptanceEmail,
@@ -16,6 +17,99 @@ const CHARSET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const DIGITS = '23456789';
 const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const SECRET_SALT = 8391;
+
+// Pre-seeded authentic members guaranteeing core founder passes are never lost on container cold starts
+const SEED_MEMBERS = [
+  {
+    id: "fnd_6301633463",
+    name: "Mohammed Suhail",
+    email: "mdsuhailtab.1@gmail.com",
+    phone: "6301633463",
+    branch: "IT",
+    year: "3rd Year",
+    founderKey: "3C5B",
+    status: "accepted",
+    role: "Technical & AI Architect",
+    customRole: "Founding Co-Lead",
+    claimedAt: null,
+    printedAt: null,
+    emailSentAt: null,
+    source: "official_seed",
+    answers: {
+      motivation: "C3 Founding Leadership",
+      links: "https://github.com/mohammedsuhail0"
+    },
+    createdAt: "2026-09-14T05:27:45.000Z"
+  }
+];
+
+const ADMIN_SECRETS = [process.env.C3_ADMIN_SECRET, 'c3core', 'c3admin'].filter(Boolean);
+
+export function authenticateAdmin(req, res, body = {}) {
+  const authHeader = req.headers['authorization'] || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const customKey = String(req.headers['x-admin-key'] || '').trim();
+  const bodyPass = typeof body?.passcode === 'string' ? body.passcode.trim() : '';
+
+  const candidate = token || customKey || bodyPass;
+  if (!candidate) {
+    res.statusCode = 401;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ success: false, error: 'Unauthorized: Admin authentication token required' }));
+    return false;
+  }
+
+  const isValid = ADMIN_SECRETS.some(secret => {
+    if (candidate.length !== secret.length) return false;
+    try {
+      return crypto.timingSafeEqual(Buffer.from(candidate), Buffer.from(secret));
+    } catch {
+      return false;
+    }
+  });
+
+  if (!isValid) {
+    res.statusCode = 401;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ success: false, error: 'Unauthorized: Invalid administrative credentials' }));
+    return false;
+  }
+  return true;
+}
+
+export function sanitizeMemberForPublic(member) {
+  if (!member) return null;
+  return {
+    id: member.id,
+    name: member.name,
+    branch: member.branch,
+    year: member.year,
+    role: member.role,
+    customRole: member.customRole || '',
+    founderKey: member.founderKey || '',
+    status: member.status,
+    claimedAt: member.claimedAt || null,
+    printedAt: member.printedAt || null,
+    createdAt: member.createdAt
+  };
+}
+
+export function extractValidGoogleSheetId(inputUrl) {
+  if (!inputUrl) return null;
+  const str = String(inputUrl).trim();
+  if (!str.startsWith('http')) {
+    return /^[a-zA-Z0-9-_]{20,60}$/.test(str) ? str : null;
+  }
+  try {
+    const parsed = new URL(str);
+    if (parsed.protocol !== 'https:') return null;
+    if (parsed.hostname !== 'docs.google.com') return null;
+    const match = parsed.pathname.match(/^\/spreadsheets\/d\/([a-zA-Z0-9-_]{20,60})/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
 
 function normalizeKey(key) {
   return String(key || '').trim().toUpperCase().replace(/^(C3-)?(FND-)?/i, '');
@@ -112,17 +206,31 @@ function getEffectiveDataFile() {
 function getMembers() {
   try {
     const targetFile = getEffectiveDataFile();
+    let loaded = null;
     if (fs.existsSync(targetFile)) {
       const data = fs.readFileSync(targetFile, 'utf-8');
-      memoryCache = JSON.parse(data);
-      return memoryCache;
+      loaded = JSON.parse(data);
+    } else if (memoryCache) {
+      loaded = memoryCache;
+    } else {
+      loaded = [...SEED_MEMBERS];
     }
-    if (memoryCache) return memoryCache;
-    return [];
+
+    if (!Array.isArray(loaded)) loaded = [...SEED_MEMBERS];
+
+    // Ensure Mohammed Suhail's official pass (3C5B) is always present
+    const hasSuhail = loaded.some(m => m.founderKey === '3C5B' || (m.phone && m.phone.includes('6301633463')));
+    if (!hasSuhail) {
+      loaded.push(SEED_MEMBERS[0]);
+    }
+
+    memoryCache = loaded;
+    return memoryCache;
   } catch (err) {
     if (memoryCache) return memoryCache;
     console.error('Error reading members:', err);
-    return [];
+    memoryCache = [...SEED_MEMBERS];
+    return memoryCache;
   }
 }
 
@@ -144,22 +252,45 @@ export function handleApiRequest(req, res, next) {
     return next();
   }
 
+  const MAX_PAYLOAD_BYTES = 1024 * 1024; // 1 MB limit
+
   // Parse JSON body for POST requests
   if (req.method === 'POST') {
     if (req.body && typeof req.body === 'object') {
       return routeApi(req.method, pathname, url, req.body, req, res);
     }
     if (req.body && typeof req.body === 'string') {
+      if (Buffer.byteLength(req.body) > MAX_PAYLOAD_BYTES) {
+        res.statusCode = 413;
+        res.setHeader('Content-Type', 'application/json');
+        return res.end(JSON.stringify({ success: false, error: 'Payload Too Large: Maximum 1MB allowed' }));
+      }
       try {
         const parsed = JSON.parse(req.body);
         return routeApi(req.method, pathname, url, parsed, req, res);
       } catch (e) {}
     }
+
     let body = '';
+    let size = 0;
+    let aborted = false;
+
     req.on('data', chunk => {
+      if (aborted) return;
+      size += chunk.length;
+      if (size > MAX_PAYLOAD_BYTES) {
+        aborted = true;
+        res.statusCode = 413;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ success: false, error: 'Payload Too Large: Maximum 1MB allowed' }));
+        req.destroy();
+        return;
+      }
       body += chunk.toString();
     });
+
     req.on('end', () => {
+      if (aborted) return;
       let parsed = {};
       try {
         parsed = body ? JSON.parse(body) : {};
@@ -299,9 +430,23 @@ async function backgroundSyncSheet(members) {
 
 async function routeApi(method, pathname, url, body, req, res) {
   res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const reqOrigin = req.headers['origin'];
+  const allowedOrigins = [
+    'https://c3club.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:4173'
+  ];
+  if (reqOrigin && (allowedOrigins.includes(reqOrigin) || reqOrigin.endsWith('.vercel.app'))) {
+    res.setHeader('Access-Control-Allow-Origin', reqOrigin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Admin-Key');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
   if (method === 'OPTIONS') {
     res.statusCode = 204;
@@ -311,8 +456,9 @@ async function routeApi(method, pathname, url, body, req, res) {
   const members = getMembers();
   const origin = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host || 'localhost:4173'}`;
 
-  // 1. GET /api/members
+  // 1. GET /api/members (Requires Admin Authentication)
   if (method === 'GET' && pathname === '/api/members') {
+    if (!authenticateAdmin(req, res, body)) return;
     await backgroundSyncSheet(members);
     const stats = {
       total: members.length,
@@ -325,8 +471,9 @@ async function routeApi(method, pathname, url, body, req, res) {
     return res.end(JSON.stringify({ success: true, members, stats }));
   }
 
-  // 2. GET /api/email-config
+  // 2. GET /api/email-config (Requires Admin Authentication)
   if (method === 'GET' && pathname === '/api/email-config') {
+    if (!authenticateAdmin(req, res, body)) return;
     const cfg = getEmailConfig();
     return res.end(JSON.stringify({
       success: true,
@@ -343,8 +490,9 @@ async function routeApi(method, pathname, url, body, req, res) {
     }));
   }
 
-  // 3. POST /api/email-config
+  // 3. POST /api/email-config (Requires Admin Authentication)
   if (method === 'POST' && pathname === '/api/email-config') {
+    if (!authenticateAdmin(req, res, body)) return;
     const updated = saveEmailConfig(body);
     if (!updated) {
       res.statusCode = 500;
@@ -353,14 +501,16 @@ async function routeApi(method, pathname, url, body, req, res) {
     return res.end(JSON.stringify({ success: true, message: 'Email configuration saved!' }));
   }
 
-  // 4. POST /api/email-config/test
+  // 4. POST /api/email-config/test (Requires Admin Authentication)
   if (method === 'POST' && pathname === '/api/email-config/test') {
+    if (!authenticateAdmin(req, res, body)) return;
     const result = await verifyEmailCredentials(body);
     return res.end(JSON.stringify(result));
   }
 
-  // 5. POST /api/send-email
+  // 5. POST /api/send-email (Requires Admin Authentication)
   if (method === 'POST' && pathname === '/api/send-email') {
+    if (!authenticateAdmin(req, res, body)) return;
     const { id, key } = body;
     const clean = normalizeKey(key);
     const member = members.find(m => m.id === id || (clean && normalizeKey(m.founderKey) === clean));
@@ -496,8 +646,9 @@ async function routeApi(method, pathname, url, body, req, res) {
     return res.end(JSON.stringify({ success: true, member: newApplicant, isExisting: false }));
   }
 
-  // 7. POST /api/applicants/review (Accept or Reject)
+  // 7. POST /api/applicants/review (Accept or Reject - Requires Admin Authentication)
   if (method === 'POST' && pathname === '/api/applicants/review') {
+    if (!authenticateAdmin(req, res, body)) return;
     const { id, action, role, customRole } = body;
     const member = members.find(m => m.id === id);
 
@@ -529,13 +680,9 @@ async function routeApi(method, pathname, url, body, req, res) {
     return res.end(JSON.stringify({ success: true, member }));
   }
 
-  // 7b. POST /api/members/reset
+  // 7b. POST /api/members/reset (Requires Admin Authentication)
   if (method === 'POST' && pathname === '/api/members/reset') {
-    const { passcode } = body;
-    if (String(passcode).toLowerCase() !== 'c3core' && String(passcode).toLowerCase() !== 'c3admin') {
-      res.statusCode = 403;
-      return res.end(JSON.stringify({ success: false, message: 'Invalid organizer passcode' }));
-    }
+    if (!authenticateAdmin(req, res, body)) return;
     if (members.length > 0) {
       const backupPath = path.join(__dirname, 'data', 'members_backup.json');
       try {
@@ -548,13 +695,9 @@ async function routeApi(method, pathname, url, body, req, res) {
     return res.end(JSON.stringify({ success: true, message: 'Command Center roster reset to clean slate!' }));
   }
 
-  // 7c. POST /api/members/restore
+  // 7c. POST /api/members/restore (Requires Admin Authentication)
   if (method === 'POST' && pathname === '/api/members/restore') {
-    const { passcode } = body;
-    if (String(passcode).toLowerCase() !== 'c3core' && String(passcode).toLowerCase() !== 'c3admin') {
-      res.statusCode = 403;
-      return res.end(JSON.stringify({ success: false, message: 'Invalid organizer passcode' }));
-    }
+    if (!authenticateAdmin(req, res, body)) return;
     const backupPath = path.join(__dirname, 'data', 'members_backup.json');
     if (fs.existsSync(backupPath)) {
       try {
@@ -568,7 +711,7 @@ async function routeApi(method, pathname, url, body, req, res) {
     return res.end(JSON.stringify({ success: false, message: 'No backup file found' }));
   }
 
-  // 8. GET /api/members/:key
+  // 8. GET /api/members/:key (Public badge lookup - Sanitized)
   if (method === 'GET' && pathname.startsWith('/api/members/')) {
     const key = normalizeKey(decodeURIComponent(pathname.replace('/api/members/', '')));
     const member = members.find(m => 
@@ -576,46 +719,25 @@ async function routeApi(method, pathname, url, body, req, res) {
       (m.id === key)
     );
     if (member) {
-      return res.end(JSON.stringify({ success: true, member }));
+      return res.end(JSON.stringify({ success: true, member: sanitizeMemberForPublic(member) }));
     }
     return res.end(JSON.stringify({ success: false, message: 'Member not found or key not active' }));
   }
 
-  // 9. POST /api/verify-key
+  // 9. POST /api/verify-key (Public verification - Strict database validation, zero checksum forgery)
   if (method === 'POST' && pathname === '/api/verify-key') {
     const rawKey = body.key || '';
     const clean = normalizeKey(rawKey);
 
     const member = members.find(m => m.founderKey && normalizeKey(m.founderKey) === clean);
     
-    // If assigned to an applicant, only valid if they are accepted or claimed
-    if (member) {
-      if (member.status === 'accepted' || member.status === 'claimed') {
-        return res.end(JSON.stringify({
-          success: true,
-          isValid: true,
-          key: clean,
-          member
-        }));
-      }
-      return res.end(JSON.stringify({
-        success: false,
-        isValid: false,
-        key: clean,
-        message: 'This Founder Key is currently inactive or revoked'
-      }));
-    }
-
-    // Disallow revoked legacy keys from offline fallback claiming
-    const REVOKED_FALLBACK_KEYS = ['3N8H', 'EVKH'];
-    const isChecksumValid = verifyKeyChecksum(clean);
-
-    if (isChecksumValid && !REVOKED_FALLBACK_KEYS.includes(clean)) {
+    // Only valid if assigned to an accepted or claimed applicant in the database
+    if (member && (member.status === 'accepted' || member.status === 'claimed')) {
       return res.end(JSON.stringify({
         success: true,
         isValid: true,
         key: clean,
-        member: null
+        member: sanitizeMemberForPublic(member)
       }));
     }
 
@@ -627,61 +749,36 @@ async function routeApi(method, pathname, url, body, req, res) {
     }));
   }
 
-  // 10. POST /api/claim-pass
+  // 10. POST /api/claim-pass (Strict database validation - Must be pre-approved by admissions)
   if (method === 'POST' && pathname === '/api/claim-pass') {
     const { key, name, branch, year, role, customRole } = body;
     const clean = normalizeKey(key);
-    const REVOKED_FALLBACK_KEYS = ['3N8H', 'EVKH'];
-    if (REVOKED_FALLBACK_KEYS.includes(clean)) {
+
+    const member = members.find(m => m.founderKey && normalizeKey(m.founderKey) === clean);
+    if (!member || (member.status !== 'accepted' && member.status !== 'claimed')) {
       res.statusCode = 403;
-      return res.end(JSON.stringify({ success: false, message: 'This Founder Key has been revoked.' }));
+      return res.end(JSON.stringify({
+        success: false,
+        message: 'Founder key not recognized or not yet approved by admissions.'
+      }));
     }
 
-    let memberIndex = members.findIndex(m => normalizeKey(m.founderKey) === clean);
-    if (memberIndex === -1) {
-      if (verifyKeyChecksum(clean)) {
-        const newEntry = {
-          id: `fnd_${Date.now().toString(36)}`,
-          name: name || 'Founding Builder',
-          email: '',
-          phone: '',
-          branch: branch || 'CSE',
-          year: year || '3rd Year',
-          founderKey: clean,
-          status: 'claimed',
-          role: role || 'Vibe Coder / Shipper',
-          customRole: customRole || '',
-          claimedAt: new Date().toISOString(),
-          printedAt: null,
-          emailSentAt: null,
-          source: 'direct_claim',
-          answers: {},
-          createdAt: new Date().toISOString()
-        };
-        members.push(newEntry);
-        saveMembers(members);
-        return res.end(JSON.stringify({ success: true, member: newEntry }));
-      }
-      res.statusCode = 404;
-      return res.end(JSON.stringify({ success: false, message: 'Founder key not recognized' }));
-    }
-
-    const m = members[memberIndex];
-    m.status = 'claimed';
-    m.claimedAt = new Date().toISOString();
+    member.status = 'claimed';
+    member.claimedAt = new Date().toISOString();
     // Identity immutability: Do not allow altering verified applicant's registered name, branch, or year
-    if (!m.name && name) m.name = name;
-    if (!m.branch && branch) m.branch = branch;
-    if (!m.year && year) m.year = year;
-    if (role && !m.customRole) m.role = role;
-    if (customRole !== undefined && customRole) m.customRole = customRole;
+    if (!member.name && name) member.name = name;
+    if (!member.branch && branch) member.branch = branch;
+    if (!member.year && year) member.year = year;
+    if (role && !member.customRole) member.role = role;
+    if (customRole !== undefined && customRole) member.customRole = customRole;
 
     saveMembers(members);
-    return res.end(JSON.stringify({ success: true, member: m }));
+    return res.end(JSON.stringify({ success: true, member: sanitizeMemberForPublic(member) }));
   }
 
-  // 11. POST /api/mark-printed
+  // 11. POST /api/mark-printed (Requires Admin Authentication)
   if (method === 'POST' && pathname === '/api/mark-printed') {
+    if (!authenticateAdmin(req, res, body)) return;
     const { key, printed = true } = body;
     const clean = normalizeKey(key);
     const member = members.find(m => normalizeKey(m.founderKey) === clean || m.id === clean);
@@ -694,8 +791,9 @@ async function routeApi(method, pathname, url, body, req, res) {
     return res.end(JSON.stringify({ success: false, message: 'Member not found' }));
   }
 
-  // 12. POST /api/sync-sheet
+  // 12. POST /api/sync-sheet (Requires Admin Authentication)
   if (method === 'POST' && pathname === '/api/sync-sheet') {
+    if (!authenticateAdmin(req, res, body)) return;
     const { rows = [] } = body;
     let addedCount = 0;
 
@@ -745,12 +843,22 @@ async function routeApi(method, pathname, url, body, req, res) {
     }));
   }
 
-  // 13. POST /api/sync-sheet-url (Fetch live Google Sheet CSV & auto-sync 24/7)
+  // 13. POST /api/sync-sheet-url (Fetch live Google Sheet CSV - Requires Admin Auth & Strict Domain Validation)
   if (method === 'POST' && pathname === '/api/sync-sheet-url') {
+    if (!authenticateAdmin(req, res, body)) return;
     const { url } = body;
     if (!url) {
       res.statusCode = 400;
       return res.end(JSON.stringify({ success: false, message: 'Google Sheet URL or ID is required' }));
+    }
+
+    const sheetId = extractValidGoogleSheetId(url);
+    if (!sheetId) {
+      res.statusCode = 400;
+      return res.end(JSON.stringify({
+        success: false,
+        message: 'Invalid Google Sheet URL. Only official Google Sheets (https://docs.google.com/spreadsheets/d/...) are permitted.'
+      }));
     }
 
     try {
@@ -800,8 +908,9 @@ async function routeApi(method, pathname, url, body, req, res) {
     }
   }
 
-  // 14. POST /api/sync-decisions (Client sends organizer decisions map to keep backend in sync across serverless containers)
+  // 14. POST /api/sync-decisions (Requires Admin Authentication)
   if (method === 'POST' && pathname === '/api/sync-decisions') {
+    if (!authenticateAdmin(req, res, body)) return;
     const { decisions = {} } = body;
     let updatedCount = 0;
     for (const [key, dec] of Object.entries(decisions)) {
@@ -828,33 +937,19 @@ async function routeApi(method, pathname, url, body, req, res) {
 }
 
 function getGoogleSheetExportUrls(url) {
-  let exportUrl = String(url || '').trim();
-  if (exportUrl.includes('/pub?output=csv') || exportUrl.includes('/export?format=csv')) {
-    return [exportUrl];
+  const sheetId = extractValidGoogleSheetId(url);
+  if (!sheetId) return [];
+  const exportUrl = String(url || '').trim();
+  const gidMatch = exportUrl.match(/[?&#]gid=([0-9]+)/);
+  const urls = [];
+  if (gidMatch && gidMatch[1]) {
+    urls.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gidMatch[1]}`);
   }
-  const idMatch = exportUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  if (idMatch) {
-    const sheetId = idMatch[1];
-    const gidMatch = exportUrl.match(/[?&#]gid=([0-9]+)/);
-    const urls = [];
-    if (gidMatch && gidMatch[1]) {
-      urls.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gidMatch[1]}`);
-    }
-    // Try without gid: Google automatically serves the active first sheet (returns HTTP 200)
-    urls.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`);
-    // Also try known form response gid and default gid=0
-    urls.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=409707496`);
-    urls.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`);
-    return urls;
-  }
-  if (!exportUrl.startsWith('http')) {
-    return [
-      `https://docs.google.com/spreadsheets/d/${exportUrl}/export?format=csv`,
-      `https://docs.google.com/spreadsheets/d/${exportUrl}/export?format=csv&gid=409707496`,
-      `https://docs.google.com/spreadsheets/d/${exportUrl}/export?format=csv&gid=0`
-    ];
-  }
-  return [exportUrl];
+  // Try without gid: Google automatically serves the active first sheet (returns HTTP 200)
+  urls.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`);
+  urls.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=409707496`);
+  urls.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`);
+  return urls;
 }
 
 function parseCSV(text) {
