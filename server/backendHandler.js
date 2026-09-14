@@ -17,6 +17,10 @@ const DIGITS = '23456789';
 const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const SECRET_SALT = 8391;
 
+function normalizeKey(key) {
+  return String(key || '').trim().toUpperCase().replace(/^(C3-)?(FND-)?/i, '');
+}
+
 function generateKeyFromPhone(phone, existingKeys = []) {
   const digits = String(phone || '').replace(/\D/g, '') || '0';
   let saltOffset = 0;
