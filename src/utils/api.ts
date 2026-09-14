@@ -247,22 +247,7 @@ export interface LocalDecision {
 }
 
 export function purgeRevokedDecisionsExceptSuhail() {
-  try {
-    const suhailPhone = '6301633463';
-    const suhailEmail = 'mdsuhailtab.1@gmail.com';
-    const all = getLocalDecisions();
-    let changed = false;
-    for (const [k, dec] of Object.entries(all)) {
-      const isSuhail = k === suhailPhone || k === suhailEmail || k.includes('6301633463') || k.includes('suhail');
-      if (!isSuhail && (dec.status === 'accepted' || dec.founderKey)) {
-        all[k] = { ...dec, status: 'pending_review', founderKey: '', customRole: '' };
-        changed = true;
-      }
-    }
-    if (changed) {
-      localStorage.setItem('c3_organizer_decisions', JSON.stringify(all));
-    }
-  } catch {}
+  // Safe no-op: preserve all organizer review decisions and accepted founder passes
 }
 
 export function getLocalDecisions(): Record<string, LocalDecision> {
@@ -397,7 +382,7 @@ export async function markPrintedApi(key: string, printed: boolean = true): Prom
   }
 }
 
-export async function syncGoogleSheetApi(rows: Record<string, string>[]): Promise<{ success: boolean; addedCount: number; total: number }> {
+export async function syncGoogleSheetApi(rows: Record<string, string>[]): Promise<{ success: boolean; addedCount: number; updatedCount?: number; total: number }> {
   try {
     const res = await fetch('/api/sync-sheet', {
       method: 'POST',
@@ -407,13 +392,28 @@ export async function syncGoogleSheetApi(rows: Record<string, string>[]): Promis
     return await res.json();
   } catch (e) {
     console.error('Failed to sync sheet:', e);
-    return { success: false, addedCount: 0, total: 0 };
+    return { success: false, addedCount: 0, updatedCount: 0, total: 0 };
+  }
+}
+
+export async function syncSheetCsvApi(csvText: string): Promise<{ success: boolean; addedCount: number; updatedCount?: number; total: number; message?: string }> {
+  try {
+    const res = await fetch('/api/sync-sheet', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ csvText })
+    });
+    return await res.json();
+  } catch (e: any) {
+    console.error('Failed to sync sheet CSV:', e);
+    return { success: false, addedCount: 0, updatedCount: 0, total: 0, message: e?.message };
   }
 }
 
 export async function syncGoogleSheetFromUrlApi(url: string): Promise<{ 
   success: boolean; 
   addedCount: number; 
+  updatedCount?: number;
   total: number; 
   message?: string;
   members?: MemberRecord[];
@@ -427,7 +427,7 @@ export async function syncGoogleSheetFromUrlApi(url: string): Promise<{
     return await res.json();
   } catch (e: any) {
     console.error('Failed to sync sheet from URL:', e);
-    return { success: false, addedCount: 0, total: 0, message: e.message || 'Network error syncing sheet' };
+    return { success: false, addedCount: 0, updatedCount: 0, total: 0, message: e.message || 'Network error syncing sheet' };
   }
 }
 

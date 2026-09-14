@@ -33,13 +33,169 @@ const SEED_MEMBERS = [
     customRole: "Founding Co-Lead",
     claimedAt: null,
     printedAt: null,
-    emailSentAt: null,
+    emailSentAt: "2026-09-14T12:01:49.498Z",
     source: "official_seed",
     answers: {
       motivation: "C3 Founding Leadership",
       links: "https://github.com/mohammedsuhail0"
     },
     createdAt: "2026-09-14T05:27:45.000Z"
+  },
+  {
+    id: "fnd_9959707830",
+    name: "Mohammad Bilal",
+    email: "mohammad.bilal24it@gmail.com",
+    phone: "9959707830",
+    branch: "IT",
+    year: "3rd Year",
+    founderKey: "",
+    status: "pending_review",
+    role: "Technical & AI Architect",
+    customRole: "",
+    claimedAt: null,
+    printedAt: null,
+    emailSentAt: null,
+    source: "google_sheet_sync",
+    answers: {
+      projectIdea: "AI Solutions & System Architecture",
+      motivation: "Creative Coding Collective leadership & building real software",
+      built: "AI systems & fullstack apps",
+      experience: "Claude, ChatGPT, Git, GitHub, Vercel",
+      weekendScenario: "Ship an automated AI prototype with team",
+      links: "https://github.com/Mohammadbilal-09",
+      commitment: "10+ hours / week"
+    },
+    createdAt: "2026-09-14T16:43:02.000Z"
+  },
+  {
+    id: "fnd_8522938703",
+    name: "Mohammed Bilal",
+    email: "imaxtro09@gmail.com",
+    phone: "8522938703",
+    branch: "AI&DS",
+    year: "3rd Year",
+    founderKey: "",
+    status: "pending_review",
+    role: "Technical & AI Architect",
+    customRole: "",
+    claimedAt: null,
+    printedAt: null,
+    emailSentAt: null,
+    source: "google_sheet_sync",
+    answers: {
+      projectIdea: "I have designed the \"ai resume builder\"",
+      motivation: "To get the knowledge of CCC",
+      built: "I have designed the \"ai resume builder\"",
+      experience: "Claude, chatgpt, git/GitHub, vercel",
+      weekendScenario: "I would build a automate ai chat bot",
+      links: "https://github.com/Mohammadbilal-09",
+      commitment: "3 - 5 hours / week"
+    },
+    createdAt: "2026-09-14T11:43:27.423Z"
+  },
+  {
+    id: "fnd_9341047343",
+    name: "Md Sakib",
+    email: "shaqibedge@gmail.com",
+    phone: "9341047343",
+    branch: "CSE",
+    year: "1st Year",
+    founderKey: "",
+    status: "pending_review",
+    role: "Technical & AI Architect",
+    customRole: "",
+    claimedAt: null,
+    printedAt: null,
+    emailSentAt: null,
+    source: "google_sheet_sync",
+    answers: {
+      projectIdea: "I tried to build an application of PackCheck Ai",
+      motivation: "Let's see",
+      built: "I tried to build an application of PackCheck Ai",
+      experience: "Nothing",
+      weekendScenario: "I will try",
+      links: "https://www.linkedin.com/in/shaqib-shaikh-005239376",
+      commitment: "3 - 5 hours / week"
+    },
+    createdAt: "2026-09-14T11:43:27.423Z"
+  },
+  {
+    id: "fnd_7095304263",
+    name: "Mohammed Ibrahim Shareef",
+    email: "ibrahimshareef178@gmail.com",
+    phone: "7095304263",
+    branch: "IT",
+    year: "4th Year",
+    founderKey: "",
+    status: "pending_review",
+    role: "Project Founder",
+    customRole: "",
+    claimedAt: null,
+    printedAt: null,
+    emailSentAt: null,
+    source: "google_sheet_sync",
+    answers: {
+      projectIdea: "Syncora enterprise-style collaboration and productivity platform",
+      motivation: "Learn best by building and shipping. 'No slides, ship every week' matches my goals.",
+      built: "Syncora enterprise collaboration platform (Next.js, React, TypeScript, Tailwind)",
+      experience: "Gemini Antigravity, iterative LLM development, Git/GitHub",
+      weekendScenario: "AI Project Copilot turning meeting notes and problem statements into tasks and priorities",
+      links: "https://github.com/mdibrahimshareef",
+      commitment: "6 - 10 hours / week"
+    },
+    createdAt: "2026-09-14T11:43:27.423Z"
+  },
+  {
+    id: "fnd_7569865390",
+    name: "Syed Noor Ullah",
+    email: "noorcahyd2006@gmail.com",
+    phone: "7569865390",
+    branch: "IT",
+    year: "3rd Year",
+    founderKey: "",
+    status: "pending_review",
+    role: "Technical & AI Architect",
+    customRole: "",
+    claimedAt: null,
+    printedAt: null,
+    emailSentAt: null,
+    source: "google_sheet_sync",
+    answers: {
+      projectIdea: "AI Applications",
+      motivation: "CCC",
+      built: "AI prototype",
+      experience: "Git/GitHub",
+      weekendScenario: "An intelligent autonomous agent",
+      links: "LinkedIn",
+      commitment: "10+ hours / week"
+    },
+    createdAt: "2026-09-14T11:43:27.423Z"
+  },
+  {
+    id: "fnd_9059398433",
+    name: "Muhammed Bin suleman bin hamza",
+    email: "muhammed.binhamza999@gmail.com",
+    phone: "9059398433",
+    branch: "IT",
+    year: "3rd Year",
+    founderKey: "",
+    status: "pending_review",
+    role: "Technical & AI Architect",
+    customRole: "",
+    claimedAt: null,
+    printedAt: null,
+    emailSentAt: null,
+    source: "google_sheet_sync",
+    answers: {
+      projectIdea: "AI system scanning and troubleshooting",
+      motivation: "Learning and course advancement",
+      built: "AI prototype",
+      experience: "Git/GitHub fundamentals",
+      weekendScenario: "Sub-part division and rapid AI prototyping with full troubleshooting scans",
+      links: "LinkedIn",
+      commitment: "3 - 5 hours / week"
+    },
+    createdAt: "2026-09-14T11:43:27.423Z"
   }
 ];
 
@@ -366,9 +522,15 @@ function processSheetCSV(members, csvText) {
 
       if (existingIndex !== -1) {
         const existing = members[existingIndex];
+        if (name && String(name).trim() && !['bitch', 'test', 'demo'].includes(String(name).trim().toLowerCase())) {
+          existing.name = String(name).trim();
+        }
+        if (cleanEmail && !cleanEmail.includes('brokenga')) {
+          existing.email = cleanEmail;
+        }
         existing.branch = branch;
         existing.year = year;
-        if (!existing.role || existing.role === 'Vibe Coder / Shipper') {
+        if (role) {
           existing.role = role;
         }
         existing.source = 'google_sheet_sync';
@@ -828,51 +990,72 @@ async function routeApi(method, pathname, url, body, req, res) {
   // 12. POST /api/sync-sheet (Requires Admin Authentication)
   if (method === 'POST' && pathname === '/api/sync-sheet') {
     if (!authenticateAdmin(req, res, body)) return;
-    const { rows = [] } = body;
+    const { rows = [], csvText } = body;
     let addedCount = 0;
+    let updatedCount = 0;
 
-    for (const r of rows) {
-      const name = r.name || r['Full Name'] || r['Name'];
-      const phone = r.phone || r['WhatsApp / Phone Number'] || r['Phone'];
-      const email = r.email || r['Email Address'] || r['Email'];
-      const branch = r.branch || r['Branch'] || 'IT';
-      const year = r.year || r['Year'] || '3rd Year';
-      const idea = r.projectIdea || r['What do you want to build?'] || '';
+    if (csvText && typeof csvText === 'string') {
+      const result = processSheetCSV(members, csvText);
+      addedCount = result.addedCount;
+      updatedCount = result.updatedCount;
+    } else {
+      for (const r of rows) {
+        const name = r.name || r['Full Name'] || r['Name'];
+        const phone = r.phone || r['WhatsApp / Phone Number'] || r['Phone'];
+        const email = r.email || r['Email Address'] || r['Email'];
+        const branch = r.branch || r['Branch'] || 'IT';
+        const year = r.year || r['Year'] || '3rd Year';
+        const idea = r.projectIdea || r['What do you want to build?'] || '';
 
-      if (name && phone) {
-        const cleanPhone = String(phone).trim();
-        const exists = members.find(m => m.phone === cleanPhone || (email && m.email === email));
-        if (!exists) {
-          members.push({
-            id: `fnd_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 5)}`,
-            name: String(name).trim(),
-            email: String(email || '').trim().toLowerCase(),
-            phone: cleanPhone,
-            branch: String(branch).trim(),
-            year: String(year).trim(),
-            founderKey: '',
-            status: 'pending_review',
-            role: 'Vibe Coder / Shipper',
-            customRole: '',
-            claimedAt: null,
-            printedAt: null,
-            emailSentAt: null,
-            source: 'google_sheet_sync',
-            answers: { projectIdea: idea },
-            createdAt: new Date().toISOString()
+        if (name && phone) {
+          const cleanPhone = String(phone).trim();
+          const cleanEmail = String(email || '').trim().toLowerCase();
+          const exists = members.find(m => {
+            const mDigits = m.phone ? String(m.phone).replace(/\D/g, '').slice(-10) : '';
+            const curDigits = cleanPhone.replace(/\D/g, '').slice(-10);
+            return (mDigits && curDigits && mDigits === curDigits) || (cleanEmail && m.email && m.email.toLowerCase() === cleanEmail);
           });
-          addedCount++;
+          if (!exists) {
+            members.push({
+              id: `fnd_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 5)}`,
+              name: String(name).trim(),
+              email: cleanEmail,
+              phone: cleanPhone,
+              branch: String(branch).trim(),
+              year: String(year).trim(),
+              founderKey: '',
+              status: 'pending_review',
+              role: 'Vibe Coder / Shipper',
+              customRole: '',
+              claimedAt: null,
+              printedAt: null,
+              emailSentAt: null,
+              source: 'google_sheet_sync',
+              answers: { projectIdea: idea },
+              createdAt: new Date().toISOString()
+            });
+            addedCount++;
+          } else {
+            if (name && !['bitch', 'test', 'demo'].includes(String(name).trim().toLowerCase())) {
+              exists.name = String(name).trim();
+            }
+            if (cleanEmail && !cleanEmail.includes('brokenga')) {
+              exists.email = cleanEmail;
+            }
+            updatedCount++;
+          }
         }
       }
     }
 
-    if (addedCount > 0) {
+    if (addedCount > 0 || updatedCount > 0) {
       saveMembers(members);
     }
 
     return res.end(JSON.stringify({
       success: true,
       addedCount,
+      updatedCount,
       total: members.length
     }));
   }
@@ -924,6 +1107,10 @@ async function routeApi(method, pathname, url, body, req, res) {
 
       const csvText = await fetchRes.text();
       const { addedCount, updatedCount } = processSheetCSV(members, csvText);
+
+      if (addedCount > 0 || updatedCount > 0) {
+        saveMembers(members);
+      }
 
       return res.end(JSON.stringify({
         success: true,

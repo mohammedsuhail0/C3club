@@ -18,11 +18,11 @@ import {
   testEmailConfigApi, 
   syncGoogleSheetApi,
   syncGoogleSheetFromUrlApi,
+  syncSheetCsvApi,
   LocalDecision,
   getLocalDecisions,
   saveLocalDecision,
   removeLocalDecision,
-  purgeRevokedDecisionsExceptSuhail,
   syncDecisionsApi,
   setAdminToken,
   MemberRecord, 
@@ -118,17 +118,23 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
   const [sheetImportStatus, setSheetImportStatus] = useState<string | null>(null);
 
   // 24/7 Live Google Sheet Auto-Sync State
+  const OFFICIAL_GOOGLE_SHEET = 'https://docs.google.com/spreadsheets/d/1_S36e4hXKWyIAoIMBAnKdlj4C67MkWj5rcf7CZBEqTo/edit';
+
   const [sheetUrl, setSheetUrl] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('c3_google_sheet_url') || '';
+      const stored = localStorage.getItem('c3_google_sheet_url');
+      if (stored && stored.trim()) return stored.trim();
+      return OFFICIAL_GOOGLE_SHEET;
     }
-    return '';
+    return OFFICIAL_GOOGLE_SHEET;
   });
   const [sheetUrlInput, setSheetUrlInput] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('c3_google_sheet_url') || '';
+      const stored = localStorage.getItem('c3_google_sheet_url');
+      if (stored && stored.trim()) return stored.trim();
+      return OFFICIAL_GOOGLE_SHEET;
     }
-    return '';
+    return OFFICIAL_GOOGLE_SHEET;
   });
   const [isAutoSyncEnabled, setIsAutoSyncEnabled] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -141,30 +147,64 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
   const [syncStatusMsg, setSyncStatusMsg] = useState<{ text: string; success: boolean } | null>(null);
 
   const performSheetSync = async (targetUrl?: string, isManual = false) => {
-    const urlToUse = (targetUrl || sheetUrl).trim();
+    const urlToUse = (targetUrl || sheetUrl || OFFICIAL_GOOGLE_SHEET).trim();
     if (!urlToUse) return;
 
     setIsSyncingSheet(true);
-    const res = await syncGoogleSheetFromUrlApi(urlToUse);
+    let res = await syncGoogleSheetFromUrlApi(urlToUse);
+
+    // High-reliability Fallback: If serverless endpoint fails or network times out, directly fetch Google Sheets CSV
+    if (!res.success) {
+      try {
+        let exportUrl = urlToUse;
+        if (exportUrl.includes('/edit')) {
+          exportUrl = exportUrl.replace(/\/edit.*$/, '/export?format=csv');
+        } else if (!exportUrl.includes('/export?format=csv')) {
+          exportUrl = exportUrl.replace(/\/$/, '') + '/export?format=csv';
+        }
+        const clientFetch = await fetch(exportUrl);
+        if (clientFetch.ok) {
+          const csvText = await clientFetch.text();
+          if (csvText && csvText.length > 50) {
+            const importRes = await syncSheetCsvApi(csvText);
+            if (importRes.success) {
+              res = {
+                success: true,
+                addedCount: importRes.addedCount,
+                updatedCount: importRes.updatedCount,
+                total: importRes.total
+              };
+            }
+          }
+        }
+      } catch (clientErr) {
+        console.warn('Direct sheet sync fallback notice:', clientErr);
+      }
+    }
+
     setIsSyncingSheet(false);
 
     if (res.success) {
       setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-      if (res.addedCount > 0) {
+      const hasChanges = (res.addedCount > 0) || ((res.updatedCount || 0) > 0);
+      if (hasChanges) {
         sounds.playSuccess();
         setSyncStatusMsg({
-          text: `⚡ Ingested ${res.addedCount} new applicant(s) from Google Sheets!`,
+          text: `⚡ Synced Google Sheet: ${res.addedCount} new, ${res.updatedCount || 0} updated response(s)!`,
           success: true
         });
-        loadData();
+        await loadData();
         setTimeout(() => setSyncStatusMsg(null), 6000);
-      } else if (isManual) {
-        sounds.playClick();
-        setSyncStatusMsg({
-          text: `All ${res.total} applicant(s) up to date. Zero new rows in Google Sheet.`,
-          success: true
-        });
-        setTimeout(() => setSyncStatusMsg(null), 4000);
+      } else {
+        await loadData();
+        if (isManual) {
+          sounds.playClick();
+          setSyncStatusMsg({
+            text: `All ${res.total} applicant(s) up to date. Roster refreshed.`,
+            success: true
+          });
+          setTimeout(() => setSyncStatusMsg(null), 4000);
+        }
       }
     } else {
       if (isManual) {
@@ -222,19 +262,27 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
 
   const loadData = async () => {
     setLoading(true);
-    purgeRevokedDecisionsExceptSuhail();
     const res = await fetchMembers();
     if (res) {
       const localDecisions = getLocalDecisions();
+
+      // Clean up any test records in localStorage
+      for (const k of Object.keys(localDecisions)) {
+        if (localDecisions[k]?.name && ['bitch', 'test', 'demo'].includes(localDecisions[k].name!.toLowerCase())) {
+          delete localDecisions[k];
+          removeLocalDecision(k);
+        }
+      }
 
       // Overlay local decisions so serverless cold-starts never wipe acceptances or edits
       const mergedMembers = res.members.map(m => {
         const phoneKey = m.phone ? m.phone.replace(/\D/g, '').slice(-10) : '';
         const dec = (phoneKey && localDecisions[phoneKey]) || (m.email && localDecisions[m.email.toLowerCase()]) || localDecisions[m.id];
         if (dec) {
+          const decName = (dec.name && !['bitch', 'test', 'demo'].includes(dec.name.trim().toLowerCase())) ? dec.name : undefined;
           return {
             ...m,
-            name: dec.name || m.name,
+            name: decName || m.name,
             branch: dec.branch || m.branch,
             year: dec.year || m.year,
             status: dec.status || m.status,
