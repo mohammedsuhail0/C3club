@@ -36,21 +36,31 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
   // Computed builder role
   const effectiveRole = isCustomRole ? (customRoleText.trim() || 'Founding Builder') : rolePreset;
 
-  const unlockWithKey = async (code: string) => {
+  const unlockWithKey = async (code: string, isFromUrlOrExternal: boolean = false) => {
     const res = validateFounderKey(code);
     if (res.isValid) {
       setFounderKey(res.normalizedKey);
       setIsUnlocked(true);
       setKeyError('');
       sounds.playSuccess();
-      try {
-        confetti({
-          particleCount: 90,
-          spread: 80,
-          origin: { y: 0.6 },
-          colors: ['#CC5A36', '#D97757', '#FAF8F5', '#1F1E1B']
-        });
-      } catch {}
+
+      const triggerConfetti = () => {
+        try {
+          confetti({
+            particleCount: 110,
+            spread: 90,
+            origin: { y: 0.55 },
+            colors: ['#CC5A36', '#D97757', '#FAF8F5', '#1F1E1B', '#F59E0B']
+          });
+        } catch {}
+      };
+
+      if (isFromUrlOrExternal) {
+        // Delay celebration confetti until smooth scroll lands on the pass
+        setTimeout(triggerConfetti, 700);
+      } else {
+        triggerConfetti();
+      }
 
       // Look up member from backend to pre-populate their official name & details
       const member = await fetchMemberByKey(res.normalizedKey);
@@ -74,11 +84,19 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
   // Watch for external key triggers (e.g. from Acceptance Letter)
   useEffect(() => {
     if (externalKey) {
-      unlockWithKey(externalKey);
+      unlockWithKey(externalKey, true);
+      const scrollToPass = () => {
+        const el = document.getElementById('founding-pass');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      };
+      setTimeout(scrollToPass, 100);
+      setTimeout(scrollToPass, 400);
     }
   }, [externalKey]);
 
-  // Auto-detect ?code= or ?fnd= on mount
+  // Auto-detect ?code= or ?fnd= on mount and auto-scroll to the PASS section
   useEffect(() => {
     const parseCode = () => {
       const searchParams = new URLSearchParams(window.location.search);
@@ -89,7 +107,20 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
 
     const code = parseCode();
     if (code) {
-      unlockWithKey(code);
+      unlockWithKey(code, true);
+
+      // Scroll smoothly to Founding Pass section
+      const scrollToPass = () => {
+        const el = document.getElementById('founding-pass');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      };
+
+      // Execute on initial render + after DOM/preloader settles
+      scrollToPass();
+      setTimeout(scrollToPass, 200);
+      setTimeout(scrollToPass, 600);
     }
   }, []);
 

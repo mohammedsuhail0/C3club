@@ -83,14 +83,29 @@ export function App() {
     if (applyParam) {
       setIsApplyOpen(true);
     }
+
+    const codeParam = searchParams.get('code') || hashParams.get('code') || searchParams.get('fnd') || hashParams.get('fnd') || searchParams.get('key') || hashParams.get('key');
+    if (codeParam) {
+      const scrollPass = () => {
+        document.getElementById('founding-pass')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+      setTimeout(scrollPass, 200);
+      setTimeout(scrollPass, 600);
+    }
   }, []);
 
   const handleClaimFromLetter = (founderKey: string) => {
     setActivePassKey(founderKey);
     setIsLetterOpen(false);
-    setTimeout(() => {
-      document.getElementById('founding-pass')?.scrollIntoView({ behavior: 'smooth' });
-    }, 150);
+    if (isAdminMode) {
+      setIsAdminMode(false);
+      window.history.replaceState(null, '', `/?code=${encodeURIComponent(founderKey)}`);
+    }
+    const scrollPass = () => {
+      document.getElementById('founding-pass')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    setTimeout(scrollPass, 150);
+    setTimeout(scrollPass, 450);
   };
 
   if (isAdminMode) {
