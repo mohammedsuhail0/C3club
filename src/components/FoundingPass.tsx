@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Sparkles, CheckCircle2, Shield, Clock, MapPin, Copy, Key, Lock, Unlock, AlertCircle, ArrowRight, Printer } from 'lucide-react';
+import { Download, Sparkles, CheckCircle2, Shield, ShieldCheck, Clock, MapPin, Copy, Key, Lock, Unlock, AlertCircle, ArrowRight, Printer } from 'lucide-react';
 import { sounds } from '../utils/audio';
 import confetti from 'canvas-confetti';
 import { validateFounderKey, savePassToOrganizerQueue } from '../utils/founderAuth';
@@ -288,7 +288,7 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
 
       renderItem('SESSION TIMINGS', 'Mon – Thu · 10:00 AM – 1:00 PM', 80, 350);
       renderItem('LOCATION / VENUE', 'C3 Campus Office · ISL Campus', 540, 350);
-      renderItem('FOUNDER ACCESS KEY', getSerial(), 80, 440);
+      renderItem('CREDENTIAL STATUS', 'Officially Verified', 80, 440);
       renderItem('ADMISSION STATUS', 'Verified Founding Builder', 540, 440);
 
       // Footer Bar
@@ -341,7 +341,7 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
 
   const handleCopy = () => {
     sounds.playClick();
-    const text = `🎟️ C3 Founding Builder Pass\nName: ${name}\nBranch: ${effectiveBranch} (${effectiveYear})\nRole: ${effectiveRole}\nKey: ${getSerial()}\nSchedule: Mon-Thu 10 AM - 1 PM @ C3 Campus Office, ISL Engineering College`;
+    const text = `🎟️ C3 Founding Builder Pass\nName: ${name}\nDEPT: ${effectiveBranch} (${effectiveYear})\nRole: ${effectiveRole}\nStatus: Verified Founding Member\nSchedule: Mon-Thu 10 AM - 1 PM @ C3 Campus Office, ISL Engineering College`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -463,9 +463,9 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
                     Updates your 3D ticket in real time.
                   </p>
                 </div>
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[11px] font-mono font-semibold">
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[11px] font-mono font-semibold">
                   <CheckCircle2 className="w-3 h-3" />
-                  <span>{founderKey}</span>
+                  <span>Verified Member</span>
                 </div>
               </div>
 
@@ -699,13 +699,8 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
                   className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-sm shrink-0"
                 />
                 <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-mono font-bold text-xs sm:text-sm tracking-wider text-[#B8431E]">
-                      C3 COLLECTIVE
-                    </span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#B8431E]/15 text-[#B8431E] border border-[#B8431E]/30 font-semibold">
-                      BATCH 01
-                    </span>
+                  <div className="font-mono font-bold text-xs sm:text-sm tracking-wider text-[#B8431E]">
+                    C3 COLLECTIVE
                   </div>
                   <div className="text-[11px] sm:text-xs font-sans text-claude-muted dark:text-claude-darkMuted">
                     ISL Engineering College · Autonomous
@@ -769,10 +764,11 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
             <div className="mt-4 sm:mt-5 pt-3 border-t border-dashed border-[#E0DCD3] dark:border-claude-darkBorder flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <div className="font-mono text-[9px] sm:text-[10px] text-claude-muted uppercase tracking-wider">
-                  VERIFIED FOUNDER KEY
+                  CREDENTIAL STATUS
                 </div>
-                <div className="font-mono text-xs sm:text-xs font-bold text-[#B8431E] dark:text-[#E07A5F] truncate">
-                  {isUnlocked ? getSerial() : '••••••••'}
+                <div className="font-mono text-xs sm:text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>{isUnlocked ? 'OFFICIALLY VERIFIED' : 'KEY REQUIRED'}</span>
                 </div>
               </div>
 
