@@ -153,29 +153,45 @@ export async function sendAcceptanceEmail(member, baseUrl = 'http://localhost:41
   const passUrl = `${baseUrl}/?code=${cleanKey}`;
   const refCode = `ISLEC/C3/B01/ADM/2026/${cleanKey}`;
 
-  const subject = `🎉 Official Notice of Admission: C3 Batch 01 (Founder Key: ${cleanKey})`;
-  const plainTextBody = `Dear ${member.name},
+  const todayFormatted = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const plainTextBody = `OFFICE OF THE C3 ADMISSIONS COUNCIL
+Department of Information Technology · ISL Engineering College (Autonomous)
+Bandlaguda, Chandrayangutta, Hyderabad, Telangana 500005
+──────────────────────────────────────────────────────────────────
+Ref: ${refCode}                          Date: ${todayFormatted}
 
-Congratulations! On behalf of C3 (Claude Code & Cowork) and the Department of Information Technology at ISL Engineering College, your application for Batch 01 has been officially approved!
+ADMITTED FOUNDING BUILDER: ${member.name}
+EXCLUSIVE FOUNDER KEY:     ${cleanKey}
 
-Your Exclusive Founder Access Key: ${cleanKey}
+SUBJECT: OFFICIAL NOTICE OF ADMISSION & SELECTION · C3 FOUNDING COHORT (BATCH 01)
+──────────────────────────────────────────────────────────────────
 
-1. View & Print Your Official Acceptance Letter:
-${letterUrl}
+Dear ${member.name},
 
-2. Claim Your 3D Founding Pass & Campus Badge:
-${passUrl}
+On behalf of the C3 (Claude Code & Cowork) Collective and the Department of Information Technology at ISL Engineering College, we are pleased to inform you that your application for Batch 01 has been officially approved.
 
-Workspace Schedule:
-• Venue: C3 Campus Office / Innovation Lab 3 · ISLEC Campus
-• Timings: Monday to Thursday · 10:00 AM – 1:00 PM
-• Role: ${member.role || 'Founding Builder'}
+Out of all departmental submissions, your responses demonstrated the technical aptitude, problem-solving mindset, and dedication required to spearhead autonomous AI engineering on our campus. As an inducted Founding Builder, you are granted provisional core membership into the collective with full access to our inaugural workspace.
 
-Present this pass on Monday morning to collect your physical NFC campus badge.
+COHORT DETAILS & PRIVILEGES:
+• Assigned Role: ${member.role || 'Founding Builder'}
+• Dedicated Workstation: C3 Campus Office / Innovation Lab 3
+• Weekly Routine: Monday to Thursday · 10:00 AM – 1:00 PM
+• Tooling Access: Full Claude Code CLI terminal ecosystem, MCP server suites, and production deployment pipeline.
+• Physical Credential: Your physical NFC campus badge will be handed to you at the registration desk upon verification of your digital pass.
 
-See you on Monday!
-— Mohammed Suhail & Mohammad Bilal (Founding Co-Leads)
-C3 Collective · Department of Information Technology · ISL Engineering College`;
+To secure your seat, please claim your digital 3D Founding Builder Pass before the kickoff session using your Founder Key (${cleanKey}):
+👉 Claim 3D Pass: ${passUrl}
+
+We look forward to building, shipping, and defining the future of software with you.
+
+──────────────────────────────────────────────────────────────────
+Mohammed Suhail & Mohammad Bilal
+Founding Co-Leads (Flat Collective · No Hierarchy)
+C3 Collective · ISLEC
+
+Faculty Advisory Board
+Department of Information Technology
+ISL Engineering College (Autonomous)`;
 
   const senderEmail = config.user || 'c3.collective.in@gmail.com';
   const mailto = `mailto:${encodeURIComponent(member.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainTextBody)}`;
@@ -312,6 +328,8 @@ C3 Collective · Department of Information Technology · ISL Engineering College
       return {
         success: true,
         mailto,
+        letterHtml: html,
+        letterText: plainTextBody,
         message: `Official acceptance email sent to ${member.email} via C3 Google Apps Script!`
       };
     } catch (err) {
@@ -326,6 +344,8 @@ C3 Collective · Department of Information Technology · ISL Engineering College
       isFallback: true,
       gmailUrl,
       mailto,
+      letterHtml: html,
+      letterText: plainTextBody,
       message: 'Direct dispatch via C3 Gmail Composer ready!'
     };
   }
@@ -343,6 +363,8 @@ C3 Collective · Department of Information Technology · ISL Engineering College
       messageId: info.messageId,
       gmailUrl,
       mailto,
+      letterHtml: html,
+      letterText: plainTextBody,
       message: `Official acceptance email sent to ${member.email}!`
     };
   } catch (err) {
@@ -351,6 +373,8 @@ C3 Collective · Department of Information Technology · ISL Engineering College
       isFallback: true,
       gmailUrl,
       mailto,
+      letterHtml: html,
+      letterText: plainTextBody,
       message: err.message || 'SMTP error. Opened C3 Gmail draft.'
     };
   }

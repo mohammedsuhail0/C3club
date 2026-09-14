@@ -322,9 +322,22 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
       }
 
       if (res.isFallback && (res.gmailUrl || res.mailto)) {
+        if (res.letterHtml && navigator.clipboard && window.ClipboardItem) {
+          try {
+            const blobHtml = new Blob([res.letterHtml], { type: 'text/html' });
+            const blobText = new Blob([res.letterText || ''], { type: 'text/plain' });
+            navigator.clipboard.write([new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText })]);
+          } catch (e) {
+            console.warn('Clipboard write failed:', e);
+          }
+        }
         const targetUrl = res.gmailUrl || res.mailto!;
         window.open(targetUrl, '_blank');
-        setEmailStatusMsg({ id: member.id, text: 'Opened pre-filled draft in C3 Gmail! (1-click send)', success: true });
+        setEmailStatusMsg({ 
+          id: member.id, 
+          text: 'Opened Acceptance Letter in Gmail! (Rich letter copied to clipboard: Ctrl+V to paste full card)', 
+          success: true 
+        });
       } else {
         setEmailStatusMsg({ id: member.id, text: 'Official acceptance email dispatched!', success: true });
       }

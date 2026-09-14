@@ -279,6 +279,8 @@ export async function sendAcceptanceEmailApi(idOrKey: { id?: string; key?: strin
   isFallback?: boolean;
   gmailUrl?: string;
   mailto?: string;
+  letterHtml?: string;
+  letterText?: string;
   message: string;
   emailSentAt?: string;
 }> {

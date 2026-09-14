@@ -542,6 +542,8 @@ async function routeApi(method, pathname, url, body, req, res) {
       isFallback: emailResult.isFallback,
       gmailUrl: emailResult.gmailUrl,
       mailto: emailResult.mailto,
+      letterHtml: emailResult.letterHtml,
+      letterText: emailResult.letterText,
       message: emailResult.message,
       emailSentAt: member.emailSentAt
     }));
