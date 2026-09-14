@@ -156,7 +156,7 @@ export async function sendAcceptanceEmail(member, baseUrl = 'http://localhost:41
   const subject = `🎉 Official Notice of Admission: C3 Batch 01 (Founder Key: ${cleanKey})`;
   const plainTextBody = `Dear ${member.name},
 
-Congratulations! On behalf of C3 (Claude Code & Cowork) and the Department of CSE at ISL Engineering College, your application for Batch 01 has been officially approved!
+Congratulations! On behalf of C3 (Claude Code & Cowork) and the Department of Information Technology at ISL Engineering College, your application for Batch 01 has been officially approved!
 
 Your Exclusive Founder Access Key: ${cleanKey}
 
@@ -175,7 +175,7 @@ Present this pass on Monday morning to collect your physical NFC campus badge.
 
 See you on Monday!
 — Mohammed Suhail & Mohammad Bilal (Founding Co-Leads)
-C3 Collective · Department of CSE · ISL Engineering College`;
+C3 Collective · Department of Information Technology · ISL Engineering College`;
 
   const senderEmail = config.user || 'c3.collective.in@gmail.com';
   const mailto = `mailto:${encodeURIComponent(member.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainTextBody)}`;
@@ -202,7 +202,7 @@ C3 Collective · Department of CSE · ISL Engineering College`;
           C3 · CLAUDE CODE &amp; COWORK
         </h2>
         <p style="margin:4px 0 0 0;font-size:11px;font-family:monospace;text-transform:uppercase;color:#8C8275;letter-spacing:1.5px;">
-          Office of Admissions Council &bull; Dept. of CSE &bull; ISL Engineering College
+          Office of Admissions Council &bull; Dept. of Information Technology &bull; ISL Engineering College
         </p>
       </td>
     </tr>
@@ -218,7 +218,7 @@ C3 Collective · Department of CSE · ISL Engineering College`;
           Dear <strong>${safeName}</strong>,
         </p>
         <p style="font-size:14px;line-height:1.6;color:#4A443B;">
-          Congratulations! On behalf of the <strong>C3 Collective</strong> and the Department of Computer Science &amp; Engineering at ISL Engineering College, we are pleased to inform you that your application for <strong>Batch 01</strong> has been officially approved.
+          Congratulations! On behalf of the <strong>C3 Collective</strong> and the Department of Information Technology at ISL Engineering College, we are pleased to inform you that your application for <strong>Batch 01</strong> has been officially approved.
         </p>
         <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:24px 0;background-color:#FAF8F5;border:1px dashed #CC5A36;border-radius:12px;text-align:center;">
           <tr>
@@ -277,7 +277,7 @@ C3 Collective · Department of CSE · ISL Engineering College`;
                 Founding Co-Leads (Flat Collective &bull; No Hierarchy)
               </div>
               <div style="font-size:10px;color:#8C8275;font-family:monospace;">
-                C3 Collective &bull; Dept. of CSE &bull; ISL Engineering College
+                C3 Collective &bull; Dept. of Information Technology &bull; ISL Engineering College
               </div>
             </td>
             <td align="right" style="font-size:10px;font-family:monospace;color:#8C8275;">

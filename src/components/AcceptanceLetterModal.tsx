@@ -251,7 +251,7 @@ See you on Monday!
                 <div className="font-serif italic font-bold text-base text-[#4D473C] pb-1">
                   Faculty Advisory Board
                 </div>
-                <p className="font-semibold text-[#1F1E1B]">Department of CSE</p>
+                <p className="font-semibold text-[#1F1E1B]">Department of Information Technology</p>
                 <p className="text-[#8C8275] text-[11px] font-mono">ISL Engineering College (Autonomous)</p>
               </div>
             </div>
