@@ -1487,7 +1487,7 @@ function onFormSubmit(e) {
                       Mohammed Suhail & Mohammad Bilal
                     </p>
                     <p className="text-[#7D7467] text-[11px]">
-                      Department of Computer Science & Engineering · ISL Engineering College
+                      Department of Information Technology · ISL Engineering College
                     </p>
                   </div>
 

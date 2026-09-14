@@ -122,7 +122,7 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({ isOpen, onClose }) => {
             Apply for Core Founding Team
           </h3>
           <p className="text-xs sm:text-sm text-[#666055] mt-1">
-            Department of Computer Science &amp; Engineering · ISL Engineering College (Autonomous)
+            Department of Information Technology · ISL Engineering College (Autonomous)
           </p>
         </div>
 

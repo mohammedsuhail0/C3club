@@ -151,7 +151,7 @@ See you on Monday!
                   Office of the C3 Collective Admissions Council
                 </p>
                 <p className="text-[11px] sm:text-xs font-sans text-[#5A5449]">
-                  Department of Computer Science & Engineering · ISL Engineering College (Autonomous)
+                  Department of Information Technology · ISL Engineering College (Autonomous)
                 </p>
                 <p className="text-[10px] font-mono text-[#8C8275]">
                   Bandlaguda, Chandrayangutta, Hyderabad, Telangana 500005
@@ -208,7 +208,7 @@ See you on Monday!
               </p>
               
               <p>
-                On behalf of the <strong>C3 (Claude Code & Cowork) Collective</strong> and the Department of Computer Science & Engineering at ISL Engineering College, we are pleased to inform you that your application for <strong>Batch 01</strong> has been officially approved.
+                On behalf of the <strong>C3 (Claude Code & Cowork) Collective</strong> and the Department of Information Technology at ISL Engineering College, we are pleased to inform you that your application for <strong>Batch 01</strong> has been officially approved.
               </p>
 
               <p>
