@@ -1,15 +1,15 @@
 [
   {
-    "id": "fnd_mu0gx6zw_2us",
+    "id": "fnd_8522938703",
     "name": "Mohammed Bilal",
     "email": "imaxtro09@gmail.com",
     "phone": "8522938703",
     "branch": "AI&DS",
     "year": "3rd Year",
-    "founderKey": "",
-    "status": "pending_review",
+    "founderKey": "3N8H",
+    "status": "accepted",
     "role": "Technical & AI Architect",
-    "customRole": "",
+    "customRole": "Founding Co-Lead",
     "claimedAt": null,
     "printedAt": null,
     "emailSentAt": null,
@@ -26,7 +26,7 @@
     "createdAt": "2026-09-13T23:51:42.765Z"
   },
   {
-    "id": "fnd_mu0gx702_skk",
+    "id": "fnd_9341047343",
     "name": "Md Sakib",
     "email": "shaqibedge@gmail.com",
     "phone": "9341047343",
@@ -52,14 +52,14 @@
     "createdAt": "2026-09-13T23:51:42.770Z"
   },
   {
-    "id": "fnd_mu0gx702_now",
+    "id": "fnd_7095304263",
     "name": "Mohammed Ibrahim Shareef",
     "email": "ibrahimshareef178@gmail.com",
     "phone": "7095304263",
     "branch": "IT",
     "year": "4th Year",
-    "founderKey": "",
-    "status": "pending_review",
+    "founderKey": "EVKH",
+    "status": "accepted",
     "role": "Project Founder",
     "customRole": "",
     "claimedAt": null,
@@ -154,5 +154,31 @@
       "commitment": "3 - 5 hours / week"
     },
     "createdAt": "2026-09-13T23:51:42.771Z"
+  },
+  {
+    "id": "fnd_suhail_lead",
+    "name": "Mohammed Suhail",
+    "email": "mdsuhailtab.1@gmail.com",
+    "phone": "6301633463",
+    "branch": "IT",
+    "year": "3rd Year",
+    "founderKey": "3C5B",
+    "status": "accepted",
+    "role": "Technical & AI Architect",
+    "customRole": "Founding Co-Lead",
+    "claimedAt": null,
+    "printedAt": null,
+    "emailSentAt": null,
+    "source": "google_sheet_sync",
+    "answers": {
+      "projectIdea": "many things",
+      "motivation": "not intrestd",
+      "built": "many things",
+      "experience": "all",
+      "weekendScenario": "yes",
+      "links": "https://github.com/mohammedsuhail0",
+      "commitment": "10+ hours / week"
+    },
+    "createdAt": "2026-09-14T05:27:45.000Z"
   }
 ]

@@ -45,6 +45,29 @@ function verifyKeyChecksum(key) {
   return check === expectedCheck;
 }
 
+function generateMemberId(phone, email, name) {
+  const cleanPhone = String(phone || '').replace(/\D/g, '').slice(-10);
+  if (cleanPhone) return `fnd_${cleanPhone}`;
+  const cleanEmail = String(email || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (cleanEmail) return `fnd_${cleanEmail.slice(0, 16)}`;
+  const cleanName = String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `fnd_${cleanName.slice(0, 16) || 'applicant'}`;
+}
+
+function findMember(members, query) {
+  if (!query) return null;
+  const qStr = String(query).trim();
+  const qDigits = qStr.replace(/\D/g, '').slice(-10);
+  const qEmail = qStr.toLowerCase();
+  const qKey = normalizeKey(qStr);
+  return members.find(m => 
+    m.id === qStr ||
+    (qKey && m.founderKey && normalizeKey(m.founderKey) === qKey) ||
+    (qDigits && m.phone && m.phone.replace(/\D/g, '').slice(-10) === qDigits) ||
+    (qEmail && m.email && m.email.toLowerCase() === qEmail)
+  );
+}
+
 let memoryCache = null;
 
 function getEffectiveDataFile() {
@@ -132,6 +155,128 @@ export function handleApiRequest(req, res, next) {
   }
 }
 
+function processSheetCSV(members, csvText) {
+  const rows = parseCSV(csvText);
+  let addedCount = 0;
+  let updatedCount = 0;
+
+  for (const r of rows) {
+    let name = '';
+    let phone = '';
+    let email = '';
+    let branchRaw = '';
+    let yearRaw = '';
+    let roleRaw = '';
+    let links = '';
+    let built = '';
+    let experience = '';
+    let weekendScenario = '';
+    let motivation = '';
+    let commitment = '';
+
+    for (const [colName, val] of Object.entries(r)) {
+      const col = colName.toLowerCase();
+      if (!name && col.includes('name')) name = val;
+      else if (!phone && (col.includes('phone') || col.includes('whatsapp') || col.includes('mobile') || col.includes('contact') || col.includes('number'))) phone = val;
+      else if (!email && col.includes('email')) email = val;
+      else if (col.includes('branch') || col.includes('department') || col.includes('study')) branchRaw = val;
+      else if (col.includes('year') && !branchRaw) yearRaw = val;
+      else if (col.includes('role')) roleRaw = val;
+      else if (col.includes('link') || col.includes('github') || col.includes('portfolio') || col.includes('linkedin')) links = val;
+      else if (col.includes('built') || col.includes('broken')) built = val;
+      else if (col.includes('experience') || col.includes('workflows')) experience = val;
+      else if (col.includes('weekend') || col.includes('48 hours') || col.includes('scenario')) weekendScenario = val;
+      else if (col.includes('why') || col.includes('motivation') || col.includes('instead of')) motivation = val;
+      else if (col.includes('commitment') || col.includes('weekly') || col.includes('hours')) commitment = val;
+    }
+
+    if (name && phone) {
+      const cleanPhone = String(phone).trim();
+      const cleanEmail = String(email || '').trim().toLowerCase();
+      const { branch, year } = parseBranchAndYear(branchRaw || yearRaw);
+      const role = parseRole(roleRaw);
+
+      const existingIndex = members.findIndex(m => {
+        const mDigits = m.phone ? String(m.phone).replace(/\D/g, '').slice(-10) : '';
+        const curDigits = cleanPhone.replace(/\D/g, '').slice(-10);
+        return (mDigits && curDigits && mDigits === curDigits) ||
+               (cleanEmail && m.email && m.email.toLowerCase() === cleanEmail);
+      });
+
+      const answersObj = {
+        projectIdea: built || weekendScenario || '',
+        motivation: motivation || '',
+        built: built || '',
+        experience: experience || '',
+        weekendScenario: weekendScenario || '',
+        links: links || '',
+        commitment: commitment || ''
+      };
+
+      if (existingIndex !== -1) {
+        const existing = members[existingIndex];
+        existing.branch = branch;
+        existing.year = year;
+        if (!existing.role || existing.role === 'Vibe Coder / Shipper') {
+          existing.role = role;
+        }
+        existing.source = 'google_sheet_sync';
+        existing.answers = {
+          ...(existing.answers || {}),
+          ...answersObj
+        };
+        // NEVER reset accepted status or erase founderKey!
+        if (existing.status === 'accepted' && !existing.founderKey) {
+          existing.founderKey = generateKeyFromPhone(existing.phone);
+        }
+        updatedCount++;
+      } else {
+        members.push({
+          id: generateMemberId(cleanPhone, cleanEmail, name),
+          name: String(name).trim(),
+          email: cleanEmail,
+          phone: cleanPhone,
+          branch,
+          year,
+          founderKey: '',
+          status: 'pending_review',
+          role,
+          customRole: '',
+          claimedAt: null,
+          printedAt: null,
+          emailSentAt: null,
+          source: 'google_sheet_sync',
+          answers: answersObj,
+          createdAt: new Date().toISOString()
+        });
+        addedCount++;
+      }
+    }
+  }
+
+  if (addedCount > 0 || updatedCount > 0) {
+    saveMembers(members);
+  }
+  return { addedCount, updatedCount };
+}
+
+let lastBackgroundSheetSync = 0;
+async function backgroundSyncSheet(members) {
+  const now = Date.now();
+  if (now - lastBackgroundSheetSync < 15000) return;
+  lastBackgroundSheetSync = now;
+  try {
+    const sheetUrl = 'https://docs.google.com/spreadsheets/d/1_S36e4hXKWyIAoIMBAnKdlj4C67MkWj5rcf7CZBEqTo/export?format=csv';
+    const res = await fetch(sheetUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (res.ok) {
+      const csvText = await res.text();
+      processSheetCSV(members, csvText);
+    }
+  } catch (e) {
+    console.warn('Background sheet sync warning:', e.message);
+  }
+}
+
 async function routeApi(method, pathname, url, body, req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -148,6 +293,7 @@ async function routeApi(method, pathname, url, body, req, res) {
 
   // 1. GET /api/members
   if (method === 'GET' && pathname === '/api/members') {
+    await backgroundSyncSheet(members);
     const stats = {
       total: members.length,
       pending: members.filter(m => m.status === 'pending_review').length,
@@ -577,108 +723,13 @@ async function routeApi(method, pathname, url, body, req, res) {
       }
 
       const csvText = await fetchRes.text();
-      const rows = parseCSV(csvText);
-
-      let addedCount = 0;
-      let updatedCount = 0;
-      for (const r of rows) {
-        let name = '';
-        let phone = '';
-        let email = '';
-        let branchRaw = '';
-        let yearRaw = '';
-        let roleRaw = '';
-        let links = '';
-        let built = '';
-        let experience = '';
-        let weekendScenario = '';
-        let motivation = '';
-        let commitment = '';
-
-        for (const [colName, val] of Object.entries(r)) {
-          const col = colName.toLowerCase();
-          if (!name && col.includes('name')) name = val;
-          else if (!phone && (col.includes('phone') || col.includes('whatsapp') || col.includes('mobile') || col.includes('contact') || col.includes('number'))) phone = val;
-          else if (!email && col.includes('email')) email = val;
-          else if (col.includes('branch') || col.includes('department') || col.includes('study')) branchRaw = val;
-          else if (col.includes('year') && !branchRaw) yearRaw = val;
-          else if (col.includes('role')) roleRaw = val;
-          else if (col.includes('link') || col.includes('github') || col.includes('portfolio') || col.includes('linkedin')) links = val;
-          else if (col.includes('built') || col.includes('broken')) built = val;
-          else if (col.includes('experience') || col.includes('workflows')) experience = val;
-          else if (col.includes('weekend') || col.includes('48 hours') || col.includes('scenario')) weekendScenario = val;
-          else if (col.includes('why') || col.includes('motivation') || col.includes('instead of')) motivation = val;
-          else if (col.includes('commitment') || col.includes('weekly') || col.includes('hours')) commitment = val;
-        }
-
-        if (name && phone) {
-          const cleanPhone = String(phone).trim();
-          const cleanEmail = String(email || '').trim().toLowerCase();
-          const { branch, year } = parseBranchAndYear(branchRaw || yearRaw);
-          const role = parseRole(roleRaw);
-
-          const existingIndex = members.findIndex(m => 
-            m.phone === cleanPhone || (cleanEmail && m.email && m.email.toLowerCase() === cleanEmail)
-          );
-
-          const answersObj = {
-            projectIdea: built || weekendScenario || '',
-            motivation: motivation || '',
-            built: built || '',
-            experience: experience || '',
-            weekendScenario: weekendScenario || '',
-            links: links || '',
-            commitment: commitment || ''
-          };
-
-          if (existingIndex !== -1) {
-            // Update existing member with smarter parsed branch, year, and detailed answers
-            const existing = members[existingIndex];
-            existing.branch = branch;
-            existing.year = year;
-            if (!existing.role || existing.role === 'Vibe Coder / Shipper') {
-              existing.role = role;
-            }
-            existing.source = 'google_sheet_sync';
-            existing.answers = {
-              ...(existing.answers || {}),
-              ...answersObj
-            };
-            updatedCount++;
-          } else {
-            // Add new applicant
-            members.push({
-              id: `fnd_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 5)}`,
-              name: String(name).trim(),
-              email: cleanEmail,
-              phone: cleanPhone,
-              branch,
-              year,
-              founderKey: '',
-              status: 'pending_review',
-              role,
-              customRole: '',
-              claimedAt: null,
-              printedAt: null,
-              emailSentAt: null,
-              source: 'google_sheet_sync',
-              answers: answersObj,
-              createdAt: new Date().toISOString()
-            });
-            addedCount++;
-          }
-        }
-      }
-
-      if (addedCount > 0 || updatedCount > 0) {
-        saveMembers(members);
-      }
+      const { addedCount, updatedCount } = processSheetCSV(members, csvText);
 
       return res.end(JSON.stringify({
         success: true,
         addedCount,
+        updatedCount,
         total: members.length,
-        totalRowsParsed: rows.length,
         members
       }));
     } catch (err) {
@@ -689,6 +740,28 @@ async function routeApi(method, pathname, url, body, req, res) {
         message: `Sync failed: ${err.message}`
       }));
     }
+  }
+
+  // 14. POST /api/sync-decisions (Client sends organizer decisions map to keep backend in sync across serverless containers)
+  if (method === 'POST' && pathname === '/api/sync-decisions') {
+    const { decisions = {} } = body;
+    let updatedCount = 0;
+    for (const [key, dec] of Object.entries(decisions)) {
+      const member = findMember(members, dec.phone || dec.email || dec.id || key);
+      if (member) {
+        if (dec.status) member.status = dec.status;
+        if (dec.founderKey) member.founderKey = dec.founderKey;
+        if (dec.role) member.role = dec.role;
+        if (dec.customRole !== undefined) member.customRole = dec.customRole;
+        if (dec.printedAt !== undefined) member.printedAt = dec.printedAt;
+        if (dec.emailSentAt !== undefined) member.emailSentAt = dec.emailSentAt;
+        updatedCount++;
+      }
+    }
+    if (updatedCount > 0) {
+      saveMembers(members);
+    }
+    return res.end(JSON.stringify({ success: true, updatedCount, total: members.length }));
   }
 
   // 404 for unknown /api routes

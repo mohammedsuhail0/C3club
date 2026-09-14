@@ -172,6 +172,48 @@ export async function reviewApplicantApi(
   }
 }
 
+export interface LocalDecision {
+  status?: 'accepted' | 'rejected' | 'pending_review';
+  founderKey?: string;
+  role?: string;
+  customRole?: string;
+  printedAt?: string | null;
+  emailSentAt?: string | null;
+  updatedAt?: string;
+}
+
+export function getLocalDecisions(): Record<string, LocalDecision> {
+  try {
+    const raw = localStorage.getItem('c3_organizer_decisions');
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveLocalDecision(identifier: string, patch: LocalDecision) {
+  try {
+    const all = getLocalDecisions();
+    all[identifier] = { ...(all[identifier] || {}), ...patch, updatedAt: new Date().toISOString() };
+    localStorage.setItem('c3_organizer_decisions', JSON.stringify(all));
+  } catch {}
+}
+
+export async function syncDecisionsApi(decisions: Record<string, LocalDecision>): Promise<boolean> {
+  try {
+    const res = await fetch('/api/sync-decisions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decisions })
+    });
+    if (!res.ok) return false;
+    const json = await res.json();
+    return !!json.success;
+  } catch {
+    return false;
+  }
+}
+
 export async function sendAcceptanceEmailApi(idOrKey: { id?: string; key?: string }): Promise<{
   success: boolean;
   isFallback?: boolean;

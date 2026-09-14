@@ -18,6 +18,10 @@ import {
   testEmailConfigApi, 
   syncGoogleSheetApi,
   syncGoogleSheetFromUrlApi,
+  LocalDecision,
+  getLocalDecisions,
+  saveLocalDecision,
+  syncDecisionsApi,
   MemberRecord, 
   MembersResponse, 
   EmailConfig 
@@ -205,10 +209,44 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
     setLoading(true);
     const res = await fetchMembers();
     if (res) {
-      setData(res);
+      const localDecisions = getLocalDecisions();
+
+      // Overlay local decisions so serverless cold-starts never wipe acceptances
+      const mergedMembers = res.members.map(m => {
+        const phoneKey = m.phone ? m.phone.replace(/\D/g, '').slice(-10) : '';
+        const dec = (phoneKey && localDecisions[phoneKey]) || (m.email && localDecisions[m.email.toLowerCase()]) || localDecisions[m.id];
+        if (dec) {
+          return {
+            ...m,
+            status: dec.status || m.status,
+            founderKey: dec.founderKey || m.founderKey,
+            role: dec.role || m.role,
+            customRole: dec.customRole !== undefined ? dec.customRole : m.customRole,
+            printedAt: dec.printedAt !== undefined ? dec.printedAt : m.printedAt,
+            emailSentAt: dec.emailSentAt !== undefined ? dec.emailSentAt : m.emailSentAt
+          };
+        }
+        return m;
+      });
+
+      const stats = {
+        total: mergedMembers.length,
+        pending: mergedMembers.filter(m => m.status === 'pending_review').length,
+        accepted: mergedMembers.filter(m => m.status === 'accepted').length,
+        claimed: mergedMembers.filter(m => m.status === 'claimed').length,
+        printed: mergedMembers.filter(m => m.printedAt).length,
+        emailed: mergedMembers.filter(m => m.emailSentAt).length
+      };
+
+      setData({ success: true, members: mergedMembers, stats });
       if (selectedApplicant) {
-        const updated = res.members.find(m => m.id === selectedApplicant.id);
+        const updated = mergedMembers.find(m => m.id === selectedApplicant.id || (m.phone && selectedApplicant.phone && m.phone === selectedApplicant.phone));
         if (updated) setSelectedApplicant(updated);
+      }
+
+      // Proactively heal serverless containers with local decisions
+      if (Object.keys(localDecisions).length > 0) {
+        syncDecisionsApi(localDecisions);
       }
     }
     setLoading(false);
@@ -257,15 +295,23 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
     const res = await sendAcceptanceEmailApi({ id: member.id, key: member.founderKey });
     setSendingEmailId(null);
 
-    if (res.success) {
+    if (res.success || (res.isFallback && (res.gmailUrl || res.mailto))) {
       sounds.playSuccess();
-      setEmailStatusMsg({ id: member.id, text: 'Official acceptance email dispatched!', success: true });
-      loadData();
-    } else if (res.isFallback && (res.gmailUrl || res.mailto)) {
-      sounds.playSuccess();
-      const targetUrl = res.gmailUrl || res.mailto!;
-      window.open(targetUrl, '_blank');
-      setEmailStatusMsg({ id: member.id, text: 'Opened pre-filled draft in C3 Gmail! (1-click send)', success: true });
+      const phoneKey = member.phone ? member.phone.replace(/\D/g, '').slice(-10) : member.id;
+      saveLocalDecision(phoneKey, {
+        emailSentAt: new Date().toISOString()
+      });
+      if (member.id) {
+        saveLocalDecision(member.id, { emailSentAt: new Date().toISOString() });
+      }
+
+      if (res.isFallback && (res.gmailUrl || res.mailto)) {
+        const targetUrl = res.gmailUrl || res.mailto!;
+        window.open(targetUrl, '_blank');
+        setEmailStatusMsg({ id: member.id, text: 'Opened pre-filled draft in C3 Gmail! (1-click send)', success: true });
+      } else {
+        setEmailStatusMsg({ id: member.id, text: 'Official acceptance email dispatched!', success: true });
+      }
       loadData();
     } else {
       setEmailStatusMsg({ id: member.id, text: res.message || 'Failed to send email', success: false });
@@ -310,9 +356,21 @@ See you on Monday!
   ) => {
     sounds.playSuccess();
     const updated = await reviewApplicantApi(id, action, role, customRole);
-    if (updated) {
-      if (selectedApplicant?.id === id) {
-        setSelectedApplicant(updated);
+    const target = updated || selectedApplicant;
+    if (target) {
+      const phoneKey = target.phone ? target.phone.replace(/\D/g, '').slice(-10) : target.id;
+      const decPatch = {
+        status: action === 'accept' ? 'accepted' as const : 'rejected' as const,
+        founderKey: updated?.founderKey || target.founderKey,
+        role: role || target.role,
+        customRole: customRole !== undefined ? customRole : target.customRole
+      };
+      saveLocalDecision(phoneKey, decPatch);
+      saveLocalDecision(target.id, decPatch);
+      if (target.email) saveLocalDecision(target.email.toLowerCase(), decPatch);
+
+      if (selectedApplicant?.id === id || (target.phone && selectedApplicant?.phone === target.phone)) {
+        setSelectedApplicant(updated || { ...selectedApplicant, status: action === 'accept' ? 'accepted' : 'rejected' });
       }
       loadData();
     }
@@ -322,9 +380,11 @@ See you on Monday!
     sounds.playClick();
     const nextState = !member.printedAt;
     const ok = await markPrintedApi(member.founderKey || member.id, nextState);
-    if (ok) {
-      loadData();
-    }
+    const phoneKey = member.phone ? member.phone.replace(/\D/g, '').slice(-10) : member.id;
+    const patch = { printedAt: nextState ? new Date().toISOString() : null };
+    saveLocalDecision(phoneKey, patch);
+    saveLocalDecision(member.id, patch);
+    loadData();
   };
 
   const handleSaveEmailConfig = async (e: React.FormEvent) => {
