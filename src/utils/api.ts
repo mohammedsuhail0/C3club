@@ -290,10 +290,18 @@ export async function sendAcceptanceEmailApi(idOrKey: { id?: string; key?: strin
       headers: getAuthHeaders(),
       body: JSON.stringify(idOrKey)
     });
-    return await res.json();
-  } catch (e) {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { 
+        success: false, 
+        message: res.ok ? 'Unexpected response from mailer' : `Mailer error (${res.status}): ${text.slice(0, 80)}` 
+      };
+    }
+  } catch (e: any) {
     console.error('Failed to send email:', e);
-    return { success: false, message: 'Network error communicating with mailer' };
+    return { success: false, message: e?.message || 'Network error communicating with mailer' };
   }
 }
 

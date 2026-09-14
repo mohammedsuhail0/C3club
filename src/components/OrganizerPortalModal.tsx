@@ -88,7 +88,7 @@ export const OrganizerPortalModal: React.FC<OrganizerPortalModalProps> = ({
 
   // Email sending state
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
-  const [emailStatusMsg, setEmailStatusMsg] = useState<{ id: string; text: string; success: boolean } | null>(null);
+  const [emailStatusMsg, setEmailStatusMsg] = useState<{ id: string; text: string; success: boolean; actionUrl?: string } | null>(null);
 
   // Email configuration state
   const [emailConfig, setEmailConfig] = useState<EmailConfig>({
@@ -165,37 +165,69 @@ export const OrganizerPortalModal: React.FC<OrganizerPortalModalProps> = ({
     setSendingEmailId(member.id);
     setEmailStatusMsg(null);
 
-    const res = await sendAcceptanceEmailApi({ id: member.id, key: member.founderKey });
-    setSendingEmailId(null);
-
-    if (res.success) {
-      sounds.playSuccess();
-      setEmailStatusMsg({ id: member.id, text: 'Official acceptance email dispatched!', success: true });
-      loadData();
-    } else if (res.isFallback && (res.gmailUrl || res.mailto)) {
-      sounds.playSuccess();
-      if (res.letterHtml && navigator.clipboard && window.ClipboardItem) {
-        try {
-          const blobHtml = new Blob([res.letterHtml], { type: 'text/html' });
-          const blobText = new Blob([res.letterText || ''], { type: 'text/plain' });
-          navigator.clipboard.write([new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText })]);
-        } catch (e) {
-          console.warn('Clipboard write failed:', e);
-        }
-      }
-      const targetUrl = res.gmailUrl || res.mailto!;
-      window.open(targetUrl, '_blank');
-      setEmailStatusMsg({ 
-        id: member.id, 
-        text: 'Opened Acceptance Letter in Gmail! (Rich letter copied to clipboard: Ctrl+V to paste full card)', 
-        success: true 
-      });
-      loadData();
-    } else {
-      setEmailStatusMsg({ id: member.id, text: res.message || 'Failed to send email', success: false });
+    // Synchronously open a window tab to ensure browser popup blockers do not block Gmail compose
+    let mailWin: Window | null = null;
+    try {
+      mailWin = window.open('about:blank', '_blank');
+    } catch (e) {
+      console.warn('Popup window.open failed:', e);
     }
 
-    setTimeout(() => setEmailStatusMsg(null), 6000);
+    try {
+      const res = await sendAcceptanceEmailApi({ id: member.id, key: member.founderKey });
+      setSendingEmailId(null);
+
+      if (res.success) {
+        if (mailWin && !mailWin.closed) {
+          try { mailWin.close(); } catch {}
+        }
+        sounds.playSuccess();
+        setEmailStatusMsg({ id: member.id, text: `Official acceptance email dispatched to ${member.email}!`, success: true });
+        loadData();
+      } else if (res.isFallback && (res.gmailUrl || res.mailto)) {
+        sounds.playSuccess();
+        if (res.letterHtml && navigator.clipboard && window.ClipboardItem) {
+          try {
+            const blobHtml = new Blob([res.letterHtml], { type: 'text/html' });
+            const blobText = new Blob([res.letterText || ''], { type: 'text/plain' });
+            navigator.clipboard.write([new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText })]);
+          } catch (e) {
+            console.warn('Clipboard write failed:', e);
+          }
+        }
+        const targetUrl = res.gmailUrl || res.mailto!;
+        if (mailWin && !mailWin.closed) {
+          try {
+            mailWin.location.href = targetUrl;
+          } catch {
+            window.open(targetUrl, '_blank');
+          }
+        } else {
+          window.open(targetUrl, '_blank');
+        }
+
+        setEmailStatusMsg({ 
+          id: member.id, 
+          text: `Opened Official Acceptance Letter in Gmail for ${member.name}! Pre-filled and ready to send.`, 
+          success: true,
+          actionUrl: targetUrl
+        });
+        loadData();
+      } else {
+        if (mailWin && !mailWin.closed) {
+          try { mailWin.close(); } catch {}
+        }
+        setEmailStatusMsg({ id: member.id, text: res.message || 'Failed to send email', success: false });
+      }
+    } catch (err: any) {
+      if (mailWin && !mailWin.closed) {
+        try { mailWin.close(); } catch {}
+      }
+      setSendingEmailId(null);
+      setEmailStatusMsg({ id: member.id, text: err?.message || 'Error communicating with mailer service', success: false });
+    }
+
+    setTimeout(() => setEmailStatusMsg(null), 12000);
   };
 
   const handleWhatsAppInvite = (member: MemberRecord) => {
@@ -661,12 +693,25 @@ See you on Monday!
 
               {/* Status Toast Notification */}
               {emailStatusMsg && (
-                <div className={`p-3 rounded-xl border flex items-center justify-between text-xs font-mono ${emailStatusMsg.success ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800' : 'bg-rose-500/10 border-rose-500/30 text-rose-800'}`}>
+                <div className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs font-mono ${emailStatusMsg.success ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800' : 'bg-rose-500/10 border-rose-500/30 text-rose-800'}`}>
                   <span className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" />
+                    <Sparkles className="w-4 h-4 shrink-0" />
                     <span>{emailStatusMsg.text}</span>
                   </span>
-                  <button onClick={() => setEmailStatusMsg(null)} className="text-xs underline cursor-pointer">Dismiss</button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {emailStatusMsg.actionUrl && (
+                      <a
+                        href={emailStatusMsg.actionUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center gap-1 text-[11px]"
+                      >
+                        <Mail className="w-3 h-3" />
+                        <span>Open in Gmail ↗</span>
+                      </a>
+                    )}
+                    <button onClick={() => setEmailStatusMsg(null)} className="text-xs underline cursor-pointer">Dismiss</button>
+                  </div>
                 </div>
               )}
 

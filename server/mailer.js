@@ -193,6 +193,7 @@ Faculty Advisory Board
 Department of Information Technology
 ISL Engineering College (Autonomous)`;
 
+  const subject = `🎉 Official Notice of Admission: C3 Batch 01 (Founder Key: ${cleanKey})`;
   const senderEmail = config.user || 'c3.collective.in@gmail.com';
   const mailto = `mailto:${encodeURIComponent(member.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainTextBody)}`;
   const gmailUrl = `https://mail.google.com/mail/?authuser=${encodeURIComponent(senderEmail)}&view=cm&fs=1&to=${encodeURIComponent(member.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainTextBody)}`;
