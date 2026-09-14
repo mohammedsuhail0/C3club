@@ -1,350 +1,288 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { MeshBackground } from './backgrounds/MeshBackground';
+import { TopoBackground } from './backgrounds/TopoBackground';
+import { CircuitBackground } from './backgrounds/CircuitBackground';
+import { MatrixBackground } from './backgrounds/MatrixBackground';
+import { VoronoiBackground } from './backgrounds/VoronoiBackground';
+import { sounds } from '../../utils/audio';
+import { Grid, Waves, Cpu, Terminal, GitFork, Check, ChevronUp, ChevronDown, Copy } from 'lucide-react';
 
-interface Point {
-  x: number;
-  y: number;
-  originX: number;
-  originY: number;
-  vx: number;
-  vy: number;
+export type BgMode = 'mesh' | 'topo' | 'circuit' | 'matrix' | 'voronoi';
+
+export interface BgOption {
+  id: BgMode;
+  num: string;
+  name: string;
+  tagline: string;
+  port: number;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
-interface Shockwave {
-  x: number;
-  y: number;
-  radius: number;
-  maxRadius: number;
-  speed: number;
-  intensity: number;
+export const BG_MODES: BgOption[] = [
+  {
+    id: 'mesh',
+    num: '01',
+    name: 'Vector Mesh',
+    tagline: 'Kinetic elastic drafting grid with mouse shockwave warp',
+    port: 5001,
+    icon: Grid,
+  },
+  {
+    id: 'topo',
+    num: '02',
+    name: 'Topo Waves',
+    tagline: 'Fluid topographic elevation contours with harmonic water ripples',
+    port: 5002,
+    icon: Waves,
+  },
+  {
+    id: 'circuit',
+    num: '03',
+    name: 'Silicon PCB',
+    tagline: 'Conductive copper circuit traces with glowing pulse packets',
+    port: 5003,
+    icon: Cpu,
+  },
+  {
+    id: 'matrix',
+    num: '04',
+    name: 'Code Matrix',
+    tagline: 'Monospace engineering glyphs with interactive cursor lens',
+    port: 5004,
+    icon: Terminal,
+  },
+  {
+    id: 'voronoi',
+    num: '05',
+    name: 'Voronoi Lattice',
+    tagline: 'Kinetic organic Voronoi cellular nodes with spring physics',
+    port: 5005,
+    icon: GitFork,
+  },
+];
+
+function resolveInitialBg(): BgMode {
+  if (typeof window === 'undefined') return 'mesh';
+
+  // 1. URL search param takes highest priority (?bg=topo, etc.)
+  const params = new URLSearchParams(window.location.search);
+  const qBg = params.get('bg') as BgMode | null;
+  if (qBg && ['mesh', 'topo', 'circuit', 'matrix', 'voronoi'].includes(qBg)) {
+    return qBg;
+  }
+
+  // 2. Port-specific mapping for individual preview instances
+  const port = window.location.port;
+  if (port === '5001') return 'mesh';
+  if (port === '5002') return 'topo';
+  if (port === '5003') return 'circuit';
+  if (port === '5004') return 'matrix';
+  if (port === '5005') return 'voronoi';
+
+  // 3. Saved user preference in localStorage
+  const saved = localStorage.getItem('c3_bg_mode') as BgMode | null;
+  if (saved && ['mesh', 'topo', 'circuit', 'matrix', 'voronoi'].includes(saved)) {
+    return saved;
+  }
+
+  return 'mesh';
 }
 
 export const EngineeringBackground: React.FC = () => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [activeBg, setActiveBg] = useState<BgMode>(resolveInitialBg);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [copied, setCopied] = useState<boolean>(false);
 
+  // Sync state if URL changes externally
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d', { alpha: true });
-    if (!ctx) return;
-
-    let animationFrameId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
-
-    // Spacing between grid lines
-    const SPACING = 56;
-    let cols = Math.ceil(width / SPACING) + 2;
-    let rows = Math.ceil(height / SPACING) + 2;
-
-    // Grid points array
-    let points: Point[] = [];
-
-    const initGrid = () => {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-      cols = Math.ceil(width / SPACING) + 2;
-      rows = Math.ceil(height / SPACING) + 2;
-      points = [];
-
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const originX = (c - 1) * SPACING;
-          const originY = (r - 1) * SPACING;
-          points.push({
-            x: originX,
-            y: originY,
-            originX,
-            originY,
-            vx: 0,
-            vy: 0,
-          });
-        }
-      }
+    const handlePopState = () => {
+      setActiveBg(resolveInitialBg());
     };
-
-    initGrid();
-
-    // Mouse & Physics state
-    let mouse = {
-      x: -1000,
-      y: -1000,
-      prevX: -1000,
-      prevY: -1000,
-      vx: 0,
-      vy: 0,
-      active: false,
-    };
-
-    let shockwaves: Shockwave[] = [];
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const x = e.clientX;
-      const y = e.clientY;
-      mouse.vx = (x - mouse.prevX) * 0.4;
-      mouse.vy = (y - mouse.prevY) * 0.4;
-      mouse.prevX = mouse.x = x;
-      mouse.prevY = mouse.y = y;
-      mouse.active = true;
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length > 0) {
-        const x = e.touches[0].clientX;
-        const y = e.touches[0].clientY;
-        mouse.vx = (x - mouse.prevX) * 0.4;
-        mouse.vy = (y - mouse.prevY) * 0.4;
-        mouse.prevX = mouse.x = x;
-        mouse.prevY = mouse.y = y;
-        mouse.active = true;
-      }
-    };
-
-    const handleMouseDown = (e: MouseEvent) => {
-      // Trigger interactive elastic shockwave pulse
-      shockwaves.push({
-        x: e.clientX,
-        y: e.clientY,
-        radius: 0,
-        maxRadius: Math.max(width, height) * 0.75,
-        speed: 18,
-        intensity: 24,
-      });
-    };
-
-    const handleMouseLeave = () => {
-      mouse.active = false;
-      mouse.x = -1000;
-      mouse.y = -1000;
-    };
-
-    window.addEventListener('resize', initGrid);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
-    window.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('mouseleave', handleMouseLeave);
-
-    // Physics constants
-    const MOUSE_RADIUS = 180;
-    const MOUSE_STRENGTH = 0.38;
-    const SPRING_K = 0.045;
-    const DAMPING = 0.88;
-
-    // Detect dark mode from html class
-    const isDarkMode = () => document.documentElement.classList.contains('dark');
-
-    const render = () => {
-      ctx.clearRect(0, 0, width, height);
-
-      const dark = isDarkMode();
-      const baseLineAlpha = dark ? 0.09 : 0.08;
-      const highlightAlpha = dark ? 0.45 : 0.38;
-
-      // 1. Update Shockwaves
-      for (let s = shockwaves.length - 1; s >= 0; s--) {
-        const sw = shockwaves[s];
-        sw.radius += sw.speed;
-        sw.intensity *= 0.965; // Gradual decay
-        if (sw.radius > sw.maxRadius || sw.intensity < 0.2) {
-          shockwaves.splice(s, 1);
-        }
-      }
-
-      // 2. Physics Simulation on Grid Points
-      const numPoints = points.length;
-      for (let i = 0; i < numPoints; i++) {
-        const p = points[i];
-
-        // Spring force returning point to its origin
-        const dx = p.originX - p.x;
-        const dy = p.originY - p.y;
-        p.vx += dx * SPRING_K;
-        p.vy += dy * SPRING_K;
-
-        // Mouse displacement force (Elastic warp field)
-        if (mouse.active) {
-          const distX = p.x - mouse.x;
-          const distY = p.y - mouse.y;
-          const dist = Math.sqrt(distX * distX + distY * distY);
-
-          if (dist < MOUSE_RADIUS && dist > 0) {
-            const force = (1 - dist / MOUSE_RADIUS) * MOUSE_STRENGTH;
-            const angle = Math.atan2(distY, distX);
-
-            // Push points away smoothly
-            p.vx += Math.cos(angle) * force * 14;
-            p.vy += Math.sin(angle) * force * 14;
-
-            // Impart mouse velocity swirl
-            p.vx += mouse.vx * force * 0.6;
-            p.vy += mouse.vy * force * 0.6;
-          }
-        }
-
-        // Shockwave ripple displacement
-        for (let s = 0; s < shockwaves.length; s++) {
-          const sw = shockwaves[s];
-          const swDistX = p.x - sw.x;
-          const swDistY = p.y - sw.y;
-          const swDist = Math.sqrt(swDistX * swDistX + swDistY * swDistY);
-          const delta = Math.abs(swDist - sw.radius);
-
-          if (delta < 55) {
-            const waveForce = Math.sin((delta / 55) * Math.PI) * sw.intensity;
-            const angle = Math.atan2(swDistY, swDistX);
-            p.vx += Math.cos(angle) * waveForce * 0.4;
-            p.vy += Math.sin(angle) * waveForce * 0.4;
-          }
-        }
-
-        // Apply velocity & damping
-        p.vx *= DAMPING;
-        p.vy *= DAMPING;
-        p.x += p.vx;
-        p.y += p.vy;
-      }
-
-      // Decay mouse velocity
-      mouse.vx *= 0.8;
-      mouse.vy *= 0.8;
-
-      // 3. Draw Horizontal Elastic Grid Lines
-      for (let r = 0; r < rows; r++) {
-        ctx.beginPath();
-        const startIdx = r * cols;
-        ctx.moveTo(points[startIdx].x, points[startIdx].y);
-
-        for (let c = 1; c < cols; c++) {
-          const p = points[r * cols + c];
-          ctx.lineTo(p.x, p.y);
-        }
-
-        // Check if line passes near mouse to dynamically illuminate
-        const midPoint = points[r * cols + Math.floor(cols / 2)];
-        const distToMouseY = Math.abs(midPoint.y - mouse.y);
-        const isNear = mouse.active && distToMouseY < 120;
-
-        if (isNear) {
-          const norm = 1 - distToMouseY / 120;
-          ctx.strokeStyle = `rgba(204, 90, 54, ${baseLineAlpha + norm * highlightAlpha})`;
-          ctx.lineWidth = 1 + norm * 0.8;
-        } else {
-          ctx.strokeStyle = `rgba(204, 90, 54, ${baseLineAlpha})`;
-          ctx.lineWidth = 1;
-        }
-        ctx.stroke();
-      }
-
-      // 4. Draw Vertical Elastic Grid Lines
-      for (let c = 0; c < cols; c++) {
-        ctx.beginPath();
-        ctx.moveTo(points[c].x, points[c].y);
-
-        for (let r = 1; r < rows; r++) {
-          const p = points[r * cols + c];
-          ctx.lineTo(p.x, p.y);
-        }
-
-        const midPoint = points[Math.floor(rows / 2) * cols + c];
-        const distToMouseX = Math.abs(midPoint.x - mouse.x);
-        const isNear = mouse.active && distToMouseX < 120;
-
-        if (isNear) {
-          const norm = 1 - distToMouseX / 120;
-          ctx.strokeStyle = `rgba(204, 90, 54, ${baseLineAlpha + norm * highlightAlpha})`;
-          ctx.lineWidth = 1 + norm * 0.8;
-        } else {
-          ctx.strokeStyle = `rgba(204, 90, 54, ${baseLineAlpha})`;
-          ctx.lineWidth = 1;
-        }
-        ctx.stroke();
-      }
-
-      // 5. Draw Precision Drafting Crosshairs (+) at Intersections
-      // Draw crosshairs at every 2nd column/row to keep aesthetic ultra-clean
-      for (let r = 0; r < rows; r += 2) {
-        for (let c = 0; c < cols; c += 2) {
-          const p = points[r * cols + c];
-          if (!p) continue;
-
-          let crossSize = 3;
-          let alpha = dark ? 0.22 : 0.18;
-
-          if (mouse.active) {
-            const dx = p.x - mouse.x;
-            const dy = p.y - mouse.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist < 220) {
-              const proximity = 1 - dist / 220;
-              crossSize = 3 + proximity * 5;
-              alpha = dark ? 0.3 + proximity * 0.6 : 0.25 + proximity * 0.55;
-
-              // Draw subtle connection filament toward cursor if very close
-              if (dist < 110) {
-                ctx.beginPath();
-                ctx.moveTo(p.x, p.y);
-                ctx.lineTo(mouse.x, mouse.y);
-                ctx.strokeStyle = `rgba(204, 90, 54, ${proximity * 0.2})`;
-                ctx.lineWidth = 0.75;
-                ctx.stroke();
-              }
-            }
-          }
-
-          ctx.strokeStyle = `rgba(204, 90, 54, ${alpha})`;
-          ctx.lineWidth = 1.2;
-
-          ctx.beginPath();
-          // Horizontal tick
-          ctx.moveTo(p.x - crossSize, p.y);
-          ctx.lineTo(p.x + crossSize, p.y);
-          // Vertical tick
-          ctx.moveTo(p.x, p.y - crossSize);
-          ctx.lineTo(p.x, p.y + crossSize);
-          ctx.stroke();
-        }
-      }
-
-      // 6. Draw Interactive Cursor Focal Ring (Aura without particles)
-      if (mouse.active) {
-        const pulse = Math.sin(Date.now() * 0.003) * 3;
-        ctx.beginPath();
-        ctx.arc(mouse.x, mouse.y, 45 + pulse, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(204, 90, 54, 0.22)';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
-        ctx.stroke();
-        ctx.setLineDash([]); // Reset dash
-      }
-
-      animationFrameId = requestAnimationFrame(render);
-    };
-
-    animationFrameId = requestAnimationFrame(render);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('resize', initGrid);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('mouseleave', handleMouseLeave);
-    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  return (
-    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden select-none">
-      {/* 1. Interactive 60fps Elastic Canvas Mesh (Zero Particles) */}
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 block w-full h-full"
-      />
+  // Quick keyboard shortcuts [1] to [5] to jump between backgrounds
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) {
+        return;
+      }
 
-      {/* 2. Soft Ambient Vignette ensuring text contrast remains crystalline */}
-      <div 
-        className="absolute inset-0 bg-radial from-transparent via-transparent to-claude-bg/85 dark:to-claude-darkBg/85"
-      />
-    </div>
+      if (['1', '2', '3', '4', '5'].includes(e.key)) {
+        const index = parseInt(e.key, 10) - 1;
+        const targetOption = BG_MODES[index];
+        if (targetOption) {
+          switchBackground(targetOption.id);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const switchBackground = (newMode: BgMode) => {
+    setActiveBg(newMode);
+    sounds.playClick();
+    localStorage.setItem('c3_bg_mode', newMode);
+
+    // Update URL param dynamically without reloading
+    const url = new URL(window.location.href);
+    url.searchParams.set('bg', newMode);
+    window.history.replaceState({}, '', url.toString());
+  };
+
+  const handleCopyLink = () => {
+    sounds.playClick();
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const currentOption = BG_MODES.find((b) => b.id === activeBg) || BG_MODES[0];
+  const CurrentIcon = currentOption.icon;
+
+  return (
+    <>
+      {/* 1. Active Interactive Background Engine (Zero Particles) */}
+      {activeBg === 'mesh' && <MeshBackground />}
+      {activeBg === 'topo' && <TopoBackground />}
+      {activeBg === 'circuit' && <CircuitBackground />}
+      {activeBg === 'matrix' && <MatrixBackground />}
+      {activeBg === 'voronoi' && <VoronoiBackground />}
+
+      {/* 2. Floating High-Tech "BG Studio" Comparison Switcher Pill */}
+      <aside 
+        aria-label="C3 Background Studio Switcher"
+        className="fixed bottom-5 left-5 z-40 pointer-events-auto select-none font-mono tracking-tight"
+      >
+        {/* Expanded HUD Controller */}
+        {isOpen ? (
+          <div className="w-80 rounded-2xl bg-white/95 dark:bg-[#141210]/95 backdrop-blur-xl border border-stone-200 dark:border-stone-800 shadow-2xl p-4 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2 rounded-full bg-[#CC5A36] animate-pulse" />
+                <span className="text-[11px] font-bold text-stone-900 dark:text-stone-100 tracking-wider uppercase">
+                  BG Studio Lab
+                </span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-500">
+                  Zero Particles
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  sounds.playClick();
+                  setIsOpen(false);
+                }}
+                className="p-1 rounded-md text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition"
+                title="Collapse Studio"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* List of 5 Backgrounds */}
+            <div className="mt-3 space-y-1.5">
+              {BG_MODES.map((option) => {
+                const Icon = option.icon;
+                const isCurrent = activeBg === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    onClick={() => switchBackground(option.id)}
+                    className={`w-full text-left p-2 rounded-xl transition flex items-center justify-between group ${
+                      isCurrent
+                        ? 'bg-[#CC5A36] text-white shadow-md'
+                        : 'bg-stone-50/70 dark:bg-stone-900/60 hover:bg-stone-100 dark:hover:bg-stone-800/80 text-stone-700 dark:text-stone-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className={`p-1.5 rounded-lg ${
+                          isCurrent
+                            ? 'bg-white/20 text-white'
+                            : 'bg-stone-200/60 dark:bg-stone-800 text-stone-600 dark:text-stone-400 group-hover:text-[#CC5A36]'
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`text-[10px] font-bold ${
+                              isCurrent ? 'text-white/80' : 'text-stone-400'
+                            }`}
+                          >
+                            [{option.num}]
+                          </span>
+                          <span className="text-xs font-semibold truncate">
+                            {option.name}
+                          </span>
+                        </div>
+                        <p
+                          className={`text-[10px] truncate max-w-[170px] ${
+                            isCurrent ? 'text-white/80' : 'text-stone-400 dark:text-stone-500'
+                          }`}
+                        >
+                          {option.tagline}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 pl-2 flex-shrink-0">
+                      <span
+                        className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
+                          isCurrent
+                            ? 'bg-white/20 text-white'
+                            : 'bg-stone-200/50 dark:bg-stone-800/80 text-stone-500'
+                        }`}
+                      >
+                        :{option.port}
+                      </span>
+                      {isCurrent && <Check className="w-3.5 h-3.5 text-white" />}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Footer Utilities */}
+            <div className="mt-3 pt-2.5 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between text-[10px]">
+              <span className="text-stone-400">Keys: [1] to [5]</span>
+              <button
+                onClick={handleCopyLink}
+                className="flex items-center gap-1 text-[#CC5A36] hover:underline cursor-pointer"
+              >
+                <Copy className="w-3 h-3" />
+                <span>{copied ? 'Copied Link!' : 'Copy Link'}</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Collapsed Pill Button */
+          <button
+            onClick={() => {
+              sounds.playClick();
+              setIsOpen(true);
+            }}
+            className="group flex items-center gap-2 px-3 py-2 rounded-full bg-white/90 dark:bg-[#141210]/90 backdrop-blur-md border border-stone-200/90 dark:border-stone-800/90 shadow-lg hover:shadow-xl hover:border-[#CC5A36]/60 transition-all text-xs font-medium text-stone-800 dark:text-stone-200"
+            title="Open Background Comparison Studio"
+          >
+            <span className="flex h-2 w-2 rounded-full bg-[#CC5A36] animate-ping" />
+            <CurrentIcon className="w-3.5 h-3.5 text-[#CC5A36]" />
+            <span className="font-semibold text-[11px] uppercase tracking-wider">
+              BG: {currentOption.name}
+            </span>
+            <span className="text-[10px] text-stone-400 font-mono hidden sm:inline">
+              (:{currentOption.port})
+            </span>
+            <ChevronUp className="w-3.5 h-3.5 text-stone-400 group-hover:text-stone-700 dark:group-hover:text-stone-200 transition" />
+          </button>
+        )}
+      </aside>
+    </>
   );
 };
