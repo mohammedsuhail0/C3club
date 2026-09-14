@@ -26,7 +26,7 @@ interface PassHeroProps {
 
 export const PassHero: React.FC<PassHeroProps> = ({ onOpenApply }) => {
   const [name, setName] = useState('Syed Farhan');
-  const [branch, setBranch] = useState('CSE');
+  const [branch, setBranch] = useState('IT');
   const [year, setYear] = useState('3rd Year');
   const [role, setRole] = useState('Vibe Coder / Shipper');
   const [copied, setCopied] = useState(false);
@@ -320,8 +320,8 @@ export const PassHero: React.FC<PassHeroProps> = ({ onOpenApply }) => {
                 onChange={(e) => setBranch(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl bg-claude-bg dark:bg-claude-darkBg border border-claude-border dark:border-claude-darkBorder text-claude-text dark:text-claude-darkText text-sm font-sans focus:outline-none focus:border-claude-terracotta transition-colors"
               >
-                <option value="CSE">CSE (Computer Science)</option>
                 <option value="IT">IT (Information Tech)</option>
+                <option value="CSE">CSE (Computer Science)</option>
                 <option value="AI/DS">AI &amp; Data Science</option>
                 <option value="ECE">ECE (Electronics)</option>
                 <option value="MECH">Mechanical Engg</option>

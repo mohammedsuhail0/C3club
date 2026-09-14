@@ -84,7 +84,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenApply, onOpenOrganizer }) 
         {/* Bottom Credits */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-claude-muted dark:text-claude-darkMuted text-center sm:text-left">
           <div>
-            © {new Date().getFullYear()} C3 Community · Student Software Collective. Department of Information Technology, ISLEC.
+            © {new Date().getFullYear()} C3 Community · Student Software Collective. Originated in the Department of Information Technology, ISLEC.
           </div>
           <div className="flex items-center gap-3 text-[11px]">
             <span>No members, only founders. Ship every Friday.</span>

@@ -801,7 +801,7 @@ async function routeApi(method, pathname, url, body, req, res) {
       const name = r.name || r['Full Name'] || r['Name'];
       const phone = r.phone || r['WhatsApp / Phone Number'] || r['Phone'];
       const email = r.email || r['Email Address'] || r['Email'];
-      const branch = r.branch || r['Branch'] || 'CSE';
+      const branch = r.branch || r['Branch'] || 'IT';
       const year = r.year || r['Year'] || '3rd Year';
       const idea = r.projectIdea || r['What do you want to build?'] || '';
 
@@ -1010,7 +1010,7 @@ function parseCSV(text) {
 }
 
 function parseBranchAndYear(raw) {
-  if (!raw) return { branch: 'CSE', year: '3rd Year' };
+  if (!raw) return { branch: 'IT', year: '3rd Year' };
   const str = String(raw).trim();
 
   let year = '';
@@ -1028,8 +1028,8 @@ function parseBranchAndYear(raw) {
   const upper = str.toUpperCase();
   if (upper.includes('AI') && upper.includes('DS')) branch = 'AI&DS';
   else if (upper.includes('AI') && upper.includes('ML')) branch = 'AI&ML';
-  else if (upper.includes('CSE') || upper.includes('COMPUTER')) branch = 'CSE';
   else if (/\bIT\b/.test(upper) || upper.includes('INFORMATION')) branch = 'IT';
+  else if (upper.includes('CSE') || upper.includes('COMPUTER')) branch = 'CSE';
   else if (/\bECE\b/.test(upper) || upper.includes('ELECTRONIC')) branch = 'ECE';
   else if (/\bEEE\b/.test(upper) || upper.includes('ELECTRICAL')) branch = 'EEE';
   else if (/\bMECH\b/.test(upper) || upper.includes('MECHANICAL')) branch = 'MECH';
@@ -1039,7 +1039,7 @@ function parseBranchAndYear(raw) {
   }
 
   return {
-    branch: branch || 'CSE',
+    branch: branch || 'IT',
     year: year || '3rd Year'
   };
 }

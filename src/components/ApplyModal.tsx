@@ -21,7 +21,7 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({ isOpen, onClose }) => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [branch, setBranch] = useState('CSE');
+  const [branch, setBranch] = useState('IT');
   const [year, setYear] = useState('3rd Year');
   const [roleMode, setRoleMode] = useState<'dropdown' | 'custom'>('dropdown');
   const [rolePreset, setRolePreset] = useState('Technical & AI Architect');
@@ -221,9 +221,9 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({ isOpen, onClose }) => {
                     onChange={e => setBranch(e.target.value)}
                     className="w-full px-3 py-2.5 rounded-xl bg-white border border-[#DDD6C9] font-mono text-xs focus:outline-none focus:border-[#CC5A36]"
                   >
+                    <option value="IT">IT</option>
                     <option value="CSE">CSE</option>
                     <option value="AI & DS">AI &amp; DS</option>
-                    <option value="IT">IT</option>
                     <option value="ECE">ECE</option>
                     <option value="Mechanical">Mechanical</option>
                     <option value="Civil">Civil</option>

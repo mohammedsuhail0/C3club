@@ -31,8 +31,8 @@ export const WhatIsC3: React.FC = () => {
       code: '04 / FOUNDERS',
       icon: Users2,
       title: 'All Branches Welcome',
-      highlight: 'Merit & Initiative · 1st to 4th Year',
-      desc: 'Open to CSE, AI & DS, ECE, Mechanical, and Civil. No coding exams, no prerequisites. If you have curiosity and drive, you belong here.',
+      highlight: 'Originated in IT · Open to All',
+      desc: 'Originated in the Department of Information Technology at ISLEC. Open to IT, CSE, AI & DS, ECE, Mechanical, and Civil with zero prerequisites.',
     },
   ];
 
@@ -48,7 +48,7 @@ export const WhatIsC3: React.FC = () => {
         className="text-center max-w-3xl mx-auto mb-12 sm:mb-16"
       >
         <span className="font-mono text-xs tracking-[0.25em] text-claude-terracotta dark:text-claude-amber uppercase font-semibold block mb-3">
-          The C3 Philosophy · No Slides, Only Software
+          Originated in Dept. of Information Technology · No Slides, Only Software
         </span>
 
         <h2 className="font-serif font-normal text-3xl sm:text-5xl md:text-6xl text-claude-text dark:text-claude-darkText tracking-tight mb-4">
@@ -59,7 +59,7 @@ export const WhatIsC3: React.FC = () => {
         </h2>
 
         <p className="text-base sm:text-lg text-claude-muted dark:text-claude-darkMuted leading-relaxed font-sans max-w-2xl mx-auto">
-          Not a classroom. Not another club full of PowerPoint slides. C3 is an autonomous morning laboratory where students build and ship real products.
+          Not a classroom. Not another club full of PowerPoint slides. Originated in the Department of Information Technology at ISLEC, C3 is an autonomous morning laboratory where students build and ship real products.
         </p>
       </motion.div>
 

@@ -211,7 +211,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [newEmail, setNewEmail] = useState('');
-  const [newBranch, setNewBranch] = useState('CSE');
+  const [newBranch, setNewBranch] = useState('IT');
 
   const [copiedScript, setCopiedScript] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -2002,9 +2002,9 @@ function onFormSubmit(e) {
                     onChange={(e) => setNewBranch(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-[#12100C] border border-[#2E2922] rounded-xl text-white focus:outline-none focus:border-[#CC5A36]"
                   >
+                    <option value="IT">IT</option>
                     <option value="CSE">CSE</option>
                     <option value="AI & DS">AI & DS</option>
-                    <option value="IT">IT</option>
                     <option value="ECE">ECE</option>
                   </select>
                 </div>

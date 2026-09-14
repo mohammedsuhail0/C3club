@@ -28,7 +28,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenApply }) => {
           transition={{ duration: 0.5 }}
           className="text-xs sm:text-sm font-mono tracking-[0.25em] text-claude-terracotta dark:text-claude-amber uppercase font-semibold mb-4 sm:mb-6"
         >
-          Student Software Collective · Hyderabad
+          Student Software Collective · Originated in Dept. of IT, ISLEC
         </motion.div>
 
         {/* MASSIVE DISPLAY HEADLINE - Responsive Mobile Scaling */}

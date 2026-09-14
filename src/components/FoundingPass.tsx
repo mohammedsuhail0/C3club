@@ -13,7 +13,7 @@ interface FoundingPassProps {
 
 export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externalKey }) => {
   const [name, setName] = useState('');
-  const [branch, setBranch] = useState('CSE');
+  const [branch, setBranch] = useState('IT');
   const [year, setYear] = useState('3rd Year');
   const [rolePreset, setRolePreset] = useState('Vibe Coder / Shipper');
   const [isCustomRole, setIsCustomRole] = useState(false);
@@ -491,8 +491,8 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
                         : 'bg-claude-bg dark:bg-claude-darkBg border-claude-border dark:border-claude-darkBorder text-claude-text dark:text-claude-darkText focus:outline-none focus:border-claude-terracotta'
                     }`}
                   >
-                    <option value="CSE">CSE (Computer Science)</option>
                     <option value="IT">IT (Information Tech)</option>
+                    <option value="CSE">CSE (Computer Science)</option>
                     <option value="AI/DS">AI &amp; Data Science</option>
                     <option value="ECE">ECE (Electronics)</option>
                     <option value="MECH">Mechanical Engg</option>

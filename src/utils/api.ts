@@ -177,7 +177,7 @@ export async function addMemberApi(data: {
     name: data.name,
     email: data.email || '',
     phone: data.phone,
-    branch: data.branch || 'CSE',
+    branch: data.branch || 'IT',
     year: data.year || '3rd Year',
     role: data.role || 'Vibe Coder / Shipper'
   });

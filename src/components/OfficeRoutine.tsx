@@ -20,7 +20,7 @@ export const OfficeRoutine: React.FC = () => {
     {
       time: '12:00 PM',
       title: 'Live Review & Bug Squashing',
-      desc: 'Pair across branches (CSE, IT, ECE, Mech). Solve database states, test edge cases, and ensure real functionality.',
+      desc: 'Pair across branches (IT, CSE, AI/DS, ECE, Mech). Solve database states, test edge cases, and ensure real functionality.',
       icon: Zap,
     },
     {
@@ -45,7 +45,7 @@ export const OfficeRoutine: React.FC = () => {
     {
       num: '03',
       title: 'All Engineering Branches',
-      desc: 'Open to 1st, 2nd, 3rd, and 4th years from CSE, IT, AI/DS, ECE, Mech, and Civil. Pure merit and enthusiasm.'
+      desc: 'Originated in the Department of Information Technology and open to 1st, 2nd, 3rd, and 4th years from IT, CSE, AI/DS, ECE, Mech, and Civil. Pure merit and enthusiasm.'
     }
   ];
 
