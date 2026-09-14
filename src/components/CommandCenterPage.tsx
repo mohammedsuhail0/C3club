@@ -30,6 +30,7 @@ import {
   EmailConfig 
 } from '../utils/api';
 import { sounds } from '../utils/audio';
+import { EmailDispatchModal } from './EmailDispatchModal';
 
 interface CommandCenterPageProps {
   onNavigateHome: () => void;
@@ -94,6 +95,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
   // Email sending state
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const [emailStatusMsg, setEmailStatusMsg] = useState<{ id: string; text: string; success: boolean; actionUrl?: string } | null>(null);
+  const [emailDispatchMember, setEmailDispatchMember] = useState<MemberRecord | null>(null);
 
   // Email config state
   const [emailConfig, setEmailConfig] = useState<EmailConfig>({
@@ -1151,13 +1153,12 @@ function onFormSubmit(e) {
                                     <span>Review</span>
                                   </button>
 
-                                  {/* Gmail Dispatch Button */}
+                                  {/* Graphic Acceptance Email Dispatch */}
                                   {member.founderKey && (
                                     <button
-                                      onClick={() => handleSendAcceptanceEmail(member)}
-                                      disabled={sendingEmailId === member.id}
+                                      onClick={() => { sounds.playClick(); setEmailDispatchMember(member); }}
                                       className="px-2.5 py-1.5 rounded-lg bg-[#25211A] hover:bg-[#302B22] border border-[#352F26] text-emerald-400 text-xs font-mono flex items-center gap-1 cursor-pointer"
-                                      title="1-Click Official C3 Gmail Dispatch"
+                                      title="Dispatch Official Graphic Acceptance Letter Card"
                                     >
                                       <Mail className="w-3 h-3 text-emerald-400" />
                                       <span className="hidden md:inline">Mail</span>
@@ -1964,12 +1965,12 @@ function onFormSubmit(e) {
                   
                   <div className="grid grid-cols-2 gap-2.5">
                     <button
-                      onClick={() => handleSendAcceptanceEmail(selectedApplicant)}
-                      disabled={!selectedApplicant.founderKey || sendingEmailId === selectedApplicant.id}
+                      onClick={() => { sounds.playClick(); setEmailDispatchMember(selectedApplicant); }}
+                      disabled={!selectedApplicant.founderKey}
                       className="py-2.5 px-3 rounded-xl bg-[#25211A] hover:bg-[#302B22] border border-[#352F26] text-xs font-mono text-emerald-400 font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
                     >
                       <Mail className="w-3.5 h-3.5" />
-                      <span>1-Click C3 Gmail</span>
+                      <span>Dispatch Letter Card</span>
                     </button>
 
                     <button
@@ -2117,6 +2118,15 @@ function onFormSubmit(e) {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Official Acceptance Email Dispatch Modal */}
+      <EmailDispatchModal
+        member={emailDispatchMember}
+        onClose={() => setEmailDispatchMember(null)}
+        onSuccess={() => {
+          loadData();
+        }}
+      />
 
     </div>
   );

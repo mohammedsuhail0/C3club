@@ -22,6 +22,7 @@ import {
   EmailConfig 
 } from '../utils/api';
 import { sounds } from '../utils/audio';
+import { EmailDispatchModal } from './EmailDispatchModal';
 
 interface OrganizerPortalModalProps {
   isOpen: boolean;
@@ -89,6 +90,7 @@ export const OrganizerPortalModal: React.FC<OrganizerPortalModalProps> = ({
   // Email sending state
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const [emailStatusMsg, setEmailStatusMsg] = useState<{ id: string; text: string; success: boolean; actionUrl?: string } | null>(null);
+  const [emailDispatchMember, setEmailDispatchMember] = useState<MemberRecord | null>(null);
 
   // Email configuration state
   const [emailConfig, setEmailConfig] = useState<EmailConfig>({
@@ -867,13 +869,12 @@ See you on Monday!
 
                                   {/* Email Button */}
                                   <button
-                                    onClick={() => handleSendAcceptanceEmail(m)}
-                                    disabled={sendingEmailId === m.id}
+                                    onClick={() => { sounds.playClick(); setEmailDispatchMember(m); }}
                                     className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-mono shadow-2xs transition-colors cursor-pointer ${isEmailed ? 'bg-sky-50 border-sky-200 text-sky-700' : 'bg-white hover:bg-black/5 border-[#DDD6C9] text-[#423C32]'}`}
-                                    title={isEmailed ? `Email dispatched at ${m.emailSentAt}` : 'Compose Official Acceptance Email via c3.collective.in@gmail.com'}
+                                    title={isEmailed ? `Email dispatched at ${m.emailSentAt}` : 'Dispatch Official Graphic Acceptance Letter Card'}
                                   >
                                     <Mail className={`w-3 h-3 ${isEmailed ? 'text-sky-600' : 'text-[#CC5A36]'}`} />
-                                    <span>{sendingEmailId === m.id ? 'Opening...' : isEmailed ? 'Resend C3 Mail' : '✉ C3 Mail'}</span>
+                                    <span>{isEmailed ? 'Resend C3 Mail' : '✉ C3 Mail'}</span>
                                   </button>
 
                                   {/* Letter Button */}
@@ -1295,13 +1296,12 @@ See you on Monday!
                 <div className="pt-2 border-t border-[#E8E2D5] flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleSendAcceptanceEmail(selectedApplicant)}
-                      disabled={sendingEmailId === selectedApplicant.id}
+                      onClick={() => { sounds.playClick(); setEmailDispatchMember(selectedApplicant); }}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#CC5A36] hover:bg-[#B34826] text-white text-xs font-mono font-medium shadow-xs transition-colors cursor-pointer"
-                      title="Compose official acceptance email via c3.collective.in@gmail.com"
+                      title="Dispatch Official Graphic Acceptance Letter Card"
                     >
                       <Mail className="w-3.5 h-3.5" />
-                      <span>{sendingEmailId === selectedApplicant.id ? 'Opening C3 Mail...' : '✉ Send Official C3 Mail'}</span>
+                      <span>Dispatch Letter Card</span>
                     </button>
 
                     <button
@@ -1540,6 +1540,15 @@ See you on Monday!
             </motion.div>
           </div>
         )}
+
+        {/* Official Acceptance Email Dispatch Modal */}
+        <EmailDispatchModal
+          member={emailDispatchMember}
+          onClose={() => setEmailDispatchMember(null)}
+          onSuccess={() => {
+            loadData();
+          }}
+        />
 
       </div>
     </AnimatePresence>
