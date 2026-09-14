@@ -4,10 +4,40 @@ import { TopoBackground } from './backgrounds/TopoBackground';
 import { CircuitBackground } from './backgrounds/CircuitBackground';
 import { MatrixBackground } from './backgrounds/MatrixBackground';
 import { VoronoiBackground } from './backgrounds/VoronoiBackground';
+import { Wireframe3DBackground } from './backgrounds/Wireframe3DBackground';
+import { MagneticBackground } from './backgrounds/MagneticBackground';
+import { RadarBackground } from './backgrounds/RadarBackground';
+import { HexGridBackground } from './backgrounds/HexGridBackground';
+import { SineFlowBackground } from './backgrounds/SineFlowBackground';
 import { sounds } from '../../utils/audio';
-import { Grid, Waves, Cpu, Terminal, GitFork, Check, ChevronUp, ChevronDown, Copy } from 'lucide-react';
+import {
+  Grid,
+  Waves,
+  Cpu,
+  Terminal,
+  GitFork,
+  Box,
+  Compass,
+  Radio,
+  Hexagon,
+  Activity,
+  Check,
+  ChevronUp,
+  ChevronDown,
+  Copy,
+} from 'lucide-react';
 
-export type BgMode = 'mesh' | 'topo' | 'circuit' | 'matrix' | 'voronoi';
+export type BgMode =
+  | 'mesh'
+  | 'topo'
+  | 'circuit'
+  | 'matrix'
+  | 'voronoi'
+  | 'wireframe3d'
+  | 'magnetic'
+  | 'radar'
+  | 'hex'
+  | 'sineflow';
 
 export interface BgOption {
   id: BgMode;
@@ -59,29 +89,87 @@ export const BG_MODES: BgOption[] = [
     port: 5005,
     icon: GitFork,
   },
+  {
+    id: 'wireframe3d',
+    num: '06',
+    name: '3D Wireframe',
+    tagline: 'Rotating 3D icosahedron & tesseract responding to mouse torque',
+    port: 5006,
+    icon: Box,
+  },
+  {
+    id: 'magnetic',
+    num: '07',
+    name: 'Magnetic Flux',
+    tagline: 'Maxwell magnetic field lines with polarity flip burst',
+    port: 5007,
+    icon: Compass,
+  },
+  {
+    id: 'radar',
+    num: '08',
+    name: 'Radar Sonar',
+    tagline: 'Engineering polar range rings, phosphor sweep & oscilloscope',
+    port: 5008,
+    icon: Radio,
+  },
+  {
+    id: 'hex',
+    num: '09',
+    name: 'Hex Matrix',
+    tagline: 'Honeycomb hexagonal tessellation with kinetic extrusion ripples',
+    port: 5009,
+    icon: Hexagon,
+  },
+  {
+    id: 'sineflow',
+    num: '10',
+    name: 'Sine Spectrum',
+    tagline: 'Harmonic laser interferometry ribbons with envelope modulation',
+    port: 5010,
+    icon: Activity,
+  },
+];
+
+const VALID_MODES: BgMode[] = [
+  'mesh',
+  'topo',
+  'circuit',
+  'matrix',
+  'voronoi',
+  'wireframe3d',
+  'magnetic',
+  'radar',
+  'hex',
+  'sineflow',
 ];
 
 function resolveInitialBg(): BgMode {
   if (typeof window === 'undefined') return 'mesh';
 
-  // 1. URL search param takes highest priority (?bg=topo, etc.)
+  // 1. URL search param (?bg=wireframe3d, etc.)
   const params = new URLSearchParams(window.location.search);
   const qBg = params.get('bg') as BgMode | null;
-  if (qBg && ['mesh', 'topo', 'circuit', 'matrix', 'voronoi'].includes(qBg)) {
+  if (qBg && VALID_MODES.includes(qBg)) {
     return qBg;
   }
 
-  // 2. Port-specific mapping for individual preview instances
+  // 2. Port-specific mapping for individual preview instances (5001 - 5010)
   const port = window.location.port;
   if (port === '5001') return 'mesh';
   if (port === '5002') return 'topo';
   if (port === '5003') return 'circuit';
   if (port === '5004') return 'matrix';
   if (port === '5005') return 'voronoi';
+  if (port === '5006') return 'wireframe3d';
+  if (port === '5007') return 'magnetic';
+  if (port === '5008') return 'radar';
+  if (port === '5009') return 'hex';
+  if (port === '5010') return 'sineflow';
 
-  // 3. Saved user preference in localStorage
+  // 3. Stored user preference
   const saved = localStorage.getItem('c3_bg_mode') as BgMode | null;
-  if (saved && ['mesh', 'topo', 'circuit', 'matrix', 'voronoi'].includes(saved)) {
+  if (saved && VALID_MODES.includes(saved)) {
     return saved;
   }
 
@@ -93,7 +181,6 @@ export const EngineeringBackground: React.FC = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
 
-  // Sync state if URL changes externally
   useEffect(() => {
     const handlePopState = () => {
       setActiveBg(resolveInitialBg());
@@ -102,7 +189,7 @@ export const EngineeringBackground: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Quick keyboard shortcuts [1] to [5] to jump between backgrounds
+  // Quick keyboard shortcuts [1] to [9], [0] for option 10
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -110,8 +197,8 @@ export const EngineeringBackground: React.FC = () => {
         return;
       }
 
-      if (['1', '2', '3', '4', '5'].includes(e.key)) {
-        const index = parseInt(e.key, 10) - 1;
+      if (['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].includes(e.key)) {
+        const index = e.key === '0' ? 9 : parseInt(e.key, 10) - 1;
         const targetOption = BG_MODES[index];
         if (targetOption) {
           switchBackground(targetOption.id);
@@ -128,7 +215,6 @@ export const EngineeringBackground: React.FC = () => {
     sounds.playClick();
     localStorage.setItem('c3_bg_mode', newMode);
 
-    // Update URL param dynamically without reloading
     const url = new URL(window.location.href);
     url.searchParams.set('bg', newMode);
     window.history.replaceState({}, '', url.toString());
@@ -146,30 +232,34 @@ export const EngineeringBackground: React.FC = () => {
 
   return (
     <>
-      {/* 1. Active Interactive Background Engine (Zero Particles) */}
+      {/* Active Interactive Background Engine (Strictly Zero Particles) */}
       {activeBg === 'mesh' && <MeshBackground />}
       {activeBg === 'topo' && <TopoBackground />}
       {activeBg === 'circuit' && <CircuitBackground />}
       {activeBg === 'matrix' && <MatrixBackground />}
       {activeBg === 'voronoi' && <VoronoiBackground />}
+      {activeBg === 'wireframe3d' && <Wireframe3DBackground />}
+      {activeBg === 'magnetic' && <MagneticBackground />}
+      {activeBg === 'radar' && <RadarBackground />}
+      {activeBg === 'hex' && <HexGridBackground />}
+      {activeBg === 'sineflow' && <SineFlowBackground />}
 
-      {/* 2. Floating High-Tech "BG Studio" Comparison Switcher Pill */}
-      <aside 
+      {/* Floating High-Tech "BG Studio" Comparison Switcher Pill */}
+      <aside
         aria-label="C3 Background Studio Switcher"
         className="fixed bottom-5 left-5 z-40 pointer-events-auto select-none font-mono tracking-tight"
       >
-        {/* Expanded HUD Controller */}
         {isOpen ? (
-          <div className="w-80 rounded-2xl bg-white/95 dark:bg-[#141210]/95 backdrop-blur-xl border border-stone-200 dark:border-stone-800 shadow-2xl p-4 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
+          <div className="w-84 max-h-[82vh] flex flex-col rounded-2xl bg-white/95 dark:bg-[#141210]/95 backdrop-blur-xl border border-stone-200 dark:border-stone-800 shadow-2xl p-4 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <span className="flex h-2 w-2 rounded-full bg-[#CC5A36] animate-pulse" />
                 <span className="text-[11px] font-bold text-stone-900 dark:text-stone-100 tracking-wider uppercase">
                   BG Studio Lab
                 </span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-500">
-                  Zero Particles
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-[#CC5A36] font-semibold">
+                  10 Engines (Zero Particles)
                 </span>
               </div>
               <button
@@ -184,8 +274,8 @@ export const EngineeringBackground: React.FC = () => {
               </button>
             </div>
 
-            {/* List of 5 Backgrounds */}
-            <div className="mt-3 space-y-1.5">
+            {/* Scrollable list of 10 options */}
+            <div className="mt-3 space-y-1 overflow-y-auto pr-1 flex-1 max-h-[50vh] scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700">
               {BG_MODES.map((option) => {
                 const Icon = option.icon;
                 const isCurrent = activeBg === option.id;
@@ -201,7 +291,7 @@ export const EngineeringBackground: React.FC = () => {
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div
-                        className={`p-1.5 rounded-lg ${
+                        className={`p-1.5 rounded-lg flex-shrink-0 ${
                           isCurrent
                             ? 'bg-white/20 text-white'
                             : 'bg-stone-200/60 dark:bg-stone-800 text-stone-600 dark:text-stone-400 group-hover:text-[#CC5A36]'
@@ -250,8 +340,8 @@ export const EngineeringBackground: React.FC = () => {
             </div>
 
             {/* Footer Utilities */}
-            <div className="mt-3 pt-2.5 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between text-[10px]">
-              <span className="text-stone-400">Keys: [1] to [5]</span>
+            <div className="mt-3 pt-2.5 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between text-[10px] flex-shrink-0">
+              <span className="text-stone-400">Keys: [1]-[9], [0]</span>
               <button
                 onClick={handleCopyLink}
                 className="flex items-center gap-1 text-[#CC5A36] hover:underline cursor-pointer"
@@ -262,14 +352,13 @@ export const EngineeringBackground: React.FC = () => {
             </div>
           </div>
         ) : (
-          /* Collapsed Pill Button */
           <button
             onClick={() => {
               sounds.playClick();
               setIsOpen(true);
             }}
             className="group flex items-center gap-2 px-3 py-2 rounded-full bg-white/90 dark:bg-[#141210]/90 backdrop-blur-md border border-stone-200/90 dark:border-stone-800/90 shadow-lg hover:shadow-xl hover:border-[#CC5A36]/60 transition-all text-xs font-medium text-stone-800 dark:text-stone-200"
-            title="Open Background Comparison Studio"
+            title="Open Background Comparison Studio (10 Engines)"
           >
             <span className="flex h-2 w-2 rounded-full bg-[#CC5A36] animate-ping" />
             <CurrentIcon className="w-3.5 h-3.5 text-[#CC5A36]" />

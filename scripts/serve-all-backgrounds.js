@@ -13,6 +13,11 @@ const PORTS = [
   { port: 5003, mode: 'circuit', name: 'Silicon PCB (Circuit Traces & Data Pulses)' },
   { port: 5004, mode: 'matrix', name: 'Code Matrix (Engineering Monospace Glyphs)' },
   { port: 5005, mode: 'voronoi', name: 'Voronoi Lattice (Kinetic Mesh & Spring Physics)' },
+  { port: 5006, mode: 'wireframe3d', name: '3D Wireframe (Rotating Icosahedron & Tesseract)' },
+  { port: 5007, mode: 'magnetic', name: 'Magnetic Flux (Maxwell Field Lines & Polarity Flip)' },
+  { port: 5008, mode: 'radar', name: 'Radar Sonar (Polar Range Rings & Oscilloscope)' },
+  { port: 5009, mode: 'hex', name: 'Hex Matrix (Honeycomb Grid & Extrusion Ripples)' },
+  { port: 5010, mode: 'sineflow', name: 'Sine Spectrum (Laser Interferometry & Harmonics)' },
 ];
 
 const MIME_TYPES = {
@@ -41,14 +46,12 @@ function startServer({ port, mode, name }) {
 
     let filePath = path.join(DIST_DIR, reqPath);
 
-    // Security check to avoid directory traversal
     if (!filePath.startsWith(DIST_DIR)) {
       res.writeHead(403);
       res.end('Forbidden');
       return;
     }
 
-    // SPA fallback: if file doesn't exist, serve index.html
     if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
       filePath = path.join(DIST_DIR, 'index.html');
     }
@@ -79,7 +82,7 @@ function startServer({ port, mode, name }) {
 }
 
 console.log('============================================================');
-console.log('🚀 C3 Multi-Port Background Studio: Zero Particles Active');
+console.log('🚀 C3 Multi-Port Background Studio: 10 Zero-Particle Engines Active');
 console.log('============================================================');
 
 PORTS.forEach(startServer);
