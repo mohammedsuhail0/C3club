@@ -8,14 +8,6 @@ const __dirname = path.dirname(__filename);
 const DIST_DIR = path.resolve(__dirname, '../dist');
 
 const PORTS = [
-  // 🎮 Fun & Playful Engines (5)
-  { port: 5011, mode: 'googly', name: 'Cyber Googly Eyes (Tracking Robotic Eyes)' },
-  { port: 5012, mode: 'strum', name: 'Neon Guitar Harp (Vibrating Musical Strings)' },
-  { port: 5013, mode: 'dvd', name: 'Bouncy Badges (Retro DVD Bounce & Air Hockey)' },
-  { port: 5014, mode: 'jelly', name: 'Squishy Jell-O (Elastic Gelatin Blob Pet)' },
-  { port: 5015, mode: 'snake', name: 'Arcade Cyber Snake (Tron Snake Cursor Hunter)' },
-
-  // 📐 Blueprint & Tech Engines (10)
   { port: 5001, mode: 'mesh', name: 'Vector Mesh (Elastic Grid & Shockwaves)' },
   { port: 5002, mode: 'topo', name: 'Topo Waves (Fluid Contours & Water Ripples)' },
   { port: 5003, mode: 'circuit', name: 'Silicon PCB (Circuit Traces & Data Pulses)' },
@@ -26,6 +18,16 @@ const PORTS = [
   { port: 5008, mode: 'radar', name: 'Radar Sonar (Polar Range Rings & Oscilloscope)' },
   { port: 5009, mode: 'hex', name: 'Hex Matrix (Honeycomb Grid & Extrusion Ripples)' },
   { port: 5010, mode: 'sineflow', name: 'Sine Spectrum (Laser Interferometry & Harmonics)' },
+  { port: 5011, mode: 'lorenz', name: 'Lorenz Attractor (3D Chaos Phase Space Trajectories)' },
+  { port: 5012, mode: 'spacetime', name: 'Einstein Spacetime (Schwarzschild Metric Geodesics)' },
+  { port: 5013, mode: 'fourier', name: 'Fourier Epicycles (Harmonic Phasor Decomposition)' },
+  { port: 5014, mode: 'optics', name: 'Prism Optics (Snell Law Ray Tracing & Dispersion)' },
+  { port: 5015, mode: 'quantum', name: 'Quantum Tunneling (Schrödinger Barrier Wavepacket)' },
+  { port: 5016, mode: 'seismic', name: 'Seismograph (3-Channel Tectonic Accelerometer)' },
+  { port: 5017, mode: 'fibonacci', name: 'Golden Spiral (Logarithmic Phyllotaxis Helices)' },
+  { port: 5018, mode: 'aerodynamics', name: 'Wind Tunnel (Navier-Stokes NACA Airfoil)' },
+  { port: 5019, mode: 'orbital', name: 'Kepler Orbit (Celestial Mechanics Ellipses)' },
+  { port: 5020, mode: 'spectrogram', name: 'DSP Spectrogram (FFT Frequency Waterfall)' },
 ];
 
 const MIME_TYPES = {
@@ -90,7 +92,7 @@ function startServer({ port, mode, name }) {
 }
 
 console.log('============================================================');
-console.log('🚀 C3 Multi-Port Background Studio: 15 Zero-Particle Engines Active');
+console.log('🚀 C3 Multi-Port Background Studio: 20 Scientific Engines Active');
 console.log('============================================================');
 
 PORTS.forEach(startServer);
