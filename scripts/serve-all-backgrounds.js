@@ -8,6 +8,14 @@ const __dirname = path.dirname(__filename);
 const DIST_DIR = path.resolve(__dirname, '../dist');
 
 const PORTS = [
+  // 🎮 Fun & Playful Engines (5)
+  { port: 5011, mode: 'googly', name: 'Cyber Googly Eyes (Tracking Robotic Eyes)' },
+  { port: 5012, mode: 'strum', name: 'Neon Guitar Harp (Vibrating Musical Strings)' },
+  { port: 5013, mode: 'dvd', name: 'Bouncy Badges (Retro DVD Bounce & Air Hockey)' },
+  { port: 5014, mode: 'jelly', name: 'Squishy Jell-O (Elastic Gelatin Blob Pet)' },
+  { port: 5015, mode: 'snake', name: 'Arcade Cyber Snake (Tron Snake Cursor Hunter)' },
+
+  // 📐 Blueprint & Tech Engines (10)
   { port: 5001, mode: 'mesh', name: 'Vector Mesh (Elastic Grid & Shockwaves)' },
   { port: 5002, mode: 'topo', name: 'Topo Waves (Fluid Contours & Water Ripples)' },
   { port: 5003, mode: 'circuit', name: 'Silicon PCB (Circuit Traces & Data Pulses)' },
@@ -82,7 +90,7 @@ function startServer({ port, mode, name }) {
 }
 
 console.log('============================================================');
-console.log('🚀 C3 Multi-Port Background Studio: 10 Zero-Particle Engines Active');
+console.log('🚀 C3 Multi-Port Background Studio: 15 Zero-Particle Engines Active');
 console.log('============================================================');
 
 PORTS.forEach(startServer);
