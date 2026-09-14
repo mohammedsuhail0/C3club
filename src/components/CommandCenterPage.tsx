@@ -292,8 +292,13 @@ Kickoff Routine: Monday to Thursday, 10:00 AM – 1:00 PM at C3 Campus Office / 
 See you on Monday!
 — Mohammed Suhail & Mohammad Bilal (Founding Co-Leads, C3 Collective)`;
 
-    const cleanPhone = member.phone.replace(/\D/g, '');
-    const waUrl = `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(text)}`;
+    let cleanPhone = (member.phone || '').replace(/\D/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = `91${cleanPhone}`;
+    } else if (cleanPhone.length === 11 && cleanPhone.startsWith('0')) {
+      cleanPhone = `91${cleanPhone.slice(1)}`;
+    }
+    const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`;
     window.open(waUrl, '_blank');
   };
 
