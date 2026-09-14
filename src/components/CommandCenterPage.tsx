@@ -1491,7 +1491,7 @@ function onFormSubmit(e) {
                   <div className="p-4 bg-[#12100C] rounded-2xl border border-[#2A251E] space-y-2">
                     <span className="text-[#8C8275] block">KEY GENERATION RULES</span>
                     <p className="text-emerald-400 font-semibold text-xs">
-                      ✓ Pure 4-character uppercase alphanumeric only (e.g. KD4U, ZZRF).
+                      ✓ Pure 4-character uppercase alphanumeric code.
                     </p>
                     <p className="text-rose-400 font-semibold text-xs">
                       ✕ Zero C3-FND- or monetary symbols permitted.

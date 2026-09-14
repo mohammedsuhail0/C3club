@@ -1,71 +1,27 @@
 // C3 Founder Access Key (C3-FND-XXXX) Authorization & Checksum Engine
 // Zero-cost, client-side, zero-database architecture
 
-// High-Entropy Master Keys (Pure 4-character cryptographic keys)
-export const MASTER_FOUNDER_KEYS = [
-  '8419',
-  '9231',
-  'ZZRF',
-  'EVKH',
-  'DNE6',
-  'UU9U',
-  'N54W',
-  '73FX',
-  'J3AT',
-  '8NSL',
-  'WXVA',
-  'GFW7',
-  '6EBG',
-  'EYRB',
-  'PTBT',
-  '89A3',
-  'TUN2',
-  'XR8P',
-  'G5VV',
-  'B29U',
-  '8WPS',
-  'B474',
-  '2W5T',
-  'M6B6',
-  '8PFK',
-  'UFPQ',
-  'G6H2',
-  'XKBC',
-  'EQU4',
-  'Y6MT',
-  'FU2Y',
-  '3TLU',
-  'BCQK',
-  'P7VL',
-  '3FJL',
-  'GHP8',
-  'LK8J',
-  'SBFC',
-  '9H3B',
-  '85QP',
-  '5TD6',
-  'ZHFV',
-  '4MKR',
-  'BHCL',
-  'UEHZ',
-  'APPS',
-  'ERVW'
-];
+// High-Entropy Master Keys
+export const MASTER_FOUNDER_KEYS: string[] = [];
 
 const CHARSET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // 32 unambiguous characters (no 0/O, 1/I)
+const DIGITS = '23456789'; // 8 digits
+const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // 24 letters
 const SECRET_SALT = 8391;
+const REVOKED_KEYS = ['3N8H', 'EVKH'];
 
-// Generates a deterministic, unguessable cryptographic Founder Key from an applicant's phone number
+// Generates a deterministic, unguessable cryptographic Founder Key (guaranteed 4-character alphanumeric)
 export function generateFounderKeyForPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, '');
+  const digits = String(phone || '').replace(/\D/g, '') || '0';
   let h = 5381;
   for (let i = 0; i < digits.length; i++) {
     h = ((h << 5) + h) + digits.charCodeAt(i);
     h = h & 0x7fffffff;
   }
-  const c1 = CHARSET[h % 32];
-  const c2 = CHARSET[(h >> 5) % 32];
-  const c3 = CHARSET[(h >> 10) % 32];
+  // c1 is always a digit (2-9), c2 is always a letter (A-Z)
+  const c1 = DIGITS[h % DIGITS.length];
+  const c2 = LETTERS[(h >> 3) % LETTERS.length];
+  const c3 = CHARSET[(h >> 8) % CHARSET.length];
   const check = CHARSET[(c1.charCodeAt(0) * 17 + c2.charCodeAt(0) * 31 + c3.charCodeAt(0) * 59 + SECRET_SALT) % 32];
   return `${c1}${c2}${c3}${check}`;
 }
@@ -88,6 +44,14 @@ export function validateFounderKey(inputKey: string): { isValid: boolean; normal
 
   // Strip any accidental prefixes like C3-FND- or FND-
   const clean = inputKey.trim().toUpperCase().replace(/^(C3-)?(FND-)?/i, '');
+
+  if (REVOKED_KEYS.includes(clean)) {
+    return {
+      isValid: false,
+      normalizedKey: clean,
+      message: 'This Founder Key has been revoked or is inactive.'
+    };
+  }
 
   // 1. Direct match with Master Pre-Approved Keys
   if (MASTER_FOUNDER_KEYS.includes(clean)) {

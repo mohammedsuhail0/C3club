@@ -4,7 +4,7 @@ import { Download, Sparkles, CheckCircle2, Shield, Clock, MapPin, Copy, Key, Loc
 import { sounds } from '../utils/audio';
 import confetti from 'canvas-confetti';
 import { validateFounderKey, savePassToOrganizerQueue } from '../utils/founderAuth';
-import { fetchMemberByKey, claimPassApi } from '../utils/api';
+import { fetchMemberByKey, claimPassApi, verifyKeyApi } from '../utils/api';
 
 interface FoundingPassProps {
   onOpenApply: () => void;
@@ -12,12 +12,13 @@ interface FoundingPassProps {
 }
 
 export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externalKey }) => {
-  const [name, setName] = useState('Syed Farhan');
+  const [name, setName] = useState('');
   const [branch, setBranch] = useState('CSE');
   const [year, setYear] = useState('3rd Year');
   const [rolePreset, setRolePreset] = useState('Vibe Coder / Shipper');
   const [isCustomRole, setIsCustomRole] = useState(false);
   const [customRoleText, setCustomRoleText] = useState('');
+  const [isIdentityLocked, setIsIdentityLocked] = useState(false);
   
   // Access control state
   const [founderKey, setFounderKey] = useState('');
@@ -37,9 +38,17 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
   const effectiveRole = isCustomRole ? (customRoleText.trim() || 'Founding Builder') : rolePreset;
 
   const unlockWithKey = async (code: string, isFromUrlOrExternal: boolean = false) => {
-    const res = validateFounderKey(code);
-    if (res.isValid) {
-      setFounderKey(res.normalizedKey);
+    if (!code) return;
+    const cleanCode = code.trim().toUpperCase().replace(/^(C3-)?(FND-)?/i, '');
+
+    // 1. Verify with backend API
+    const apiRes = await verifyKeyApi(cleanCode);
+    const localRes = validateFounderKey(cleanCode);
+    const isValid = (apiRes && apiRes.isValid) || localRes.isValid;
+    const finalKey = apiRes?.key || localRes.normalizedKey || cleanCode;
+
+    if (isValid) {
+      setFounderKey(finalKey);
       setIsUnlocked(true);
       setKeyError('');
       sounds.playSuccess();
@@ -56,16 +65,18 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
       };
 
       if (isFromUrlOrExternal) {
-        // Delay celebration confetti until smooth scroll lands on the pass
         setTimeout(triggerConfetti, 700);
       } else {
         triggerConfetti();
       }
 
-      // Look up member from backend to pre-populate their official name & details
-      const member = await fetchMemberByKey(res.normalizedKey);
+      // Look up member from backend to lock identity to official accepted applicant record
+      const member = apiRes?.member || await fetchMemberByKey(finalKey);
       if (member) {
-        if (member.name) setName(member.name);
+        if (member.name) {
+          setName(member.name);
+          setIsIdentityLocked(true); // Locked permanently to authentic applicant
+        }
         if (member.branch) setBranch(member.branch);
         if (member.year) setYear(member.year);
         if (member.customRole) {
@@ -76,7 +87,7 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
         }
       }
     } else {
-      setKeyError(res.message || 'Invalid Founder Key. Please check the key in your acceptance email.');
+      setKeyError(localRes.message || 'Invalid or revoked Founder Key. Please check the key in your acceptance email.');
       sounds.playKey();
     }
   };
@@ -367,7 +378,8 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
                         setInputKey(e.target.value);
                         setKeyError('');
                       }}
-                      placeholder="Enter Founder Key (e.g. ZZRF)"
+                      placeholder="Enter Founder Key"
+                      maxLength={8}
                       className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-claude-bg dark:bg-claude-darkBg border border-claude-border dark:border-claude-darkBorder text-claude-text dark:text-claude-darkText text-sm font-mono uppercase tracking-wider focus:outline-none focus:border-claude-terracotta transition-colors"
                     />
                     <Key className="w-4 h-4 text-claude-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -425,16 +437,42 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
 
               {/* Full Name */}
               <div>
-                <label className="block text-xs font-mono font-medium text-claude-muted dark:text-claude-darkMuted mb-1.5 uppercase">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Syed Farhan"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-claude-bg dark:bg-claude-darkBg border border-claude-border dark:border-claude-darkBorder text-claude-text dark:text-claude-darkText text-sm font-sans focus:outline-none focus:border-claude-terracotta transition-colors"
-                />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-mono font-medium text-claude-muted dark:text-claude-darkMuted uppercase">
+                    Full Name
+                  </label>
+                  {isIdentityLocked && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 font-semibold">
+                      <Lock className="w-2.5 h-2.5" />
+                      Verified Identity · Locked
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={name}
+                    readOnly={isIdentityLocked}
+                    disabled={isIdentityLocked}
+                    onChange={(e) => {
+                      if (!isIdentityLocked) setName(e.target.value);
+                    }}
+                    placeholder="Candidate Name"
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-sans transition-colors ${
+                      isIdentityLocked
+                        ? 'bg-black/20 border-[#38332A] text-claude-text dark:text-claude-darkText font-semibold cursor-not-allowed select-none'
+                        : 'bg-claude-bg dark:bg-claude-darkBg border-claude-border dark:border-claude-darkBorder text-claude-text dark:text-claude-darkText focus:outline-none focus:border-claude-terracotta'
+                    }`}
+                  />
+                  {isIdentityLocked && (
+                    <Lock className="w-3.5 h-3.5 text-emerald-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  )}
+                </div>
+                {isIdentityLocked && (
+                  <p className="text-[10px] font-mono text-claude-muted dark:text-claude-darkMuted mt-1">
+                    Official candidate identity bound to this key. Non-transferable.
+                  </p>
+                )}
               </div>
 
               {/* Branch & Year Row */}
@@ -445,8 +483,13 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
                   </label>
                   <select
                     value={branch}
+                    disabled={isIdentityLocked}
                     onChange={(e) => setBranch(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-claude-bg dark:bg-claude-darkBg border border-claude-border dark:border-claude-darkBorder text-claude-text dark:text-claude-darkText text-sm font-sans focus:outline-none focus:border-claude-terracotta transition-colors"
+                    className={`w-full px-3 py-2.5 rounded-xl border text-sm font-sans transition-colors ${
+                      isIdentityLocked
+                        ? 'bg-black/20 border-[#38332A] text-claude-text dark:text-claude-darkText cursor-not-allowed opacity-90'
+                        : 'bg-claude-bg dark:bg-claude-darkBg border-claude-border dark:border-claude-darkBorder text-claude-text dark:text-claude-darkText focus:outline-none focus:border-claude-terracotta'
+                    }`}
                   >
                     <option value="CSE">CSE (Computer Science)</option>
                     <option value="IT">IT (Information Tech)</option>
@@ -463,8 +506,13 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
                   </label>
                   <select
                     value={year}
+                    disabled={isIdentityLocked}
                     onChange={(e) => setYear(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-claude-bg dark:bg-claude-darkBg border border-claude-border dark:border-claude-darkBorder text-claude-text dark:text-claude-darkText text-sm font-sans focus:outline-none focus:border-claude-terracotta transition-colors"
+                    className={`w-full px-3 py-2.5 rounded-xl border text-sm font-sans transition-colors ${
+                      isIdentityLocked
+                        ? 'bg-black/20 border-[#38332A] text-claude-text dark:text-claude-darkText cursor-not-allowed opacity-90'
+                        : 'bg-claude-bg dark:bg-claude-darkBg border-claude-border dark:border-claude-darkBorder text-claude-text dark:text-claude-darkText focus:outline-none focus:border-claude-terracotta'
+                    }`}
                   >
                     <option value="1st Year">1st Year (Freshman)</option>
                     <option value="2nd Year">2nd Year (Sophomore)</option>

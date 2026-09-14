@@ -13,24 +13,30 @@ const __dirname = path.dirname(__filename);
 const DATA_FILE = path.join(__dirname, 'data', 'members.json');
 
 const CHARSET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+const DIGITS = '23456789';
+const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const SECRET_SALT = 8391;
 
-function normalizeKey(key) {
-  return String(key || '').trim().toUpperCase().replace(/^(C3-)?(FND-)?/i, '');
-}
-
-function generateKeyFromPhone(phone) {
-  const digits = String(phone || '').replace(/\D/g, '');
-  let h = 5381;
-  for (let i = 0; i < digits.length; i++) {
-    h = ((h << 5) + h) + digits.charCodeAt(i);
-    h = h & 0x7fffffff;
+function generateKeyFromPhone(phone, existingKeys = []) {
+  const digits = String(phone || '').replace(/\D/g, '') || '0';
+  let saltOffset = 0;
+  while (saltOffset < 50) {
+    let h = 5381 + saltOffset * 1013;
+    for (let i = 0; i < digits.length; i++) {
+      h = ((h << 5) + h) + digits.charCodeAt(i);
+      h = h & 0x7fffffff;
+    }
+    const c1 = DIGITS[h % DIGITS.length];
+    const c2 = LETTERS[(h >> 3) % LETTERS.length];
+    const c3 = CHARSET[(h >> 8) % CHARSET.length];
+    const check = CHARSET[(c1.charCodeAt(0) * 17 + c2.charCodeAt(0) * 31 + c3.charCodeAt(0) * 59 + SECRET_SALT) % 32];
+    const key = `${c1}${c2}${c3}${check}`;
+    if (!existingKeys || !existingKeys.includes(key)) {
+      return key;
+    }
+    saltOffset++;
   }
-  const c1 = CHARSET[h % 32];
-  const c2 = CHARSET[(h >> 5) % 32];
-  const c3 = CHARSET[(h >> 10) % 32];
-  const check = CHARSET[(c1.charCodeAt(0) * 17 + c2.charCodeAt(0) * 31 + c3.charCodeAt(0) * 59 + SECRET_SALT) % 32];
-  return `${c1}${c2}${c3}${check}`;
+  return `${DIGITS[Math.floor(Math.random() * DIGITS.length)]}${LETTERS[Math.floor(Math.random() * LETTERS.length)]}${CHARSET[Math.floor(Math.random() * CHARSET.length)]}${CHARSET[Math.floor(Math.random() * CHARSET.length)]}`;
 }
 
 function verifyKeyChecksum(key) {
@@ -659,11 +665,12 @@ async function routeApi(method, pathname, url, body, req, res) {
     const m = members[memberIndex];
     m.status = 'claimed';
     m.claimedAt = new Date().toISOString();
-    if (name) m.name = name;
-    if (branch) m.branch = branch;
-    if (year) m.year = year;
-    if (role) m.role = role;
-    if (customRole !== undefined) m.customRole = customRole;
+    // Identity immutability: Do not allow altering verified applicant's registered name, branch, or year
+    if (!m.name && name) m.name = name;
+    if (!m.branch && branch) m.branch = branch;
+    if (!m.year && year) m.year = year;
+    if (role && !m.customRole) m.role = role;
+    if (customRole !== undefined && customRole) m.customRole = customRole;
 
     saveMembers(members);
     return res.end(JSON.stringify({ success: true, member: m }));
