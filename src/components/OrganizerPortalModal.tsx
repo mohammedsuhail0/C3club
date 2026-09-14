@@ -4,7 +4,7 @@ import {
   X, Lock, Key, Users, CheckCircle, Clock, Printer, 
   Send, ExternalLink, Copy, Plus, Search, Check, RefreshCw,
   Mail, MessageSquare, Settings, FileText, Sparkles, CheckSquare,
-  AlertCircle, ChevronRight, Eye, Code, Upload
+  AlertCircle, ChevronRight, Eye, Code, Upload, Edit3
 } from 'lucide-react';
 import { 
   fetchMembers, 
@@ -17,12 +17,15 @@ import {
   testEmailConfigApi, 
   syncGoogleSheetApi,
   setAdminToken,
+  getLocalDecisions,
+  saveLocalDecision,
   MemberRecord, 
   MembersResponse, 
   EmailConfig 
 } from '../utils/api';
 import { sounds } from '../utils/audio';
 import { EmailDispatchModal } from './EmailDispatchModal';
+import { EditMemberModal } from './EditMemberModal';
 
 interface OrganizerPortalModalProps {
   isOpen: boolean;
@@ -67,6 +70,7 @@ export const OrganizerPortalModal: React.FC<OrganizerPortalModalProps> = ({
   const [showConnectForm, setShowConnectForm] = useState(false);
   const [showEmailSettings, setShowEmailSettings] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [editingMember, setEditingMember] = useState<MemberRecord | null>(null);
 
   // Drawer Builder Role Selection (Two Options: Dropdown vs Type Custom)
   const [drawerRoleMode, setDrawerRoleMode] = useState<'dropdown' | 'custom'>('dropdown');
@@ -122,10 +126,30 @@ export const OrganizerPortalModal: React.FC<OrganizerPortalModalProps> = ({
     setLoading(true);
     const res = await fetchMembers();
     if (res) {
-      setData(res);
+      const localDecisions = getLocalDecisions();
+      const mergedMembers = res.members.map(m => {
+        const phoneKey = m.phone ? m.phone.replace(/\D/g, '').slice(-10) : '';
+        const dec = (phoneKey && localDecisions[phoneKey]) || (m.email && localDecisions[m.email.toLowerCase()]) || localDecisions[m.id];
+        if (dec) {
+          return {
+            ...m,
+            name: dec.name || m.name,
+            branch: dec.branch || m.branch,
+            year: dec.year || m.year,
+            status: dec.status || m.status,
+            founderKey: dec.founderKey || m.founderKey,
+            role: dec.role || m.role,
+            customRole: dec.customRole !== undefined ? dec.customRole : m.customRole,
+            printedAt: dec.printedAt !== undefined ? dec.printedAt : m.printedAt,
+            emailSentAt: dec.emailSentAt !== undefined ? dec.emailSentAt : m.emailSentAt
+          };
+        }
+        return m;
+      });
+      setData({ ...res, members: mergedMembers });
       // Keep selected applicant fresh if currently open
       if (selectedApplicant) {
-        const updated = res.members.find(m => m.id === selectedApplicant.id);
+        const updated = mergedMembers.find(m => m.id === selectedApplicant.id || (m.phone && selectedApplicant.phone && m.phone === selectedApplicant.phone));
         if (updated) setSelectedApplicant(updated);
       }
     }
@@ -857,6 +881,19 @@ See you on Monday!
                                     <span>Dossier</span>
                                   </button>
 
+                                  {/* Edit Profile Button (Name, DEPT, Year) */}
+                                  <button
+                                    onClick={() => {
+                                      sounds.playClick();
+                                      setEditingMember(m);
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FAF6F0] hover:bg-[#F2ECE0] text-xs font-mono text-[#8C4A26] border border-[#E3D8C8] shadow-2xs transition-colors cursor-pointer"
+                                    title="Edit Name, Department & Year"
+                                  >
+                                    <Edit3 className="w-3 h-3 text-[#CC5A36]" />
+                                    <span>Edit</span>
+                                  </button>
+
                                   {/* WhatsApp Button */}
                                   <button
                                     onClick={() => handleWhatsAppInvite(m)}
@@ -933,14 +970,27 @@ See you on Monday!
                     {selectedApplicant.name}
                   </h3>
                 </div>
-                <button
-                  data-testid="close-dossier"
-                  aria-label="Close Dossier"
-                  onClick={() => setSelectedApplicant(null)}
-                  className="p-2 rounded-xl hover:bg-black/5 text-[#8C8275] cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      sounds.playClick();
+                      setEditingMember(selectedApplicant);
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#FAF6F0] hover:bg-[#F2ECE0] text-xs font-mono text-[#8C4A26] border border-[#E3D8C8] shadow-2xs transition-colors cursor-pointer"
+                    title="Edit Candidate Name, DEPT & Year"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-[#CC5A36]" />
+                    <span>Edit Profile</span>
+                  </button>
+                  <button
+                    data-testid="close-dossier"
+                    aria-label="Close Dossier"
+                    onClick={() => setSelectedApplicant(null)}
+                    className="p-2 rounded-xl hover:bg-black/5 text-[#8C8275] cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Candidate Overview Card */}
@@ -1547,6 +1597,19 @@ See you on Monday!
           onClose={() => setEmailDispatchMember(null)}
           onSuccess={() => {
             loadData();
+          }}
+        />
+
+        {/* Admin Candidate Profile Edit Modal (Name, DEPT, Year) */}
+        <EditMemberModal
+          isOpen={!!editingMember}
+          member={editingMember}
+          onClose={() => setEditingMember(null)}
+          onSaved={(updated) => {
+            loadData();
+            if (selectedApplicant && (selectedApplicant.id === updated.id || (selectedApplicant.phone && selectedApplicant.phone === updated.phone))) {
+              setSelectedApplicant(updated);
+            }
           }}
         />
 

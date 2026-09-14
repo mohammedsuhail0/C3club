@@ -206,8 +206,38 @@ export async function reviewApplicantApi(
   }
 }
 
+export async function editMemberApi(data: {
+  id: string;
+  name: string;
+  branch: string;
+  year: string;
+  role?: string;
+  customRole?: string;
+  status?: 'pending_review' | 'accepted' | 'rejected' | 'claimed';
+}): Promise<{ success: boolean; member?: MemberRecord; message?: string }> {
+  try {
+    const res = await fetch('/api/edit-member', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { success: false, message: err.message || `HTTP ${res.status} error` };
+    }
+    const json = await res.json();
+    return json;
+  } catch (e: any) {
+    console.error('Failed to edit member:', e);
+    return { success: false, message: e?.message || 'Network error updating member details' };
+  }
+}
+
 export interface LocalDecision {
-  status?: 'accepted' | 'rejected' | 'pending_review';
+  name?: string;
+  branch?: string;
+  year?: string;
+  status?: 'accepted' | 'rejected' | 'pending_review' | 'claimed';
   founderKey?: string;
   role?: string;
   customRole?: string;

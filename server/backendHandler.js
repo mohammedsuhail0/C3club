@@ -682,6 +682,38 @@ async function routeApi(method, pathname, url, body, req, res) {
     return res.end(JSON.stringify({ success: true, member }));
   }
 
+  // 7a. POST /api/edit-member (Admin edit name, branch/dept, year, role, customRole, status - Requires Admin Authentication)
+  if (method === 'POST' && pathname === '/api/edit-member') {
+    if (!authenticateAdmin(req, res, body)) return;
+    const { id, name, branch, year, role, customRole, status } = body;
+    const member = findMember(members, id);
+
+    if (!member) {
+      res.statusCode = 404;
+      return res.end(JSON.stringify({ success: false, message: 'Member not found' }));
+    }
+
+    if (name !== undefined && String(name).trim()) member.name = String(name).trim();
+    if (branch !== undefined && String(branch).trim()) member.branch = String(branch).trim();
+    if (year !== undefined && String(year).trim()) member.year = String(year).trim();
+    if (role !== undefined && String(role).trim()) member.role = String(role).trim();
+    if (customRole !== undefined) member.customRole = String(customRole).trim();
+    if (status !== undefined && ['pending_review', 'accepted', 'rejected', 'claimed'].includes(status)) {
+      member.status = status;
+      if (status === 'accepted' && !member.founderKey) {
+        member.founderKey = generateKeyFromPhone(member.phone);
+      }
+    }
+
+    // If Suhail is edited, update SEED_MEMBERS so cold start preserves the edits
+    if (member.founderKey === '3C5B' || (member.phone && String(member.phone).includes('6301633463'))) {
+      SEED_MEMBERS[0] = { ...SEED_MEMBERS[0], ...member };
+    }
+
+    saveMembers(members);
+    return res.end(JSON.stringify({ success: true, member }));
+  }
+
   // 7b. POST /api/members/reset (Requires Admin Authentication)
   if (method === 'POST' && pathname === '/api/members/reset') {
     if (!authenticateAdmin(req, res, body)) return;
@@ -918,6 +950,9 @@ async function routeApi(method, pathname, url, body, req, res) {
     for (const [key, dec] of Object.entries(decisions)) {
       const member = findMember(members, dec.phone || dec.email || dec.id || key);
       if (member) {
+        if (dec.name) member.name = dec.name;
+        if (dec.branch) member.branch = dec.branch;
+        if (dec.year) member.year = dec.year;
         if (dec.status) member.status = dec.status;
         if (dec.founderKey) member.founderKey = dec.founderKey;
         if (dec.role) member.role = dec.role;

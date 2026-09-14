@@ -5,7 +5,7 @@ import {
   Send, ExternalLink, Copy, Plus, Search, Check, RefreshCw,
   Mail, MessageSquare, Settings, FileText, Sparkles,
   AlertCircle, ChevronRight, Eye, Code, Upload, ArrowLeft,
-  Share2, ShieldCheck, Download, Trash2, Globe, Compass, X
+  Share2, ShieldCheck, Download, Trash2, Globe, Compass, X, Edit3
 } from 'lucide-react';
 import { 
   fetchMembers, 
@@ -31,6 +31,7 @@ import {
 } from '../utils/api';
 import { sounds } from '../utils/audio';
 import { EmailDispatchModal } from './EmailDispatchModal';
+import { EditMemberModal } from './EditMemberModal';
 
 interface CommandCenterPageProps {
   onNavigateHome: () => void;
@@ -72,6 +73,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
   // Drawer & Modals
   const [selectedApplicant, setSelectedApplicant] = useState<MemberRecord | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [editingMember, setEditingMember] = useState<MemberRecord | null>(null);
 
   // Drawer Builder Role Selection (Two Options: Dropdown vs Type Custom)
   const [drawerRoleMode, setDrawerRoleMode] = useState<'dropdown' | 'custom'>('dropdown');
@@ -225,13 +227,16 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
     if (res) {
       const localDecisions = getLocalDecisions();
 
-      // Overlay local decisions so serverless cold-starts never wipe acceptances
+      // Overlay local decisions so serverless cold-starts never wipe acceptances or edits
       const mergedMembers = res.members.map(m => {
         const phoneKey = m.phone ? m.phone.replace(/\D/g, '').slice(-10) : '';
         const dec = (phoneKey && localDecisions[phoneKey]) || (m.email && localDecisions[m.email.toLowerCase()]) || localDecisions[m.id];
         if (dec) {
           return {
             ...m,
+            name: dec.name || m.name,
+            branch: dec.branch || m.branch,
+            year: dec.year || m.year,
             status: dec.status || m.status,
             founderKey: dec.founderKey || m.founderKey,
             role: dec.role || m.role,
@@ -1153,6 +1158,19 @@ function onFormSubmit(e) {
                                     <span>Review</span>
                                   </button>
 
+                                  {/* Edit Profile Button (Name, DEPT, Year) */}
+                                  <button
+                                    onClick={() => {
+                                      sounds.playClick();
+                                      setEditingMember(member);
+                                    }}
+                                    className="px-2.5 py-1.5 rounded-lg bg-[#25211A] hover:bg-[#302B22] border border-[#352F26] text-amber-300 hover:text-amber-200 text-xs font-mono flex items-center gap-1 cursor-pointer"
+                                    title="Edit Name, Department & Year"
+                                  >
+                                    <Edit3 className="w-3 h-3 text-amber-400" />
+                                    <span>Edit</span>
+                                  </button>
+
                                   {/* Graphic Acceptance Email Dispatch */}
                                   {member.founderKey && (
                                     <button
@@ -1648,9 +1666,22 @@ function onFormSubmit(e) {
                          selectedApplicant.source === 'google_sheet_sync' ? 'Google Sheet' : 'Website'}
                       </span>
                     </div>
-                    <p className="text-xs font-mono text-[#9E9587] mt-0.5">
-                      {selectedApplicant.branch} · {selectedApplicant.year} · ID: {selectedApplicant.id}
-                    </p>
+                    <div className="flex items-center gap-2.5 mt-1.5 flex-wrap">
+                      <p className="text-xs font-mono text-[#9E9587]">
+                        {selectedApplicant.branch} · {selectedApplicant.year} · ID: {selectedApplicant.id}
+                      </p>
+                      <button
+                        onClick={() => {
+                          sounds.playClick();
+                          setEditingMember(selectedApplicant);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-[#25211A] hover:bg-[#322B22] border border-[#3A3328] text-amber-300 hover:text-amber-200 text-xs font-mono flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all"
+                        title="Edit Name, DEPT & Year"
+                      >
+                        <Edit3 className="w-3 h-3 text-amber-400" />
+                        <span>Edit Profile</span>
+                      </button>
+                    </div>
                   </div>
 
                   <button
@@ -2125,6 +2156,19 @@ function onFormSubmit(e) {
         onClose={() => setEmailDispatchMember(null)}
         onSuccess={() => {
           loadData();
+        }}
+      />
+
+      {/* Admin Candidate Profile Edit Modal (Name, DEPT, Year) */}
+      <EditMemberModal
+        isOpen={!!editingMember}
+        member={editingMember}
+        onClose={() => setEditingMember(null)}
+        onSaved={(updated) => {
+          loadData();
+          if (selectedApplicant && (selectedApplicant.id === updated.id || (selectedApplicant.phone && selectedApplicant.phone === updated.phone))) {
+            setSelectedApplicant(updated);
+          }
         }}
       />
 
