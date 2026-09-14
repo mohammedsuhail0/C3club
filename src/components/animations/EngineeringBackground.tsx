@@ -47,6 +47,7 @@ import {
   ChevronUp,
   ChevronDown,
   Copy,
+  X,
 } from 'lucide-react';
 
 export type BgMode =
@@ -246,9 +247,9 @@ export const SCIENTIFIC_BG_MODES: BgOption[] = [
 const VALID_MODES: BgMode[] = SCIENTIFIC_BG_MODES.map((b) => b.id);
 
 function resolveInitialBg(): BgMode {
-  if (typeof window === 'undefined') return 'mesh';
+  if (typeof window === 'undefined') return 'topo';
 
-  // 1. URL search param (?bg=lorenz, ?bg=spacetime, etc.)
+  // 1. URL search param (?bg=topo, ?bg=lorenz, etc.)
   const params = new URLSearchParams(window.location.search);
   const qBg = params.get('bg') as BgMode | null;
   if (qBg && VALID_MODES.includes(qBg)) {
@@ -266,7 +267,8 @@ function resolveInitialBg(): BgMode {
     return saved;
   }
 
-  return 'mesh';
+  // Final Official Default: Fluid Topo Waves
+  return 'topo';
 }
 
 export const EngineeringBackground: React.FC = () => {
@@ -274,6 +276,12 @@ export const EngineeringBackground: React.FC = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
+  const [isDismissed, setIsDismissed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('studio') === 'true') return false;
+    return localStorage.getItem('c3_bg_studio_dismissed') === 'true';
+  });
 
   useEffect(() => {
     const handlePopState = () => {
@@ -300,7 +308,7 @@ export const EngineeringBackground: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const currentOption = SCIENTIFIC_BG_MODES.find((b) => b.id === activeBg) || SCIENTIFIC_BG_MODES[0];
+  const currentOption = SCIENTIFIC_BG_MODES.find((b) => b.id === activeBg) || SCIENTIFIC_BG_MODES[1];
   const CurrentIcon = currentOption.icon;
 
   const filteredModes = SCIENTIFIC_BG_MODES.filter(
@@ -339,29 +347,55 @@ export const EngineeringBackground: React.FC = () => {
         aria-label="C3 Background Studio Switcher"
         className="fixed bottom-5 left-5 z-40 pointer-events-auto select-none font-mono tracking-tight"
       >
-        {isOpen ? (
+        {isDismissed ? (
+          <button
+            onClick={() => {
+              sounds.playClick();
+              setIsDismissed(false);
+              localStorage.removeItem('c3_bg_studio_dismissed');
+            }}
+            className="p-1.5 rounded-full bg-stone-900/40 hover:bg-stone-900/80 text-stone-500 hover:text-[#CC5A36] backdrop-blur-sm border border-stone-800/40 hover:border-stone-700 transition opacity-40 hover:opacity-100"
+            title="Open BG Comparison Studio"
+          >
+            <Waves className="w-3.5 h-3.5" />
+          </button>
+        ) : isOpen ? (
           <div className="w-92 max-h-[82vh] flex flex-col rounded-2xl bg-white/95 dark:bg-[#141210]/95 backdrop-blur-xl border border-stone-200 dark:border-stone-800 shadow-2xl p-4 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
             {/* Header */}
             <div className="flex items-center justify-between pb-2.5 border-b border-stone-200 dark:border-stone-800 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <span className="flex h-2 w-2 rounded-full bg-[#CC5A36] animate-pulse" />
                 <span className="text-[11px] font-bold text-stone-900 dark:text-stone-100 tracking-wider uppercase">
-                  Scientific BG Studio
+                  Background Studio
                 </span>
                 <span className="text-[9px] px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-[#CC5A36] font-semibold">
-                  20 Scientific Engines (Zero Particles)
+                  20 Engines
                 </span>
               </div>
-              <button
-                onClick={() => {
-                  sounds.playClick();
-                  setIsOpen(false);
-                }}
-                className="p-1 rounded-md text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition"
-                title="Collapse Studio"
-              >
-                <ChevronDown className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    sounds.playClick();
+                    setIsOpen(false);
+                  }}
+                  className="p-1 rounded-md text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition"
+                  title="Collapse Studio"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    sounds.playClick();
+                    setIsOpen(false);
+                    setIsDismissed(true);
+                    localStorage.setItem('c3_bg_studio_dismissed', 'true');
+                  }}
+                  className="p-1 rounded-md text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition"
+                  title="Hide Switcher"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Quick Filter Search Input */}
@@ -370,8 +404,8 @@ export const EngineeringBackground: React.FC = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search 20 scientific engines..."
-                className="w-full text-xs px-2.5 py-1.5 rounded-lg bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:border-[#CC5A36]"
+                placeholder="Search engine by name, concept..."
+                className="w-full text-xs px-2.5 py-1.5 rounded-lg bg-stone-100 dark:bg-stone-900/80 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:outline-none focus:border-[#CC5A36]"
               />
             </div>
 
@@ -453,24 +487,37 @@ export const EngineeringBackground: React.FC = () => {
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => {
-              sounds.playClick();
-              setIsOpen(true);
-            }}
-            className="group flex items-center gap-2 px-3 py-2 rounded-full bg-white/90 dark:bg-[#141210]/90 backdrop-blur-md border border-stone-200/90 dark:border-stone-800/90 shadow-lg hover:shadow-xl hover:border-[#CC5A36]/60 transition-all text-xs font-medium text-stone-800 dark:text-stone-200"
-            title="Open Scientific Background Studio (20 Engines)"
-          >
-            <span className="flex h-2 w-2 rounded-full bg-[#CC5A36] animate-ping" />
-            <CurrentIcon className="w-3.5 h-3.5 text-[#CC5A36]" />
-            <span className="font-semibold text-[11px] uppercase tracking-wider">
-              SCI: {currentOption.name}
-            </span>
-            <span className="text-[10px] text-stone-400 font-mono hidden sm:inline">
-              (:{currentOption.port})
-            </span>
-            <ChevronUp className="w-3.5 h-3.5 text-stone-400 group-hover:text-stone-700 dark:group-hover:text-stone-200 transition" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => {
+                sounds.playClick();
+                setIsOpen(true);
+              }}
+              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-white/90 dark:bg-[#141210]/90 backdrop-blur-md border border-stone-200/90 dark:border-stone-800/90 shadow-lg hover:shadow-xl hover:border-[#CC5A36]/60 transition-all text-xs font-medium text-stone-800 dark:text-stone-200"
+              title="Open Background Comparison Studio (20 Engines)"
+            >
+              <span className="flex h-2 w-2 rounded-full bg-[#CC5A36] animate-ping" />
+              <CurrentIcon className="w-3.5 h-3.5 text-[#CC5A36]" />
+              <span className="font-semibold text-[11px] uppercase tracking-wider">
+                BG: {currentOption.name}
+              </span>
+              <span className="text-[10px] text-stone-400 font-mono hidden sm:inline">
+                (:{currentOption.port})
+              </span>
+              <ChevronUp className="w-3.5 h-3.5 text-stone-400 group-hover:text-stone-700 dark:group-hover:text-stone-200 transition" />
+            </button>
+            <button
+              onClick={() => {
+                sounds.playClick();
+                setIsDismissed(true);
+                localStorage.setItem('c3_bg_studio_dismissed', 'true');
+              }}
+              className="p-2 rounded-full bg-white/90 dark:bg-[#141210]/90 backdrop-blur-md border border-stone-200/90 dark:border-stone-800/90 shadow-lg text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:border-stone-400 transition"
+              title="Hide Switcher"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         )}
       </aside>
     </>

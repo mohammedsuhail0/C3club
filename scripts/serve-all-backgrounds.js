@@ -8,6 +8,7 @@ const __dirname = path.dirname(__filename);
 const DIST_DIR = path.resolve(__dirname, '../dist');
 
 const PORTS = [
+  { port: 5000, mode: 'topo', name: 'C3 Official Portal (Fluid Topo Waves - Default Production)' },
   { port: 5001, mode: 'mesh', name: 'Vector Mesh (Elastic Grid & Shockwaves)' },
   { port: 5002, mode: 'topo', name: 'Topo Waves (Fluid Contours & Water Ripples)' },
   { port: 5003, mode: 'circuit', name: 'Silicon PCB (Circuit Traces & Data Pulses)' },
