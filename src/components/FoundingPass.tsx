@@ -14,11 +14,20 @@ interface FoundingPassProps {
 export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externalKey }) => {
   const [name, setName] = useState('');
   const [branch, setBranch] = useState('IT');
+  const [isCustomBranch, setIsCustomBranch] = useState(false);
+  const [customBranchText, setCustomBranchText] = useState('');
+
   const [year, setYear] = useState('3rd Year');
+  const [isCustomYear, setIsCustomYear] = useState(false);
+  const [customYearText, setCustomYearText] = useState('');
+
   const [rolePreset, setRolePreset] = useState('Vibe Coder / Shipper');
   const [isCustomRole, setIsCustomRole] = useState(false);
   const [customRoleText, setCustomRoleText] = useState('');
   const [isIdentityLocked, setIsIdentityLocked] = useState(false);
+
+  const effectiveBranch = isCustomBranch ? (customBranchText.trim() || 'IT') : branch;
+  const effectiveYear = isCustomYear ? (customYearText.trim() || '3rd Year') : year;
   
   // Access control state
   const [founderKey, setFounderKey] = useState('');
@@ -77,8 +86,28 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
           setName(member.name);
           setIsIdentityLocked(true); // Locked permanently to authentic applicant
         }
-        if (member.branch) setBranch(member.branch);
-        if (member.year) setYear(member.year);
+        if (member.branch) {
+          const standardBranches = ['IT', 'CSE', 'AI/DS', 'ECE', 'MECH', 'CIVIL'];
+          if (standardBranches.includes(member.branch)) {
+            setBranch(member.branch);
+            setIsCustomBranch(false);
+          } else {
+            setBranch('custom');
+            setIsCustomBranch(true);
+            setCustomBranchText(member.branch);
+          }
+        }
+        if (member.year) {
+          const standardYears = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+          if (standardYears.includes(member.year)) {
+            setYear(member.year);
+            setIsCustomYear(false);
+          } else {
+            setYear('custom');
+            setIsCustomYear(true);
+            setCustomYearText(member.year);
+          }
+        }
         if (member.customRole) {
           setIsCustomRole(true);
           setCustomRoleText(member.customRole);
@@ -144,7 +173,7 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
   const getSerial = () => {
     if (founderKey) return founderKey;
     let hash = 0;
-    const str = `${name}-${branch}-${year}`;
+    const str = `${name}-${effectiveBranch}-${effectiveYear}`;
     for (let i = 0; i < str.length; i++) {
       hash = (hash << 5) - hash + str.charCodeAt(i);
       hash |= 0;
@@ -185,21 +214,21 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
     const ctx = canvas.getContext('2d');
 
     if (ctx) {
-      // Background gradient (warm paper)
+      // Background gradient (Dark Obsidian / Carbon aesthetic)
       const bgGrad = ctx.createLinearGradient(0, 0, 1200, 700);
-      bgGrad.addColorStop(0, '#FAF8F5');
-      bgGrad.addColorStop(0.5, '#F5F2EC');
-      bgGrad.addColorStop(1, '#EDE7DF');
+      bgGrad.addColorStop(0, '#181613');
+      bgGrad.addColorStop(0.5, '#12100E');
+      bgGrad.addColorStop(1, '#0A0908');
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, 1200, 700);
 
-      // Border with rounded corners
-      ctx.strokeStyle = '#D97757';
-      ctx.lineWidth = 6;
+      // Dark Border with rounded corners
+      ctx.strokeStyle = '#2E2820';
+      ctx.lineWidth = 4;
       ctx.strokeRect(30, 30, 1140, 640);
 
-      // Inner dashed accent line
-      ctx.strokeStyle = 'rgba(204, 90, 54, 0.3)';
+      // Inner subtle dashed accent line
+      ctx.strokeStyle = 'rgba(204, 90, 54, 0.25)';
       ctx.lineWidth = 2;
       ctx.setLineDash([8, 8]);
       ctx.strokeRect(45, 45, 1110, 610);
@@ -210,22 +239,30 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
       ctx.font = 'bold 32px monospace';
       ctx.fillText('C3 // CLAUDE CODE & COWORK', 80, 100);
 
-      ctx.fillStyle = '#6B6860';
+      ctx.fillStyle = '#8C8275';
       ctx.font = '600 20px sans-serif';
-      ctx.fillText('ISL ENGINEERING COLLEGE · HYDERABAD', 80, 130);
+      ctx.fillText('ISL ENGINEERING COLLEGE · AUTONOMOUS', 80, 130);
 
-      // Badge: FOUNDING BUILDER PASS
-      ctx.fillStyle = '#CC5A36';
+      // Badge: FOUNDING PASS
+      ctx.fillStyle = '#062817';
+      ctx.strokeStyle = '#059669';
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.roundRect(830, 70, 290, 48, 24);
       ctx.fill();
+      ctx.stroke();
 
-      ctx.fillStyle = '#FFFFFF';
+      ctx.fillStyle = '#34D399';
       ctx.font = 'bold 18px monospace';
-      ctx.fillText('FOUNDING BUILDER', 870, 101);
+      ctx.fillText('FOUNDING PASS', 890, 101);
+
+      // Subtext: BATCH 01 (No core admission)
+      ctx.fillStyle = '#8C8275';
+      ctx.font = 'bold 14px monospace';
+      ctx.fillText('BATCH 01', 1030, 140);
 
       // Divider Line
-      ctx.strokeStyle = '#E0DCD3';
+      ctx.strokeStyle = '#26221B';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(80, 160);
@@ -233,21 +270,21 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
       ctx.stroke();
 
       // Builder Name
-      ctx.fillStyle = '#1F1E1B';
+      ctx.fillStyle = '#FFFFFF';
       ctx.font = 'bold 54px serif';
       ctx.fillText(name || 'Anonymous Builder', 80, 240);
 
       // Branch & Year Tag
       ctx.fillStyle = '#CC5A36';
       ctx.font = '600 24px sans-serif';
-      ctx.fillText(`${branch} · ${year} · ${effectiveRole}`, 80, 285);
+      ctx.fillText(`${effectiveBranch} · ${effectiveYear} · ${effectiveRole}`, 80, 285);
 
-      // Details Grid (Zero mentions of ₹0)
+      // Details Grid
       const renderItem = (label: string, value: string, x: number, y: number) => {
-        ctx.fillStyle = '#8C887B';
+        ctx.fillStyle = '#8C8275';
         ctx.font = 'bold 16px monospace';
         ctx.fillText(label.toUpperCase(), x, y);
-        ctx.fillStyle = '#1F1E1B';
+        ctx.fillStyle = '#FAF8F5';
         ctx.font = 'bold 22px sans-serif';
         ctx.fillText(value, x, y + 28);
       };
@@ -258,10 +295,10 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
       renderItem('ADMISSION STATUS', 'Verified Founding Builder', 540, 440);
 
       // Footer Bar
-      ctx.fillStyle = '#1F1E1B';
+      ctx.fillStyle = '#12100E';
       ctx.fillRect(80, 520, 1040, 80);
 
-      ctx.fillStyle = '#FAF8F5';
+      ctx.fillStyle = '#8C8275';
       ctx.font = '600 20px monospace';
       ctx.fillText('OFFICIAL FOUNDING TEAM ACCESS PASS · BATCH 01', 120, 568);
 
@@ -280,8 +317,8 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
       // 2. Automatically dispatch copy to organizer's print queue for physical badge printing
       savePassToOrganizerQueue({
         name: name || 'Anonymous Builder',
-        branch,
-        year,
+        branch: effectiveBranch,
+        year: effectiveYear,
         role: effectiveRole,
         serial: getSerial(),
         founderKey: founderKey || getSerial(),
@@ -292,8 +329,8 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
       claimPassApi({
         key: founderKey || getSerial(),
         name: name || 'Anonymous Builder',
-        branch,
-        year,
+        branch: effectiveBranch,
+        year: effectiveYear,
         role: effectiveRole,
         customRole: isCustomRole ? customRoleText : ''
       });
@@ -307,7 +344,7 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
 
   const handleCopy = () => {
     sounds.playClick();
-    const text = `🎟️ C3 Founding Builder Pass\nName: ${name}\nBranch: ${branch} (${year})\nRole: ${effectiveRole}\nKey: ${getSerial()}\nSchedule: Mon-Thu 10 AM - 1 PM @ C3 Campus Office, ISL Engineering College`;
+    const text = `🎟️ C3 Founding Builder Pass\nName: ${name}\nBranch: ${effectiveBranch} (${effectiveYear})\nRole: ${effectiveRole}\nKey: ${getSerial()}\nSchedule: Mon-Thu 10 AM - 1 PM @ C3 Campus Office, ISL Engineering College`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -475,21 +512,25 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
                 )}
               </div>
 
-              {/* Branch & Year Row */}
+              {/* DEPT & Year Row - Fully Editable */}
               <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-mono font-medium text-claude-muted dark:text-claude-darkMuted mb-1.5 uppercase">
-                    Branch
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-mono font-medium text-claude-muted dark:text-claude-darkMuted uppercase">
+                      DEPT (Department)
+                    </label>
+                  </div>
                   <select
-                    value={branch}
-                    disabled={isIdentityLocked}
-                    onChange={(e) => setBranch(e.target.value)}
-                    className={`w-full px-3 py-2.5 rounded-xl border text-sm font-sans transition-colors ${
-                      isIdentityLocked
-                        ? 'bg-black/20 border-[#38332A] text-claude-text dark:text-claude-darkText cursor-not-allowed opacity-90'
-                        : 'bg-claude-bg dark:bg-claude-darkBg border-claude-border dark:border-claude-darkBorder text-claude-text dark:text-claude-darkText focus:outline-none focus:border-claude-terracotta'
-                    }`}
+                    value={isCustomBranch ? 'custom' : branch}
+                    onChange={(e) => {
+                      if (e.target.value === 'custom') {
+                        setIsCustomBranch(true);
+                      } else {
+                        setIsCustomBranch(false);
+                        setBranch(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3 py-2.5 rounded-xl border bg-claude-bg dark:bg-claude-darkBg border-claude-border dark:border-claude-darkBorder text-claude-text dark:text-claude-darkText text-sm font-sans focus:outline-none focus:border-claude-terracotta transition-colors"
                   >
                     <option value="IT">IT (Information Tech)</option>
                     <option value="CSE">CSE (Computer Science)</option>
@@ -497,28 +538,52 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
                     <option value="ECE">ECE (Electronics)</option>
                     <option value="MECH">Mechanical Engg</option>
                     <option value="CIVIL">Civil Engg</option>
+                    <option value="custom">Custom DEPT...</option>
                   </select>
+                  {isCustomBranch && (
+                    <input
+                      type="text"
+                      value={customBranchText}
+                      onChange={(e) => setCustomBranchText(e.target.value)}
+                      placeholder="e.g. IT, CSBS, AIDS"
+                      className="w-full mt-2 px-3 py-1.5 rounded-lg border bg-claude-bg dark:bg-claude-darkBg border-claude-terracotta text-claude-text dark:text-claude-darkText text-xs font-sans focus:outline-none"
+                    />
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono font-medium text-claude-muted dark:text-claude-darkMuted mb-1.5 uppercase">
-                    Year of Study
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-mono font-medium text-claude-muted dark:text-claude-darkMuted uppercase">
+                      Year of Study
+                    </label>
+                  </div>
                   <select
-                    value={year}
-                    disabled={isIdentityLocked}
-                    onChange={(e) => setYear(e.target.value)}
-                    className={`w-full px-3 py-2.5 rounded-xl border text-sm font-sans transition-colors ${
-                      isIdentityLocked
-                        ? 'bg-black/20 border-[#38332A] text-claude-text dark:text-claude-darkText cursor-not-allowed opacity-90'
-                        : 'bg-claude-bg dark:bg-claude-darkBg border-claude-border dark:border-claude-darkBorder text-claude-text dark:text-claude-darkText focus:outline-none focus:border-claude-terracotta'
-                    }`}
+                    value={isCustomYear ? 'custom' : year}
+                    onChange={(e) => {
+                      if (e.target.value === 'custom') {
+                        setIsCustomYear(true);
+                      } else {
+                        setIsCustomYear(false);
+                        setYear(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3 py-2.5 rounded-xl border bg-claude-bg dark:bg-claude-darkBg border-claude-border dark:border-claude-darkBorder text-claude-text dark:text-claude-darkText text-sm font-sans focus:outline-none focus:border-claude-terracotta transition-colors"
                   >
                     <option value="1st Year">1st Year (Freshman)</option>
                     <option value="2nd Year">2nd Year (Sophomore)</option>
                     <option value="3rd Year">3rd Year (Junior)</option>
                     <option value="4th Year">4th Year (Senior)</option>
+                    <option value="custom">Custom Year...</option>
                   </select>
+                  {isCustomYear && (
+                    <input
+                      type="text"
+                      value={customYearText}
+                      onChange={(e) => setCustomYearText(e.target.value)}
+                      placeholder="e.g. 3rd Year, Alumni"
+                      className="w-full mt-2 px-3 py-1.5 rounded-lg border bg-claude-bg dark:bg-claude-darkBg border-claude-terracotta text-claude-text dark:text-claude-darkText text-xs font-sans focus:outline-none"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -614,22 +679,22 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
               transform: `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
               transition: 'transform 0.1s ease-out',
             }}
-            className="w-full max-w-xl rounded-3xl p-5 sm:p-8 bg-gradient-to-br from-[#FAF8F5] via-[#F6F3EC] to-[#EFEAE1] dark:from-[#23221E] dark:via-[#1D1C19] dark:to-[#161513] border-2 border-claude-terracotta/40 shadow-2xl relative overflow-hidden select-none"
+            className="w-full max-w-xl rounded-3xl p-5 sm:p-8 bg-gradient-to-br from-[#181613] via-[#12100E] to-[#0A0908] border border-[#2E2820] shadow-[0_20px_60px_rgba(0,0,0,0.85)] relative overflow-hidden select-none"
           >
             {/* Holographic Dynamic Sheen Overlay */}
             <div
-              className="absolute inset-0 pointer-events-none opacity-30 dark:opacity-20 mix-blend-overlay transition-opacity duration-300"
+              className="absolute inset-0 pointer-events-none opacity-25 mix-blend-overlay transition-opacity duration-300"
               style={{
-                background: `radial-gradient(circle 350px at ${mousePos.x * 100}% ${mousePos.y * 100}%, rgba(204,90,54,0.4), rgba(217,119,87,0.2), transparent 70%)`,
+                background: `radial-gradient(circle 350px at ${mousePos.x * 100}% ${mousePos.y * 100}%, rgba(204,90,54,0.35), rgba(217,119,87,0.15), transparent 70%)`,
               }}
             />
 
-            {/* Subtle Ticket Notches on left & right */}
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-3.5 sm:w-4 h-7 sm:h-8 bg-claude-bg dark:bg-claude-darkBg rounded-r-full border-r border-y border-claude-terracotta/40" />
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 sm:w-4 h-7 sm:h-8 bg-claude-bg dark:bg-claude-darkBg rounded-l-full border-l border-y border-claude-terracotta/40" />
+            {/* Darkened Ticket Notches on left & right */}
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-3.5 sm:w-4 h-7 sm:h-8 bg-[#0D0B08] rounded-r-full border-r border-y border-[#2E2820]" />
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 sm:w-4 h-7 sm:h-8 bg-[#0D0B08] rounded-l-full border-l border-y border-[#2E2820]" />
 
             {/* Pass Header */}
-            <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 border-b border-claude-border/80 dark:border-claude-darkBorder pb-4">
+            <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 border-b border-[#24201A] pb-4">
               <div className="flex items-center gap-3">
                 <img
                   src="/assets/c3_emblem_trans.png"
@@ -638,78 +703,78 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
                 />
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-mono font-bold text-xs sm:text-sm tracking-wider text-claude-terracotta dark:text-claude-amber">
+                    <span className="font-mono font-bold text-xs sm:text-sm tracking-wider text-[#E07A5F]">
                       C3 COLLECTIVE
                     </span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-claude-terracotta/10 text-claude-terracotta font-semibold">
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#2A1C16] text-[#E07A5F] border border-[#CC5A36]/30 font-semibold">
                       BATCH 01
                     </span>
                   </div>
-                  <div className="text-[11px] sm:text-xs font-sans text-claude-muted dark:text-claude-darkMuted">
+                  <div className="text-[11px] sm:text-xs font-sans text-[#8C8275]">
                     ISL Engineering College · Autonomous
                   </div>
                 </div>
               </div>
 
               <div className="text-left xs:text-right self-start xs:self-auto">
-                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[11px] font-mono font-bold">
-                  <Shield className="w-3 h-3" />
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 text-[11px] font-mono font-bold shadow-sm">
+                  <Shield className="w-3 h-3 text-emerald-400" />
                   <span>FOUNDING PASS</span>
                 </div>
-                <div className="text-[10px] font-mono text-claude-muted mt-0.5 sm:mt-1">
-                  BATCH 01 · CORE ADMISSION
+                <div className="text-[10px] font-mono text-[#8C8275] font-semibold mt-0.5 sm:mt-1 tracking-wider uppercase">
+                  BATCH 01
                 </div>
               </div>
             </div>
 
             {/* Pass Body: Builder Name & Details */}
             <div className="my-4 sm:my-5">
-              <div className="text-[10px] sm:text-xs font-mono text-claude-muted uppercase tracking-wider mb-1">
+              <div className="text-[10px] sm:text-xs font-mono text-[#8C8275] uppercase tracking-wider mb-1">
                 BUILDER IDENTITY
               </div>
-              <div className="font-serif text-xl xs:text-2xl sm:text-3xl font-bold text-claude-text dark:text-claude-darkText truncate">
+              <div className="font-serif text-xl xs:text-2xl sm:text-3xl font-bold text-white tracking-tight truncate">
                 {isUnlocked ? (name || 'Anonymous Builder') : 'Founder Key Pending'}
               </div>
               <div className="flex flex-wrap items-center gap-2 mt-2">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-claude-terracotta/10 text-claude-terracotta dark:text-claude-amber text-xs font-mono font-semibold">
-                  {branch} · {year}
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-[#2A1C16] text-[#E07A5F] border border-[#CC5A36]/30 text-xs font-mono font-semibold">
+                  {effectiveBranch} · {effectiveYear}
                 </span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-claude-cardMuted dark:bg-claude-darkCard text-claude-text dark:text-claude-darkText text-xs font-sans">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-[#161411] text-[#C4BCB0] border border-[#2A241C] text-xs font-sans">
                   {effectiveRole}
                 </span>
               </div>
             </div>
 
             {/* Schedule & Location Box */}
-            <div className="grid grid-cols-1 xs:grid-cols-2 gap-2.5 sm:gap-3 p-3 sm:p-3.5 rounded-2xl bg-claude-card/80 dark:bg-claude-darkCard/80 border border-claude-border dark:border-claude-darkBorder">
+            <div className="grid grid-cols-1 xs:grid-cols-2 gap-2.5 sm:gap-3 p-3 sm:p-3.5 rounded-2xl bg-[#12100E] border border-[#24201A]">
               <div>
-                <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-mono text-claude-muted mb-0.5">
-                  <Clock className="w-3 h-3 text-claude-terracotta" />
+                <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-mono text-[#8C8275] mb-0.5">
+                  <Clock className="w-3 h-3 text-[#CC5A36]" />
                   <span>SESSION TIMINGS</span>
                 </div>
-                <div className="font-mono text-xs font-bold text-claude-text dark:text-claude-darkText">
+                <div className="font-mono text-xs font-bold text-[#FAF8F5]">
                   Mon – Thu · 10 AM – 1 PM
                 </div>
               </div>
 
               <div>
-                <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-mono text-claude-muted mb-0.5">
-                  <MapPin className="w-3 h-3 text-claude-terracotta" />
+                <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-mono text-[#8C8275] mb-0.5">
+                  <MapPin className="w-3 h-3 text-[#CC5A36]" />
                   <span>CAMPUS VENUE</span>
                 </div>
-                <div className="font-mono text-xs font-bold text-claude-text dark:text-claude-darkText">
+                <div className="font-mono text-xs font-bold text-[#FAF8F5]">
                   C3 Campus Office
                 </div>
               </div>
             </div>
 
             {/* Barcode & Serial Footer */}
-            <div className="mt-4 sm:mt-5 pt-3 border-t border-dashed border-claude-border dark:border-claude-darkBorder flex items-center justify-between gap-2">
+            <div className="mt-4 sm:mt-5 pt-3 border-t border-dashed border-[#24201A] flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <div className="font-mono text-[9px] sm:text-[10px] text-claude-muted uppercase">
+                <div className="font-mono text-[9px] sm:text-[10px] text-[#8C8275] uppercase tracking-wider">
                   VERIFIED FOUNDER KEY
                 </div>
-                <div className="font-mono text-xs sm:text-xs font-bold text-claude-terracotta dark:text-claude-amber truncate">
+                <div className="font-mono text-xs sm:text-xs font-bold text-[#E07A5F] truncate">
                   {isUnlocked ? getSerial() : '••••••••'}
                 </div>
               </div>
@@ -719,7 +784,7 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
                 {[3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3, 2, 3, 8, 4, 6].map((w, idx) => (
                   <div
                     key={idx}
-                    className="bg-claude-text dark:bg-claude-darkText h-full opacity-60"
+                    className="bg-[#D4CBBF] h-full opacity-60"
                     style={{ width: `${(w % 3) + 1.5}px` }}
                   />
                 ))}
