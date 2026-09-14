@@ -45,6 +45,7 @@ export interface EmailConfig {
   host: string;
   port: number;
   hasPassword?: boolean;
+  scriptUrl?: string;
 }
 
 export function getAdminToken(): string {

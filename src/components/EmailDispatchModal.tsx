@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Copy, Check, ExternalLink, X, Send, Sparkles, Shield, AlertCircle } from 'lucide-react';
+import { Mail, Copy, Check, ExternalLink, X, Send, Sparkles, Shield, AlertCircle, Code } from 'lucide-react';
 import { MemberRecord, sendAcceptanceEmailApi, saveEmailConfigApi } from '../utils/api';
 import { generateAcceptanceLetterHtml } from '../utils/letterHtml';
 import { sounds } from '../utils/audio';
@@ -18,7 +18,10 @@ export const EmailDispatchModal: React.FC<EmailDispatchModalProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'gmail' | 'direct'>('gmail');
+  const [directMode, setDirectMode] = useState<'script' | 'password'>('script');
+  const [scriptUrl, setScriptUrl] = useState('');
   const [appPassword, setAppPassword] = useState('');
+  const [copiedScript, setCopiedScript] = useState(false);
   const [isSendingDirect, setIsSendingDirect] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ text: string; success: boolean } | null>(null);
 
@@ -27,6 +30,27 @@ export const EmailDispatchModal: React.FC<EmailDispatchModalProps> = ({
   const cleanKey = String(member.founderKey || '').replace(/^(C3-)?(FND-)?/i, '');
   const subject = `🎉 Official Notice of Admission: C3 Batch 01 (Founder Key: ${cleanKey})`;
   const letterHtml = generateAcceptanceLetterHtml(member);
+
+  const googleAppsScriptMailerCode = `// C3 1-Click Native Gmail Mailer (Zero Password Needed)
+// Deploy at script.google.com under c3.collective.in@gmail.com
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    if (data.action === 'ping') {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    GmailApp.sendEmail(data.to, data.subject, data.text, {
+      htmlBody: data.html,
+      name: 'C3 Admissions Council · ISLEC'
+    });
+    return ContentService.createTextOutput(JSON.stringify({ success: true }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
 
   const handleCopyGraphicLetter = async () => {
     try {
@@ -50,7 +74,6 @@ export const EmailDispatchModal: React.FC<EmailDispatchModalProps> = ({
       setTimeout(() => setCopied(false), 4000);
     } catch (err) {
       console.warn('Clipboard write failed:', err);
-      // Fallback to text copy
       navigator.clipboard.writeText(letterHtml);
       setCopied(true);
       setTimeout(() => setCopied(false), 4000);
@@ -59,8 +82,6 @@ export const EmailDispatchModal: React.FC<EmailDispatchModalProps> = ({
 
   const handleOpenGmailCompose = () => {
     sounds.playClick();
-    // Open Gmail with recipient and subject, but WITHOUT plain text body
-    // so user can press Ctrl+V to paste the rich graphical letter!
     const senderEmail = 'c3.collective.in@gmail.com';
     const gmailUrl = `https://mail.google.com/mail/?authuser=${encodeURIComponent(senderEmail)}&view=cm&fs=1&to=${encodeURIComponent(member.email)}&su=${encodeURIComponent(subject)}`;
     window.open(gmailUrl, '_blank');
@@ -68,29 +89,43 @@ export const EmailDispatchModal: React.FC<EmailDispatchModalProps> = ({
 
   const handleDirectSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!appPassword.trim()) {
-      setStatusMessage({ text: 'Please enter your 16-character Gmail App Password', success: false });
-      return;
-    }
-
     sounds.playClick();
     setIsSendingDirect(true);
     setStatusMessage(null);
 
     try {
-      // 1. Save SMTP password
-      await saveEmailConfigApi({
-        enabled: true,
-        service: 'gmail',
-        user: 'c3.collective.in@gmail.com',
-        fromName: 'C3 Admissions Council · ISLEC',
-        fromEmail: 'c3.collective.in@gmail.com',
-        host: 'smtp.gmail.com',
-        port: 465,
-        pass: appPassword.trim()
-      });
+      if (directMode === 'script') {
+        if (!scriptUrl.trim()) {
+          setIsSendingDirect(false);
+          setStatusMessage({ text: 'Please enter your Google Apps Script Web App URL', success: false });
+          return;
+        }
 
-      // 2. Dispatch email
+        await saveEmailConfigApi({
+          enabled: true,
+          service: 'script',
+          scriptUrl: scriptUrl.trim()
+        });
+      } else {
+        if (!appPassword.trim()) {
+          setIsSendingDirect(false);
+          setStatusMessage({ text: 'Please enter your 16-character Gmail App Password', success: false });
+          return;
+        }
+
+        await saveEmailConfigApi({
+          enabled: true,
+          service: 'gmail',
+          user: 'c3.collective.in@gmail.com',
+          fromName: 'C3 Admissions Council · ISLEC',
+          fromEmail: 'c3.collective.in@gmail.com',
+          host: 'smtp.gmail.com',
+          port: 465,
+          pass: appPassword.trim()
+        });
+      }
+
+      // Dispatch email
       const res = await sendAcceptanceEmailApi({ id: member.id, key: member.founderKey });
       setIsSendingDirect(false);
 
@@ -104,7 +139,7 @@ export const EmailDispatchModal: React.FC<EmailDispatchModalProps> = ({
         setTimeout(() => onClose(), 2500);
       } else {
         setStatusMessage({ 
-          text: res.message || 'Direct dispatch failed. Please check App Password.', 
+          text: res.message || 'Direct dispatch failed. Please check your configuration.', 
           success: false 
         });
       }
@@ -170,7 +205,7 @@ export const EmailDispatchModal: React.FC<EmailDispatchModalProps> = ({
               }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>1-Click Gmail Card (Instant)</span>
+              <span>1-Click Gmail Card (No Password Needed)</span>
             </button>
             <button
               onClick={() => setActiveTab('direct')}
@@ -191,15 +226,18 @@ export const EmailDispatchModal: React.FC<EmailDispatchModalProps> = ({
               <div className="space-y-4">
                 {/* Visual Step Guide */}
                 <div className="bg-[#1F1B15] border border-[#352F26] rounded-2xl p-4 space-y-2.5">
-                  <p className="text-xs font-semibold text-white flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-white">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    How to send the REAL Designed Graphic Letter into Gmail:
-                  </p>
+                    <span>How to paste the full Graphic Letter into Gmail (3 Seconds):</span>
+                  </div>
                   <ol className="text-xs font-mono text-[#A8A093] space-y-1.5 list-decimal list-inside pl-1">
                     <li>Click <strong className="text-white">"Copy Graphic Letter Card"</strong> below.</li>
-                    <li>Click <strong className="text-white">"Open Gmail Compose"</strong> (opens in your <code className="text-[#CC5A36]">c3.collective.in@gmail.com</code> account).</li>
-                    <li>In the message body, press <kbd className="px-1.5 py-0.5 rounded bg-black/40 border border-white/20 text-white font-bold">Ctrl + V</kbd> to paste the full card!</li>
+                    <li>Switch to your open Gmail tab (or click <strong className="text-white">"Open Gmail Compose"</strong>).</li>
+                    <li>Click inside the Gmail message box and press <kbd className="px-1.5 py-0.5 rounded bg-black/40 border border-white/20 text-white font-bold">Ctrl + V</kbd>!</li>
                   </ol>
+                  <p className="text-[11px] font-sans text-amber-300/90 pt-1 border-t border-[#2E2820]">
+                    ⚡ <strong>Zero Setup:</strong> Works on all Google accounts without requiring any App Passwords or 2-Step Verification.
+                  </p>
                 </div>
 
                 {/* Primary Action Buttons */}
@@ -241,33 +279,105 @@ export const EmailDispatchModal: React.FC<EmailDispatchModalProps> = ({
                 </div>
               </div>
             ) : (
-              /* TAB 2: DIRECT SEND VIA SMTP */
+              /* TAB 2: DIRECT SEND (Zero manual paste) */
               <form onSubmit={handleDirectSend} className="space-y-4">
-                <div className="bg-[#1F1B15] border border-[#352F26] rounded-2xl p-4 space-y-2">
+                <div className="bg-[#1F1B15] border border-[#352F26] rounded-2xl p-4 space-y-3">
                   <div className="flex items-center gap-2 text-xs font-bold text-white">
                     <Shield className="w-4 h-4 text-emerald-400" />
-                    <span>Send directly from server to candidate's inbox</span>
+                    <span>Automated Server Dispatch (Direct to Candidate's Inbox)</span>
                   </div>
                   <p className="text-xs text-[#9E9587] leading-relaxed">
-                    Enter your Google Account 16-character App Password for <code className="text-[#CC5A36] font-mono">c3.collective.in@gmail.com</code> once. The server will deliver the real graphic HTML email directly without needing to open Gmail!
+                    Choose your direct dispatch method below. If Google App Passwords is unavailable for your account, use the <strong className="text-white">Google Apps Script Web App</strong> (takes 30 seconds and requires zero passwords!).
                   </p>
+
+                  {/* Mode Selector */}
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setDirectMode('script')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium border transition-all cursor-pointer ${
+                        directMode === 'script'
+                          ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
+                          : 'bg-[#14120E] border-[#2A241C] text-[#8C8275]'
+                      }`}
+                    >
+                      ✓ Google Apps Script (Zero Password)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDirectMode('password')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium border transition-all cursor-pointer ${
+                        directMode === 'password'
+                          ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
+                          : 'bg-[#14120E] border-[#2A241C] text-[#8C8275]'
+                      }`}
+                    >
+                      Google App Password
+                    </button>
+                  </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-[#8C8275] block">
-                    Google App Password (16 Letters):
-                  </label>
-                  <input
-                    type="password"
-                    value={appPassword}
-                    onChange={(e) => setAppPassword(e.target.value)}
-                    placeholder="xxxx xxxx xxxx xxxx"
-                    className="w-full px-4 py-2.5 bg-[#12100C] border border-[#2E2820] rounded-xl text-white font-mono text-sm focus:outline-none focus:border-[#CC5A36] placeholder-[#554F44]"
-                  />
-                  <span className="text-[10px] font-mono text-[#7D7467] block">
-                    Generate at: Google Account &gt; Security &gt; 2-Step Verification &gt; App passwords
-                  </span>
-                </div>
+                {directMode === 'script' ? (
+                  <div className="space-y-3">
+                    <div className="space-y-1.5 text-xs text-[#A8A093] bg-[#12100C] p-3 rounded-xl border border-[#24201A]">
+                      <p className="font-semibold text-white">Quick 30-Second Setup in Google Apps Script:</p>
+                      <ol className="list-decimal list-inside space-y-1 text-[#9E9587] text-[11px] font-mono">
+                        <li>Go to <a href="https://script.google.com" target="_blank" rel="noreferrer" className="text-[#CC5A36] underline">script.google.com</a> in your C3 Google account.</li>
+                        <li>Click <strong className="text-white">New Project</strong>, paste the script below, and click <strong className="text-white">Deploy &gt; New deployment</strong>.</li>
+                        <li>Select <strong className="text-white">Web app</strong> &rarr; Execute as: <strong className="text-white">Me</strong> &rarr; Who has access: <strong className="text-white">Anyone</strong> &rarr; Deploy.</li>
+                        <li>Copy the generated Web App URL and paste it below!</li>
+                      </ol>
+                    </div>
+
+                    <div className="relative">
+                      <pre className="p-3 bg-[#12100C] border border-[#2E2820] rounded-xl text-[10px] font-mono text-[#A8A093] overflow-x-auto max-h-32">
+                        {googleAppsScriptMailerCode}
+                      </pre>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(googleAppsScriptMailerCode);
+                          sounds.playSuccess();
+                          setCopiedScript(true);
+                          setTimeout(() => setCopiedScript(false), 2000);
+                        }}
+                        className="absolute top-2 right-2 px-2.5 py-1 rounded-lg bg-[#25211A] hover:bg-[#302B22] border border-[#3A352C] text-[10px] font-mono text-white flex items-center gap-1 cursor-pointer"
+                      >
+                        {copiedScript ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedScript ? 'Copied!' : 'Copy Script'}</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono text-[#8C8275] block">
+                        Google Apps Script Web App URL:
+                      </label>
+                      <input
+                        type="url"
+                        value={scriptUrl}
+                        onChange={(e) => setScriptUrl(e.target.value)}
+                        placeholder="https://script.google.com/macros/s/.../exec"
+                        className="w-full px-3.5 py-2 bg-[#12100C] border border-[#2E2820] rounded-xl text-white font-mono text-xs focus:outline-none focus:border-[#CC5A36] placeholder-[#554F44]"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-mono text-[#8C8275] block">
+                      Google App Password (16 Letters):
+                    </label>
+                    <input
+                      type="password"
+                      value={appPassword}
+                      onChange={(e) => setAppPassword(e.target.value)}
+                      placeholder="xxxx xxxx xxxx xxxx"
+                      className="w-full px-4 py-2.5 bg-[#12100C] border border-[#2E2820] rounded-xl text-white font-mono text-sm focus:outline-none focus:border-[#CC5A36] placeholder-[#554F44]"
+                    />
+                    <span className="text-[10px] font-mono text-[#7D7467] block">
+                      Requires 2-Step Verification to be enabled on your Google Account first.
+                    </span>
+                  </div>
+                )}
 
                 {statusMessage && (
                   <div className={`p-3 rounded-xl border text-xs font-mono flex items-center gap-2 ${
@@ -282,7 +392,7 @@ export const EmailDispatchModal: React.FC<EmailDispatchModalProps> = ({
 
                 <button
                   type="submit"
-                  disabled={isSendingDirect || !appPassword.trim()}
+                  disabled={isSendingDirect || (directMode === 'script' ? !scriptUrl.trim() : !appPassword.trim())}
                   className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-mono text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg"
                 >
                   <Send className="w-4 h-4" />
