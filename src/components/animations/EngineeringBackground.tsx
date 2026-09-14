@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface Point {
   x: number;
@@ -20,7 +20,6 @@ interface Shockwave {
 
 export const EngineeringBackground: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [telemetry, setTelemetry] = useState({ x: 0, y: 0, isHovering: false });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -87,8 +86,6 @@ export const EngineeringBackground: React.FC = () => {
       mouse.prevX = mouse.x = x;
       mouse.prevY = mouse.y = y;
       mouse.active = true;
-
-      setTelemetry({ x: Math.round(x), y: Math.round(y), isHovering: true });
     };
 
     const handleTouchMove = (e: TouchEvent) => {
@@ -119,7 +116,6 @@ export const EngineeringBackground: React.FC = () => {
       mouse.active = false;
       mouse.x = -1000;
       mouse.y = -1000;
-      setTelemetry((prev) => ({ ...prev, isHovering: false }));
     };
 
     window.addEventListener('resize', initGrid);
@@ -349,28 +345,6 @@ export const EngineeringBackground: React.FC = () => {
       <div 
         className="absolute inset-0 bg-radial from-transparent via-transparent to-claude-bg/85 dark:to-claude-darkBg/85"
       />
-
-      {/* 3. Real-Time Telemetry HUD Overlay (Top-Left) */}
-      <div className="absolute top-8 left-8 hidden md:flex items-center gap-2.5 font-mono text-[10px] text-claude-terracotta/40 dark:text-claude-terracotta/50 tracking-wider">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#CC5A36] animate-pulse" />
-        <span>C3 // DEPT_OF_IT // HYD_17.36°N</span>
-        {telemetry.isHovering && (
-          <span className="text-[9px] text-[#CC5A36] border border-[#CC5A36]/30 px-1.5 py-0.5 rounded bg-[#CC5A36]/5">
-            X:{telemetry.x} Y:{telemetry.y}
-          </span>
-        )}
-      </div>
-
-      {/* 4. Top-Right Batch Designation */}
-      <div className="absolute top-8 right-8 hidden md:block font-mono text-[10px] text-claude-terracotta/40 dark:text-claude-terracotta/50 tracking-wider">
-        BATCH 01 // KINETIC_FIELD_ACTIVE
-      </div>
-
-      {/* 5. Bottom Interactive Prompt Hint (Discreet) */}
-      <div className="absolute bottom-6 right-8 hidden sm:flex items-center gap-2 font-mono text-[9px] text-[#8C8275]/50 tracking-widest uppercase">
-        <span>Click to trigger vector shockwave</span>
-        <span className="text-[#CC5A36]">⚡</span>
-      </div>
     </div>
   );
 };
