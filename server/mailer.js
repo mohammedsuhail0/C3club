@@ -235,18 +235,18 @@ C3 Collective · Department of Information Technology · ISL Engineering College
             </td>
           </tr>
         </table>
-        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:24px 0;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:26px 0 20px 0;">
           <tr>
             <td align="center" style="padding-bottom:12px;">
-              <a href="${safePassUrl}" target="_blank" style="display:inline-block;background-color:#CC5A36;color:#ffffff;text-decoration:none;font-size:14px;font-weight:bold;padding:14px 28px;border-radius:10px;">
-                Claim &amp; Customize 3D Founding Pass &rarr;
+              <a href="${safeLetterUrl}" target="_blank" style="display:inline-block;background-color:#1F1E1B;color:#FAF8F5;border:1px solid #1F1E1B;text-decoration:none;font-size:14px;font-weight:600;padding:14px 32px;border-radius:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;letter-spacing:0.3px;box-shadow:0 3px 12px rgba(0,0,0,0.12);min-width:240px;text-align:center;">
+                📄 View Official Acceptance Letter &rarr;
               </a>
             </td>
           </tr>
           <tr>
             <td align="center">
-              <a href="${safeLetterUrl}" target="_blank" style="display:inline-block;color:#666055;text-decoration:underline;font-size:12px;font-family:monospace;">
-                View &amp; Print Official Acceptance Letter
+              <a href="${safePassUrl}" target="_blank" style="display:inline-block;background-color:#CC5A36;color:#ffffff;border:1px solid #CC5A36;text-decoration:none;font-size:14px;font-weight:600;padding:14px 32px;border-radius:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;letter-spacing:0.3px;box-shadow:0 3px 12px rgba(204,90,54,0.22);min-width:240px;text-align:center;">
+                🎟️ Claim &amp; Customize 3D Founding Pass &rarr;
               </a>
             </td>
           </tr>
