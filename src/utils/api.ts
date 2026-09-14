@@ -153,7 +153,7 @@ export async function addMemberApi(data: {
 
 export async function reviewApplicantApi(
   id: string,
-  action: 'accept' | 'reject',
+  action: 'accept' | 'reject' | 'revoke',
   role?: string,
   customRole?: string
 ): Promise<MemberRecord | null> {
@@ -182,6 +182,25 @@ export interface LocalDecision {
   updatedAt?: string;
 }
 
+export function purgeRevokedDecisionsExceptSuhail() {
+  try {
+    const suhailPhone = '6301633463';
+    const suhailEmail = 'mdsuhailtab.1@gmail.com';
+    const all = getLocalDecisions();
+    let changed = false;
+    for (const [k, dec] of Object.entries(all)) {
+      const isSuhail = k === suhailPhone || k === suhailEmail || k.includes('6301633463') || k.includes('suhail');
+      if (!isSuhail && (dec.status === 'accepted' || dec.founderKey)) {
+        all[k] = { ...dec, status: 'pending_review', founderKey: '', customRole: '' };
+        changed = true;
+      }
+    }
+    if (changed) {
+      localStorage.setItem('c3_organizer_decisions', JSON.stringify(all));
+    }
+  } catch {}
+}
+
 export function getLocalDecisions(): Record<string, LocalDecision> {
   try {
     const raw = localStorage.getItem('c3_organizer_decisions');
@@ -189,6 +208,14 @@ export function getLocalDecisions(): Record<string, LocalDecision> {
   } catch {
     return {};
   }
+}
+
+export function removeLocalDecision(identifier: string) {
+  try {
+    const all = getLocalDecisions();
+    delete all[identifier];
+    localStorage.setItem('c3_organizer_decisions', JSON.stringify(all));
+  } catch {}
 }
 
 export function saveLocalDecision(identifier: string, patch: LocalDecision) {

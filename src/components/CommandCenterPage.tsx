@@ -21,6 +21,8 @@ import {
   LocalDecision,
   getLocalDecisions,
   saveLocalDecision,
+  removeLocalDecision,
+  purgeRevokedDecisionsExceptSuhail,
   syncDecisionsApi,
   MemberRecord, 
   MembersResponse, 
@@ -207,6 +209,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
 
   const loadData = async () => {
     setLoading(true);
+    purgeRevokedDecisionsExceptSuhail();
     const res = await fetchMembers();
     if (res) {
       const localDecisions = getLocalDecisions();
@@ -350,7 +353,7 @@ See you on Monday!
 
   const handleReviewDecision = async (
     id: string,
-    action: 'accept' | 'reject',
+    action: 'accept' | 'reject' | 'revoke',
     role?: string,
     customRole?: string
   ) => {
@@ -359,18 +362,27 @@ See you on Monday!
     const target = updated || selectedApplicant;
     if (target) {
       const phoneKey = target.phone ? target.phone.replace(/\D/g, '').slice(-10) : target.id;
-      const decPatch = {
-        status: action === 'accept' ? 'accepted' as const : 'rejected' as const,
-        founderKey: updated?.founderKey || target.founderKey,
+      const nextStatus = action === 'accept' ? ('accepted' as const) : (action === 'reject' ? ('rejected' as const) : ('pending_review' as const));
+      const nextKey = action === 'accept' ? (updated?.founderKey || target.founderKey) : '';
+      const nextCustomRole = action === 'accept' ? (customRole !== undefined ? customRole : target.customRole) : '';
+
+      const decPatch: LocalDecision = {
+        status: nextStatus,
+        founderKey: nextKey,
         role: role || target.role,
-        customRole: customRole !== undefined ? customRole : target.customRole
+        customRole: nextCustomRole
       };
       saveLocalDecision(phoneKey, decPatch);
       saveLocalDecision(target.id, decPatch);
       if (target.email) saveLocalDecision(target.email.toLowerCase(), decPatch);
 
       if (selectedApplicant?.id === id || (target.phone && selectedApplicant?.phone === target.phone)) {
-        setSelectedApplicant(updated || { ...selectedApplicant, status: action === 'accept' ? 'accepted' : 'rejected' });
+        setSelectedApplicant(updated || { 
+          ...selectedApplicant, 
+          status: nextStatus,
+          founderKey: nextKey,
+          customRole: nextCustomRole
+        });
       }
       loadData();
     }
@@ -1906,10 +1918,10 @@ function onFormSubmit(e) {
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleReviewDecision(selectedApplicant.id, 'reject')}
+                    onClick={() => handleReviewDecision(selectedApplicant.id, 'revoke')}
                     className="flex-1 py-3 rounded-xl bg-[#25211A] hover:bg-rose-950/40 border border-rose-900/30 text-rose-300 font-mono text-xs transition-all cursor-pointer"
                   >
-                    Revoke Acceptance
+                    Revoke Acceptance &amp; Founder Code
                   </button>
                 )}
               </div>

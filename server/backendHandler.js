@@ -73,13 +73,23 @@ let memoryCache = null;
 function getEffectiveDataFile() {
   if (process.env.VERCEL) {
     const tmpFile = path.join('/tmp', 'c3_members.json');
+    let shouldCopy = false;
     if (!fs.existsSync(tmpFile)) {
+      shouldCopy = true;
+    } else {
       try {
         if (fs.existsSync(DATA_FILE)) {
-          fs.copyFileSync(DATA_FILE, tmpFile);
-        } else {
-          fs.writeFileSync(tmpFile, '[]', 'utf-8');
+          const dataStat = fs.statSync(DATA_FILE);
+          const tmpStat = fs.statSync(tmpFile);
+          if (dataStat.mtimeMs > tmpStat.mtimeMs) {
+            shouldCopy = true;
+          }
         }
+      } catch (e) {}
+    }
+    if (shouldCopy && fs.existsSync(DATA_FILE)) {
+      try {
+        fs.copyFileSync(DATA_FILE, tmpFile);
       } catch (e) {
         console.warn('Fallback to in-memory store:', e.message);
       }
@@ -495,6 +505,14 @@ async function routeApi(method, pathname, url, body, req, res) {
       if (customRole !== undefined) member.customRole = customRole;
     } else if (action === 'reject') {
       member.status = 'rejected';
+      member.founderKey = '';
+    } else if (action === 'revoke' || action === 'reset') {
+      member.status = 'pending_review';
+      member.founderKey = '';
+      member.claimedAt = null;
+      member.printedAt = null;
+      member.emailSentAt = null;
+      member.customRole = '';
     }
 
     saveMembers(members);
@@ -543,11 +561,14 @@ async function routeApi(method, pathname, url, body, req, res) {
   // 8. GET /api/members/:key
   if (method === 'GET' && pathname.startsWith('/api/members/')) {
     const key = normalizeKey(decodeURIComponent(pathname.replace('/api/members/', '')));
-    const member = members.find(m => normalizeKey(m.founderKey) === key || m.id === key);
+    const member = members.find(m => 
+      (m.founderKey && normalizeKey(m.founderKey) === key && (m.status === 'accepted' || m.status === 'claimed')) ||
+      (m.id === key)
+    );
     if (member) {
       return res.end(JSON.stringify({ success: true, member }));
     }
-    return res.end(JSON.stringify({ success: false, message: 'Member not found' }));
+    return res.end(JSON.stringify({ success: false, message: 'Member not found or key not active' }));
   }
 
   // 9. POST /api/verify-key
@@ -555,15 +576,36 @@ async function routeApi(method, pathname, url, body, req, res) {
     const rawKey = body.key || '';
     const clean = normalizeKey(rawKey);
 
-    const member = members.find(m => normalizeKey(m.founderKey) === clean);
+    const member = members.find(m => m.founderKey && normalizeKey(m.founderKey) === clean);
+    
+    // If assigned to an applicant, only valid if they are accepted or claimed
+    if (member) {
+      if (member.status === 'accepted' || member.status === 'claimed') {
+        return res.end(JSON.stringify({
+          success: true,
+          isValid: true,
+          key: clean,
+          member
+        }));
+      }
+      return res.end(JSON.stringify({
+        success: false,
+        isValid: false,
+        key: clean,
+        message: 'This Founder Key is currently inactive or revoked'
+      }));
+    }
+
+    // Disallow revoked legacy keys from offline fallback claiming
+    const REVOKED_FALLBACK_KEYS = ['3N8H', 'EVKH'];
     const isChecksumValid = verifyKeyChecksum(clean);
 
-    if (member || isChecksumValid) {
+    if (isChecksumValid && !REVOKED_FALLBACK_KEYS.includes(clean)) {
       return res.end(JSON.stringify({
         success: true,
         isValid: true,
         key: clean,
-        member: member || null
+        member: null
       }));
     }
 
@@ -571,7 +613,7 @@ async function routeApi(method, pathname, url, body, req, res) {
       success: false,
       isValid: false,
       key: clean,
-      message: 'Invalid Founder Key'
+      message: 'Invalid or revoked Founder Key'
     }));
   }
 
@@ -579,6 +621,11 @@ async function routeApi(method, pathname, url, body, req, res) {
   if (method === 'POST' && pathname === '/api/claim-pass') {
     const { key, name, branch, year, role, customRole } = body;
     const clean = normalizeKey(key);
+    const REVOKED_FALLBACK_KEYS = ['3N8H', 'EVKH'];
+    if (REVOKED_FALLBACK_KEYS.includes(clean)) {
+      res.statusCode = 403;
+      return res.end(JSON.stringify({ success: false, message: 'This Founder Key has been revoked.' }));
+    }
 
     let memberIndex = members.findIndex(m => normalizeKey(m.founderKey) === clean);
     if (memberIndex === -1) {
