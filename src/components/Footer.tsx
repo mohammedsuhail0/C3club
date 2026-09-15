@@ -25,7 +25,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenApply, onOpenOrganizer }) 
               </span>
             </div>
             <p className="text-xs text-claude-muted dark:text-claude-darkMuted leading-relaxed max-w-md font-sans">
-              A student-led developer collective at ISL Engineering College. Built for students who want to build real software, master prompt engineering, and ship weekly with zero costly setups.
+              A student-led developer collective at ISL Engineering College. Built for students who want to build real software, master prompt engineering, and ship weekly with zero friction.
             </p>
             <div className="text-[11px] font-mono text-claude-muted dark:text-claude-darkMuted">
               ISL Engineering College · Bandlaguda, Chandrayangutta, Hyderabad - 500005

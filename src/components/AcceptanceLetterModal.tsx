@@ -52,10 +52,16 @@ See you on Monday!
 — Mohammed Suhail & Mohammad Bilal (Founding Co-Leads, C3 Collective)`;
 
     let cleanPhone = (member.phone || '').replace(/\D/g, '');
-    if (cleanPhone.length === 10) {
+    if (cleanPhone.length > 10) {
+      if (cleanPhone.startsWith('91')) {
+        cleanPhone = cleanPhone.slice(-12);
+      } else if (cleanPhone.startsWith('0')) {
+        cleanPhone = `91${cleanPhone.slice(1, 11)}`;
+      } else {
+        cleanPhone = `91${cleanPhone.slice(-10)}`;
+      }
+    } else if (cleanPhone.length === 10) {
       cleanPhone = `91${cleanPhone}`;
-    } else if (cleanPhone.length === 11 && cleanPhone.startsWith('0')) {
-      cleanPhone = `91${cleanPhone.slice(1)}`;
     }
     const waUrl = cleanPhone
       ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`
@@ -69,7 +75,11 @@ See you on Monday!
     onClose();
   };
 
-  const refNumber = `ISLEC/C3/B01/ADM/2026/${member.founderKey.replace('C3-FND-', '')}`;
+  const refNumber = `ISLEC/C3/B01/ADM/2026/${(member.founderKey || '').replace('C3-FND-', '')}`;
+
+  const letterDate = member.createdAt
+    ? new Date(member.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
   return (
     <AnimatePresence>
@@ -165,7 +175,7 @@ See you on Monday!
                 <span className="font-bold text-[#1F1E1B]">Ref:</span> {refNumber}
               </div>
               <div>
-                <span className="font-bold text-[#1F1E1B]">Date:</span> September 14, 2026
+                <span className="font-bold text-[#1F1E1B]">Date:</span> {letterDate}
               </div>
             </div>
 

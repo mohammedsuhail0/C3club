@@ -8,7 +8,6 @@ import { EventsWeek1 } from './components/EventsWeek1';
 import { FoundingPass } from './components/FoundingPass';
 import { ApplyModal } from './components/ApplyModal';
 import { AcceptanceLetterModal } from './components/AcceptanceLetterModal';
-import { OrganizerPortalModal } from './components/OrganizerPortalModal';
 import { CommandCenterPage } from './components/CommandCenterPage';
 import { Footer } from './components/Footer';
 import { ScrollProgress } from './components/animations/ScrollProgress';
@@ -42,11 +41,28 @@ export function App() {
     return false;
   });
 
-  // Acceptance Letter & Organizer Command Center state
+  // Acceptance Letter & Pass state
   const [isLetterOpen, setIsLetterOpen] = useState<boolean>(false);
   const [letterMember, setLetterMember] = useState<MemberRecord | null>(null);
-  const [isOrganizerOpen, setIsOrganizerOpen] = useState<boolean>(false);
   const [activePassKey, setActivePassKey] = useState<string>('');
+
+  // Browser History & URL Navigation Sync
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+      const search = window.location.search;
+      const shouldBeAdmin = path === '/admin' || path.startsWith('/admin') || hash === '#admin' || hash.startsWith('#admin') || search.includes('admin=');
+      setIsAdminMode(shouldBeAdmin);
+    };
+
+    window.addEventListener('popstate', handleUrlChange);
+    window.addEventListener('hashchange', handleUrlChange);
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+      window.removeEventListener('hashchange', handleUrlChange);
+    };
+  }, []);
 
   // Subtle tactile keyboard typing audio listener
   useEffect(() => {
@@ -76,7 +92,7 @@ export function App() {
 
     const adminParam = searchParams.get('admin') || hashParams.get('admin');
     if (adminParam) {
-      setIsOrganizerOpen(true);
+      setIsAdminMode(true);
     }
 
     const applyParam = searchParams.get('apply') || hashParams.get('apply');
@@ -99,7 +115,7 @@ export function App() {
     setIsLetterOpen(false);
     if (isAdminMode) {
       setIsAdminMode(false);
-      window.history.replaceState(null, '', `/?code=${encodeURIComponent(founderKey)}`);
+      window.history.pushState(null, '', `/?code=${encodeURIComponent(founderKey)}`);
     }
     const scrollPass = () => {
       document.getElementById('founding-pass')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -114,8 +130,7 @@ export function App() {
         <CommandCenterPage
           onNavigateHome={() => {
             setIsAdminMode(false);
-            setIsOrganizerOpen(false);
-            window.history.replaceState(null, '', '/');
+            window.history.pushState(null, '', '/');
           }}
           onViewLetter={(member) => {
             setLetterMember(member);
@@ -180,7 +195,7 @@ export function App() {
           onOpenApply={() => setIsApplyOpen(true)}
           onOpenOrganizer={() => {
             setIsAdminMode(true);
-            window.location.hash = 'admin';
+            window.history.pushState(null, '', '/admin');
           }}
         />
       </main>
@@ -197,16 +212,6 @@ export function App() {
         onClose={() => setIsLetterOpen(false)}
         member={letterMember}
         onClaimPass={handleClaimFromLetter}
-      />
-
-      {/* Organizer Command Center Portal */}
-      <OrganizerPortalModal
-        isOpen={isOrganizerOpen}
-        onClose={() => setIsOrganizerOpen(false)}
-        onViewLetter={(member) => {
-          setLetterMember(member);
-          setIsLetterOpen(true);
-        }}
       />
 
     </div>
