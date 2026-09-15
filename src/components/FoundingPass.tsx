@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Sparkles, CheckCircle2, Shield, ShieldCheck, Clock, MapPin, Copy, Key, Lock, Unlock, AlertCircle, ArrowRight, Printer } from 'lucide-react';
 import { sounds } from '../utils/audio';
 import confetti from 'canvas-confetti';
+import QRCode from 'qrcode';
 import { validateFounderKey, savePassToOrganizerQueue } from '../utils/founderAuth';
 import { fetchMemberByKey, claimPassApi, verifyKeyApi } from '../utils/api';
 
@@ -38,6 +39,7 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
   const [copied, setCopied] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [printSavedNotice, setPrintSavedNotice] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
 
   // Mouse tilt tracking state
   const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
@@ -45,6 +47,20 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
 
   // Computed builder role
   const effectiveRole = isCustomRole ? (customRoleText.trim() || 'Founding Builder') : rolePreset;
+
+  // Generate crisp scannable QR code linking to verified pass on c3club.vercel.app
+  useEffect(() => {
+    const currentKey = founderKey || '3C5B';
+    const verifyUrl = `https://c3club.vercel.app/?code=${encodeURIComponent(currentKey)}`;
+    QRCode.toDataURL(verifyUrl, {
+      margin: 1,
+      width: 256,
+      color: {
+        dark: '#1F1E1B',
+        light: '#FAF8F5'
+      }
+    }).then(url => setQrCodeUrl(url)).catch(() => {});
+  }, [founderKey]);
 
   const unlockWithKey = async (code: string, isFromUrlOrExternal: boolean = false) => {
     if (!code) return;
@@ -195,7 +211,7 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
   };
 
   // Export card to PNG using pure HTML5 Canvas for crisp, print-ready download
-  const handleDownload = () => {
+  const handleDownload = async () => {
     sounds.playSuccess();
     setIsExporting(true);
 
@@ -210,98 +226,218 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
 
     const canvas = document.createElement('canvas');
     canvas.width = 1200;
-    canvas.height = 700;
+    canvas.height = 750;
     const ctx = canvas.getContext('2d');
 
     if (ctx) {
       // Background gradient (warm paper)
-      const bgGrad = ctx.createLinearGradient(0, 0, 1200, 700);
+      const bgGrad = ctx.createLinearGradient(0, 0, 1200, 750);
       bgGrad.addColorStop(0, '#FAF8F5');
       bgGrad.addColorStop(0.5, '#F5F2EC');
       bgGrad.addColorStop(1, '#EDE7DF');
       ctx.fillStyle = bgGrad;
-      ctx.fillRect(0, 0, 1200, 700);
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(30, 30, 1140, 690, 24);
+      } else {
+        ctx.rect(30, 30, 1140, 690);
+      }
+      ctx.fill();
 
-      // Darker Orange Border with rounded corners
-      ctx.strokeStyle = '#B8431E';
-      ctx.lineWidth = 6;
-      ctx.strokeRect(30, 30, 1140, 640);
+      // Outer border: crisp terracotta stroke (no notches, no dashed lines)
+      ctx.strokeStyle = '#CC5A36';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(30, 30, 1140, 690, 24);
+      } else {
+        ctx.rect(30, 30, 1140, 690);
+      }
+      ctx.stroke();
 
-      // Inner dashed accent line
-      ctx.strokeStyle = 'rgba(184, 67, 30, 0.35)';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([8, 8]);
-      ctx.strokeRect(45, 45, 1110, 610);
-      ctx.setLineDash([]);
+      // Subtle inner hairline ring
+      ctx.strokeStyle = 'rgba(204, 90, 54, 0.15)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(42, 42, 1116, 666, 18);
+      } else {
+        ctx.rect(42, 42, 1116, 666);
+      }
+      ctx.stroke();
 
       // Top Header: Club Name & College
       ctx.fillStyle = '#B8431E';
-      ctx.font = 'bold 32px monospace';
-      ctx.fillText('C3 // CLAUDE CODE & COWORK', 80, 100);
+      ctx.font = 'bold 30px monospace';
+      ctx.fillText('C3 COLLECTIVE', 70, 95);
 
       ctx.fillStyle = '#6B6860';
-      ctx.font = '600 20px sans-serif';
-      ctx.fillText('ISL ENGINEERING COLLEGE · HYDERABAD', 80, 130);
+      ctx.font = '600 18px sans-serif';
+      ctx.fillText('ISL ENGINEERING COLLEGE · UGC AUTONOMOUS', 70, 126);
 
       // Badge: FOUNDING PASS
       ctx.fillStyle = '#065F46';
       ctx.beginPath();
-      ctx.roundRect(830, 70, 290, 48, 24);
+      if (ctx.roundRect) {
+        ctx.roundRect(840, 66, 290, 44, 22);
+      } else {
+        ctx.rect(840, 66, 290, 44);
+      }
       ctx.fill();
 
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 18px monospace';
-      ctx.fillText('FOUNDING PASS', 890, 101);
-
-      // Subtext: BATCH 01 (No core admission)
-      ctx.fillStyle = '#6B6860';
-      ctx.font = 'bold 14px monospace';
-      ctx.fillText('BATCH 01', 1030, 140);
+      ctx.font = 'bold 16px monospace';
+      ctx.fillText('FOUNDING PASS · BATCH 01', 866, 94);
 
       // Divider Line
       ctx.strokeStyle = '#E0DCD3';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(80, 160);
-      ctx.lineTo(1120, 160);
+      ctx.moveTo(70, 150);
+      ctx.lineTo(1130, 150);
       ctx.stroke();
 
-      // Builder Name
+      // Left Column: Builder Identity
+      ctx.fillStyle = '#8C887B';
+      ctx.font = 'bold 14px monospace';
+      ctx.fillText('BUILDER IDENTITY', 70, 205);
+
       ctx.fillStyle = '#1F1E1B';
-      ctx.font = 'bold 54px serif';
-      ctx.fillText(name || 'Anonymous Builder', 80, 240);
+      ctx.font = 'bold 44px serif';
+      ctx.fillText(name || 'Anonymous Builder', 70, 260);
 
       // Branch & Year Tag
       ctx.fillStyle = '#B8431E';
-      ctx.font = '600 24px sans-serif';
-      ctx.fillText(`${effectiveBranch} · ${effectiveYear} · ${effectiveRole}`, 80, 285);
+      ctx.font = '600 22px sans-serif';
+      ctx.fillText(`${effectiveBranch} · ${effectiveYear}`, 70, 305);
 
-      // Details Grid
-      const renderItem = (label: string, value: string, x: number, y: number) => {
-        ctx.fillStyle = '#8C887B';
-        ctx.font = 'bold 16px monospace';
-        ctx.fillText(label.toUpperCase(), x, y);
-        ctx.fillStyle = '#1F1E1B';
-        ctx.font = 'bold 22px sans-serif';
-        ctx.fillText(value, x, y + 28);
-      };
+      // Role
+      ctx.fillStyle = '#4B4842';
+      ctx.font = '500 20px sans-serif';
+      ctx.fillText(effectiveRole, 70, 340);
 
-      renderItem('SESSION TIMINGS', 'Mon – Thu · 10:00 AM – 1:00 PM', 80, 350);
-      renderItem('LOCATION / VENUE', 'C3 Campus Office · ISL Campus', 540, 350);
-      renderItem('CREDENTIAL STATUS', 'Officially Verified', 80, 440);
-      renderItem('ADMISSION STATUS', 'Verified Founding Builder', 540, 440);
+      // Access Key Box
+      ctx.fillStyle = 'rgba(204, 90, 54, 0.08)';
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(70, 420, 260, 85, 14);
+      } else {
+        ctx.rect(70, 420, 260, 85);
+      }
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(204, 90, 54, 0.25)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(70, 420, 260, 85, 14);
+      } else {
+        ctx.rect(70, 420, 260, 85);
+      }
+      ctx.stroke();
 
-      // Footer Bar
-      ctx.fillStyle = '#12100E';
-      ctx.fillRect(80, 520, 1040, 80);
-
-      ctx.fillStyle = '#8C8275';
-      ctx.font = '600 20px monospace';
-      ctx.fillText('OFFICIAL FOUNDING TEAM ACCESS PASS · BATCH 01', 120, 568);
+      ctx.fillStyle = '#8C887B';
+      ctx.font = 'bold 12px monospace';
+      ctx.fillText('FOUNDER KEY', 90, 450);
 
       ctx.fillStyle = '#CC5A36';
-      ctx.font = 'bold 20px monospace';
-      ctx.fillText('BUILD OR SHIP', 950, 568);
+      ctx.font = 'bold 26px monospace';
+      ctx.fillText(founderKey || getSerial(), 90, 485);
+
+      // Credential Status
+      ctx.fillStyle = '#8C887B';
+      ctx.font = 'bold 12px monospace';
+      ctx.fillText('CREDENTIAL STATUS', 360, 450);
+
+      ctx.fillStyle = '#065F46';
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillText('OFFICIALLY VERIFIED', 360, 485);
+
+      // Micro bottom label
+      ctx.fillStyle = '#9C988B';
+      ctx.font = '500 13px monospace';
+      ctx.fillText('OFFICIAL C3 COLLECTIVE CREDENTIAL · DEPARTMENT OF CSE · ISLEC', 70, 680);
+
+      // Right Column: Utility Box (Schedule, Venue, QR)
+      const utilX = 720;
+      const utilY = 175;
+      const utilW = 410;
+      const utilH = 500;
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(utilX, utilY, utilW, utilH, 18);
+      } else {
+        ctx.rect(utilX, utilY, utilW, utilH);
+      }
+      ctx.fill();
+      ctx.strokeStyle = '#E0DCD3';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(utilX, utilY, utilW, utilH, 18);
+      } else {
+        ctx.rect(utilX, utilY, utilW, utilH);
+      }
+      ctx.stroke();
+
+      // Session Timings
+      ctx.fillStyle = '#8C887B';
+      ctx.font = 'bold 13px monospace';
+      ctx.fillText('SESSION TIMINGS', utilX + 28, utilY + 45);
+
+      ctx.fillStyle = '#1F1E1B';
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillText('Mon – Thu · 10:00 AM – 1:00 PM', utilX + 28, utilY + 75);
+
+      // Campus Venue
+      ctx.fillStyle = '#8C887B';
+      ctx.font = 'bold 13px monospace';
+      ctx.fillText('CAMPUS VENUE', utilX + 28, utilY + 135);
+
+      ctx.fillStyle = '#1F1E1B';
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillText('C3 Campus Office · Innovation Lab 3', utilX + 28, utilY + 165);
+
+      // Utility horizontal divider
+      ctx.strokeStyle = '#E8E4DB';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(utilX + 28, utilY + 205);
+      ctx.lineTo(utilX + utilW - 28, utilY + 205);
+      ctx.stroke();
+
+      // QR Code rendering
+      const currentKey = founderKey || getSerial();
+      const verifyUrl = `https://c3club.vercel.app/?code=${encodeURIComponent(currentKey)}`;
+      try {
+        const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
+          margin: 1,
+          width: 240,
+          color: { dark: '#1F1E1B', light: '#FFFFFF' }
+        });
+        const qrImg = new Image();
+        qrImg.src = qrDataUrl;
+        await new Promise((resolve) => {
+          qrImg.onload = () => resolve(true);
+          qrImg.onerror = () => resolve(false);
+        });
+        ctx.drawImage(qrImg, utilX + 28, utilY + 235, 140, 140);
+      } catch {}
+
+      // QR Code Labels
+      ctx.fillStyle = '#8C887B';
+      ctx.font = 'bold 12px monospace';
+      ctx.fillText('SCAN TO VERIFY', utilX + 185, utilY + 270);
+
+      ctx.fillStyle = '#CC5A36';
+      ctx.font = 'bold 15px monospace';
+      ctx.fillText('c3club.vercel.app', utilX + 185, utilY + 295);
+
+      ctx.fillStyle = '#6B6860';
+      ctx.font = '500 12px monospace';
+      ctx.fillText('PHYSICAL PVC BADGE', utilX + 185, utilY + 335);
+      ctx.fillText('BATCH 01 ACCESS', utilX + 185, utilY + 355);
 
       const passDataUrl = canvas.toDataURL('image/png');
 
@@ -676,22 +812,18 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
               transform: `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
               transition: 'transform 0.1s ease-out',
             }}
-            className="w-full max-w-xl rounded-3xl p-5 sm:p-8 bg-gradient-to-br from-[#FAF8F5] via-[#F6F3EC] to-[#EFEAE1] dark:from-[#23221E] dark:via-[#1D1C19] dark:to-[#161513] border-2 border-[#B8431E] shadow-2xl relative overflow-hidden select-none"
+            className="w-full max-w-2xl rounded-2xl p-5 sm:p-7 bg-gradient-to-br from-[#FAF8F5] via-[#F6F3EC] to-[#EFEAE1] dark:from-[#23221E] dark:via-[#1D1C19] dark:to-[#161513] border border-[#CC5A36]/40 dark:border-[#CC5A36]/30 shadow-2xl relative overflow-hidden select-none ring-1 ring-black/5 dark:ring-white/5"
           >
             {/* Holographic Dynamic Sheen Overlay */}
             <div
               className="absolute inset-0 pointer-events-none opacity-30 dark:opacity-20 mix-blend-overlay transition-opacity duration-300"
               style={{
-                background: `radial-gradient(circle 350px at ${mousePos.x * 100}% ${mousePos.y * 100}%, rgba(184,67,30,0.35), rgba(217,119,87,0.15), transparent 70%)`,
+                background: `radial-gradient(circle 420px at ${mousePos.x * 100}% ${mousePos.y * 100}%, rgba(204,90,54,0.35), rgba(217,119,87,0.15), transparent 70%)`,
               }}
             />
 
-            {/* Darker Orange Ticket Notches on left & right beside DEPT/role */}
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-3.5 sm:w-4 h-7 sm:h-8 bg-[#F5EBE6] dark:bg-[#2C1810] rounded-r-full border-r-2 border-y-2 border-[#B8431E]" />
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 sm:w-4 h-7 sm:h-8 bg-[#F5EBE6] dark:bg-[#2C1810] rounded-l-full border-l-2 border-y-2 border-[#B8431E]" />
-
             {/* Pass Header */}
-            <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 border-b border-[#E0DCD3] dark:border-claude-darkBorder pb-4">
+            <div className="flex items-center justify-between gap-3 border-b border-[#E0DCD3] dark:border-claude-darkBorder/80 pb-3 sm:pb-4 mb-4 sm:mb-5">
               <div className="flex items-center gap-3">
                 <img
                   src="/assets/c3_emblem_trans.png"
@@ -699,89 +831,120 @@ export const FoundingPass: React.FC<FoundingPassProps> = ({ onOpenApply, externa
                   className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-sm shrink-0"
                 />
                 <div>
-                  <div className="font-mono font-bold text-xs sm:text-sm tracking-wider text-[#B8431E]">
-                    C3 COLLECTIVE
+                  <div className="font-mono font-bold text-xs sm:text-sm tracking-wider text-[#B8431E] dark:text-[#E07A5F] flex items-center gap-1.5">
+                    <span>C3 COLLECTIVE</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#B8431E]/10 text-[#B8431E] dark:text-[#E07A5F] font-mono font-semibold">PVC PASS</span>
                   </div>
-                  <div className="text-[11px] sm:text-xs font-sans text-claude-muted dark:text-claude-darkMuted">
-                    ISL Engineering College · Autonomous
+                  <div className="text-[10px] sm:text-xs font-sans text-claude-muted dark:text-claude-darkMuted">
+                    ISL Engineering College · UGC Autonomous
                   </div>
                 </div>
               </div>
 
-              <div className="text-left xs:text-right self-start xs:self-auto">
-                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-mono font-bold">
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[10px] sm:text-[11px] font-mono font-bold">
                   <Shield className="w-3 h-3" />
                   <span>FOUNDING PASS</span>
                 </div>
-                <div className="text-[10px] font-mono text-claude-muted font-semibold mt-0.5 sm:mt-1 tracking-wider uppercase">
+                <span className="hidden xs:inline-block text-[10px] font-mono text-claude-muted font-bold tracking-wider px-2 py-0.5 rounded bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
                   BATCH 01
-                </div>
-              </div>
-            </div>
-
-            {/* Pass Body: Builder Name & Details */}
-            <div className="my-4 sm:my-5">
-              <div className="text-[10px] sm:text-xs font-mono text-claude-muted uppercase tracking-wider mb-1">
-                BUILDER IDENTITY
-              </div>
-              <div className="font-serif text-xl xs:text-2xl sm:text-3xl font-bold text-claude-text dark:text-claude-darkText truncate">
-                {isUnlocked ? (name || 'Anonymous Builder') : 'Founder Key Pending'}
-              </div>
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-[#B8431E]/15 text-[#B8431E] dark:text-[#E07A5F] border border-[#B8431E]/30 text-xs font-mono font-bold">
-                  {effectiveBranch} · {effectiveYear}
-                </span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-claude-cardMuted dark:bg-claude-darkCard text-claude-text dark:text-claude-darkText text-xs font-sans border border-claude-border dark:border-claude-darkBorder">
-                  {effectiveRole}
                 </span>
               </div>
             </div>
 
-            {/* Schedule & Location Box */}
-            <div className="grid grid-cols-1 xs:grid-cols-2 gap-2.5 sm:gap-3 p-3 sm:p-3.5 rounded-2xl bg-claude-card/90 dark:bg-claude-darkCard/90 border border-[#E0DCD3] dark:border-claude-darkBorder">
-              <div>
-                <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-mono text-claude-muted mb-0.5">
-                  <Clock className="w-3 h-3 text-[#B8431E]" />
-                  <span>SESSION TIMINGS</span>
+            {/* Pass Body: Landscape 2-Column Deck */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-stretch">
+              
+              {/* Left Column: Builder Identity & Access Key (7 cols) */}
+              <div className="sm:col-span-7 flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="text-[9px] sm:text-[10px] font-mono text-claude-muted uppercase tracking-wider mb-1">
+                    BUILDER IDENTITY
+                  </div>
+                  <div className="font-serif text-xl sm:text-2xl md:text-3xl font-bold text-claude-text dark:text-claude-darkText truncate leading-tight">
+                    {isUnlocked ? (name || 'Anonymous Builder') : 'Founder Key Pending'}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#B8431E]/15 text-[#B8431E] dark:text-[#E07A5F] border border-[#B8431E]/30 text-xs font-mono font-bold">
+                      {effectiveBranch} · {effectiveYear}
+                    </span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-claude-cardMuted dark:bg-claude-darkCard text-claude-text dark:text-claude-darkText text-xs font-sans border border-claude-border dark:border-claude-darkBorder">
+                      {effectiveRole}
+                    </span>
+                  </div>
                 </div>
-                <div className="font-mono text-xs font-bold text-claude-text dark:text-claude-darkText">
-                  Mon – Thu · 10 AM – 1 PM
+
+                {/* Key and Credential Verification Status */}
+                <div className="pt-3 border-t border-[#E0DCD3] dark:border-claude-darkBorder/60 flex items-center justify-between gap-2">
+                  <div>
+                    <div className="font-mono text-[9px] text-claude-muted uppercase tracking-wider">
+                      FOUNDER KEY
+                    </div>
+                    <div className="font-mono text-xs sm:text-sm font-bold text-claude-terracotta dark:text-claude-amber tracking-widest flex items-center gap-1">
+                      <Key className="w-3.5 h-3.5" />
+                      <span>{founderKey || '••••'}</span>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="font-mono text-[9px] text-claude-muted uppercase tracking-wider">
+                      STATUS
+                    </div>
+                    <div className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>{isUnlocked ? 'OFFICIALLY VERIFIED' : 'KEY REQUIRED'}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-mono text-claude-muted mb-0.5">
-                  <MapPin className="w-3 h-3 text-[#B8431E]" />
-                  <span>CAMPUS VENUE</span>
-                </div>
-                <div className="font-mono text-xs font-bold text-claude-text dark:text-claude-darkText">
-                  C3 Campus Office
-                </div>
-              </div>
-            </div>
+              {/* Right Column: Utility Bay (Schedule, Venue, Scannable QR) (5 cols) */}
+              <div className="sm:col-span-5 bg-white/75 dark:bg-black/30 rounded-xl p-3 sm:p-3.5 border border-[#E0DCD3] dark:border-white/10 flex flex-col justify-between gap-3 shadow-sm">
+                <div className="space-y-2.5">
+                  <div>
+                    <div className="flex items-center gap-1 text-[9px] sm:text-[10px] font-mono text-claude-muted mb-0.5">
+                      <Clock className="w-3 h-3 text-[#B8431E]" />
+                      <span>SESSION TIMINGS</span>
+                    </div>
+                    <div className="font-mono text-xs font-bold text-claude-text dark:text-claude-darkText">
+                      Mon – Thu · 10 AM – 1 PM
+                    </div>
+                  </div>
 
-            {/* Barcode & Serial Footer */}
-            <div className="mt-4 sm:mt-5 pt-3 border-t border-dashed border-[#E0DCD3] dark:border-claude-darkBorder flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <div className="font-mono text-[9px] sm:text-[10px] text-claude-muted uppercase tracking-wider">
-                  CREDENTIAL STATUS
+                  <div>
+                    <div className="flex items-center gap-1 text-[9px] sm:text-[10px] font-mono text-claude-muted mb-0.5">
+                      <MapPin className="w-3 h-3 text-[#B8431E]" />
+                      <span>CAMPUS VENUE</span>
+                    </div>
+                    <div className="font-mono text-xs font-bold text-claude-text dark:text-claude-darkText">
+                      C3 Office · Innovation Lab 3
+                    </div>
+                  </div>
                 </div>
-                <div className="font-mono text-xs sm:text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>{isUnlocked ? 'OFFICIALLY VERIFIED' : 'KEY REQUIRED'}</span>
+
+                {/* Scannable Verification QR Code */}
+                <div className="pt-2.5 border-t border-[#E0DCD3]/80 dark:border-white/10 flex items-center justify-between gap-2">
+                  <div className="w-14 h-14 bg-white rounded-lg p-1 shadow-sm border border-black/5 shrink-0 flex items-center justify-center">
+                    {qrCodeUrl ? (
+                      <img src={qrCodeUrl} alt="Verification QR Code" className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="w-full h-full bg-slate-100 rounded animate-pulse" />
+                    )}
+                  </div>
+                  <div className="text-right leading-tight">
+                    <span className="block text-[8px] sm:text-[9px] font-mono text-claude-muted uppercase tracking-wider">
+                      SCAN TO VERIFY
+                    </span>
+                    <span className="font-mono text-[9px] font-bold text-claude-terracotta">
+                      c3club.vercel.app
+                    </span>
+                    <span className="block text-[8px] font-mono text-slate-400">
+                      SECURE PVC CHIPLESS
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Decorative SVG Barcode */}
-              <div className="flex items-center gap-0.5 h-6 sm:h-7 shrink-0 overflow-hidden">
-                {[3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3, 2, 3, 8, 4, 6].map((w, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-claude-text dark:bg-claude-darkText h-full opacity-60"
-                    style={{ width: `${(w % 3) + 1.5}px` }}
-                  />
-                ))}
-              </div>
             </div>
 
           </div>
