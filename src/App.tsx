@@ -13,7 +13,7 @@ import { ScrollProgress } from './components/animations/ScrollProgress';
 import { CursorGlow } from './components/animations/CursorGlow';
 import { Marquee } from './components/animations/Marquee';
 import { EngineeringBackground } from './components/animations/EngineeringBackground';
-import { ZoomPreloader } from './components/animations/ZoomPreloader';
+import { ScrollZoomPreloader } from './components/animations/ScrollZoomPreloader';
 import { fetchMemberByKey, MemberRecord } from './utils/api';
 
 export function App() {
@@ -170,9 +170,9 @@ export function App() {
       {/* Ultra-Minimal Transparent Header (ONLY the C3 Logo) */}
       <Navbar />
 
-      {/* C3 Zoom-In Preloader: Runs on page load / refresh */}
+      {/* Scroll-Driven C3 Zoom Preloader: User controls the zoom via scrolling */}
       {!isPreloaderDone && (
-        <ZoomPreloader onComplete={() => setIsPreloaderDone(true)} />
+        <ScrollZoomPreloader onComplete={() => setIsPreloaderDone(true)} />
       )}
 
       {/* Main Site Content: Clean, Story-Driven Flow */}
