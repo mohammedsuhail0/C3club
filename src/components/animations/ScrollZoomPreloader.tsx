@@ -41,12 +41,12 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
       document.documentElement.style.overflow = '';
     };
 
-    // Physics Lerp loop: Smoothly catches up to wherever the user manually scrolls
+    // Physics Lerp loop: Smoothly catches up with weighted damping for a cinematic feel
     const loop = () => {
       if (isDoneRef.current) return;
 
-      // Smooth interpolation towards user's exact scroll scrub target
-      currentProgress.current += (targetProgress.current - currentProgress.current) * 0.16;
+      // Silky smooth interpolation with reduced speed / increased damping
+      currentProgress.current += (targetProgress.current - currentProgress.current) * 0.09;
       setProgress(currentProgress.current);
 
       // Only finish when user has physically scrolled all the way through (progress >= 0.96 and target == 1)
@@ -63,18 +63,18 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
 
     animFrameId.current = requestAnimationFrame(loop);
 
-    // Wheel event: 100% USER DRIVEN. Scroll down to zoom in, scroll up to zoom out.
-    // Absolutely NO automatic jumping or auto-advancing!
+    // Wheel event: 100% USER DRIVEN. Reduced zoom speed for deliberate, tactile control.
     const handleWheel = (e: WheelEvent) => {
       if (isDoneRef.current) return;
 
       e.preventDefault();
-      // Sensitivity: ~3 full notches of standard wheel or 1 deliberate trackpad flick completes the zoom
-      const delta = e.deltaY / 280;
+      // Reduced sensitivity (~4x slower) + per-event delta clamp so trackpad flicks don't rush through
+      const rawDelta = e.deltaY / 1100;
+      const delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), 0.065);
       targetProgress.current = Math.min(Math.max(targetProgress.current + delta, 0), 1);
     };
 
-    // Touch events for mobile: User drags up to zoom in, drags down to zoom out.
+    // Touch events for mobile: Reduced speed so dragging provides gradual, controlled zoom
     const handleTouchStart = (e: TouchEvent) => {
       touchStartY.current = e.touches[0].clientY;
     };
@@ -82,7 +82,8 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
     const handleTouchMove = (e: TouchEvent) => {
       if (isDoneRef.current || touchStartY.current === null) return;
       const currentY = e.touches[0].clientY;
-      const delta = (touchStartY.current - currentY) / 240;
+      const rawDelta = (touchStartY.current - currentY) / 850;
+      const delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), 0.07);
       touchStartY.current = currentY;
 
       e.preventDefault();
@@ -93,15 +94,15 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
       touchStartY.current = null;
     };
 
-    // Keyboard support: ArrowDown / PageDown increments zoom, ArrowUp / PageUp decrements zoom. Escape skips.
+    // Keyboard support: ArrowDown / PageDown increments zoom slowly, ArrowUp / PageUp decrements zoom. Escape skips.
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isDoneRef.current) return;
       if (e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
-        targetProgress.current = Math.min(targetProgress.current + 0.2, 1);
+        targetProgress.current = Math.min(targetProgress.current + 0.08, 1);
       } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
         e.preventDefault();
-        targetProgress.current = Math.max(targetProgress.current - 0.2, 0);
+        targetProgress.current = Math.max(targetProgress.current - 0.08, 0);
       } else if (e.key === 'Escape') {
         e.preventDefault();
         targetProgress.current = 1;
