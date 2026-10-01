@@ -23,7 +23,16 @@ import {
   MembersResponse, 
   EmailConfig 
 } from '../utils/api';
-import { sounds } from '../utils/audio';
+
+// Audio is strictly disabled across the C3 admin website for silent, distraction-free operations
+const sounds = {
+  playKey: () => {},
+  playClick: () => {},
+  playSuccess: () => {},
+  playTone: () => {},
+  playPop: () => {},
+  playUnlock: () => {},
+};
 import { EmailDispatchModal } from './EmailDispatchModal';
 import { EditMemberModal } from './EditMemberModal';
 
@@ -269,6 +278,9 @@ You have been officially accepted into C3 Batch 01 (Founding Member) at ISL Engi
 🔑 Your Exclusive Founder Key: ${cleanKey}
 📄 View Your Official Acceptance Letter: ${letterUrl}
 🛡️ Claim Your 3D Founding Pass & Badge: ${unlockUrl}
+
+💬 Join Official C3 WhatsApp Community:
+https://chat.whatsapp.com/IEY6Ao4bxh48gcIde6arA4
 
 Kickoff Routine: Monday to Thursday, 10:00 AM – 1:00 PM at C3 Campus Office / Lab 3.
 See you on Monday!

@@ -69,15 +69,17 @@ export function App() {
     };
   }, []);
 
-  // Subtle tactile keyboard typing audio listener
+  // Subtle tactile keyboard typing audio listener (strictly disabled in admin mode or form inputs)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isAdminMode) return;
       if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) return;
       sounds.playKey();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isAdminMode]);
 
   // Listen for ?letter=XXXX, ?admin=true, or ?apply=true
   useEffect(() => {

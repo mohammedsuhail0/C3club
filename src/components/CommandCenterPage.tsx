@@ -27,9 +27,18 @@ import {
   setAdminToken,
   MemberRecord, 
   MembersResponse, 
-  EmailConfig 
+  EmailConfig
 } from '../utils/api';
-import { sounds } from '../utils/audio';
+
+// Audio is strictly disabled across the C3 admin website for silent, distraction-free operations
+const sounds = {
+  playKey: () => {},
+  playClick: () => {},
+  playSuccess: () => {},
+  playTone: () => {},
+  playPop: () => {},
+  playUnlock: () => {},
+};
 import { EmailDispatchModal } from './EmailDispatchModal';
 import { EditMemberModal } from './EditMemberModal';
 
@@ -457,6 +466,9 @@ You have been officially accepted into C3 Batch 01 (Founding Member) at ISL Engi
 📄 View Your Official Acceptance Letter: ${letterUrl}
 🛡️ Claim Your 3D Founding Pass & Badge: ${unlockUrl}
 
+💬 Join Official C3 WhatsApp Community:
+https://chat.whatsapp.com/IEY6Ao4bxh48gcIde6arA4
+
 Kickoff Routine: Monday to Thursday, 10:00 AM – 1:00 PM at C3 Campus Office / Lab 3.
 See you on Monday!
 — Mohammed Suhail & Mohammad Bilal (Founding Co-Leads, C3 Collective)`;
@@ -487,6 +499,9 @@ Following the review of your application dossier, the C3 Admissions Council has 
 🔑 Candidate Tracking Code: ${cleanKey}
 📄 View Your Official Interview Invitation Letter:
 ${letterUrl}
+
+💬 Join Official C3 WhatsApp Community:
+https://chat.whatsapp.com/IEY6Ao4bxh48gcIde6arA4
 
 What to Bring:
 1. Your laptop with your development environment set up.

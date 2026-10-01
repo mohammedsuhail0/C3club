@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Printer, Sparkles, Check, Copy, ArrowRight, ShieldCheck, MessageCircle, Calendar, MapPin, Clock, Laptop } from 'lucide-react';
 import { MemberRecord } from '../utils/api';
-import { sounds } from '../utils/audio';
 
 export type LetterType = 'interview' | 'admission';
 
@@ -39,12 +38,10 @@ export const AcceptanceLetterModal: React.FC<AcceptanceLetterModalProps> = ({
   if (!isOpen || !member) return null;
 
   const handlePrint = () => {
-    sounds.playClick();
     window.print();
   };
 
   const handleCopyLink = () => {
-    sounds.playSuccess();
     const cleanKey = member.founderKey || 'PENDING';
     const url = `${window.location.origin}/?letter=${cleanKey}&type=${letterType}`;
     navigator.clipboard.writeText(url);
@@ -53,7 +50,6 @@ export const AcceptanceLetterModal: React.FC<AcceptanceLetterModalProps> = ({
   };
 
   const handleWhatsApp = () => {
-    sounds.playSuccess();
     const cleanKey = member.founderKey || 'PENDING';
     const letterUrl = `${window.location.origin}/?letter=${cleanKey}&type=${letterType}`;
     const unlockUrl = `${window.location.origin}/?code=${cleanKey}`;
@@ -72,6 +68,9 @@ Congratulations! Your application has been screened and you have been officially
 🕒 Evaluation Timings: Monday to Thursday, 10:00 AM – 1:00 PM
 🎯 What to Bring: Your laptop, project ideas, and your candidate code.
 
+💬 Join Official C3 WhatsApp Community:
+https://chat.whatsapp.com/IEY6Ao4bxh48gcIde6arA4
+
 See you at Lab 3!
 — Mohammed Suhail & Mohammad Bilal (Founding Co-Leads, C3 Collective)`;
     } else {
@@ -82,6 +81,9 @@ You have been officially accepted into C3 Batch 01 (Founding Member) at ISL Engi
 🔑 Your Exclusive Founder Key: ${cleanKey}
 📄 View Your Official Acceptance Letter: ${letterUrl}
 🛡️ Claim Your 3D Founding Pass & Badge: ${unlockUrl}
+
+💬 Join Official C3 WhatsApp Community:
+https://chat.whatsapp.com/IEY6Ao4bxh48gcIde6arA4
 
 Kickoff Routine: Monday to Thursday, 10:00 AM – 1:00 PM at C3 Campus Office / Lab 3.
 See you on Monday!
@@ -107,7 +109,6 @@ See you on Monday!
   };
 
   const handleClaim = () => {
-    sounds.playSuccess();
     onClaimPass(member.founderKey);
     onClose();
   };
@@ -144,7 +145,6 @@ See you on Monday!
             <div className="flex items-center gap-1 p-1 rounded-xl bg-white/70 border border-[#DDD6C9] shadow-xs">
               <button
                 onClick={() => {
-                  sounds.playClick();
                   setLetterType('interview');
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
@@ -159,7 +159,6 @@ See you on Monday!
 
               <button
                 onClick={() => {
-                  sounds.playClick();
                   setLetterType('admission');
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
@@ -360,6 +359,33 @@ See you on Monday!
                 </p>
               </div>
             )}
+
+            {/* Official WhatsApp Community Card */}
+            <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-emerald-950 dark:text-emerald-200 my-4 shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <MessageCircle className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-mono text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
+                    Official C3 WhatsApp Community
+                  </div>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400 font-sans">
+                    Join the verified group for live cohort announcements, schedule updates, and builder discussions.
+                  </p>
+                </div>
+              </div>
+
+              <a
+                href="https://chat.whatsapp.com/IEY6Ao4bxh48gcIde6arA4"
+                target="_blank"
+                rel="noreferrer"
+                className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#25D366] hover:bg-[#20BD5A] text-white font-mono text-xs font-bold shadow-xs hover:shadow-sm transition-all text-center flex items-center justify-center gap-1.5 shrink-0"
+              >
+                <span>Join Group</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+            </div>
 
             {/* Signatures */}
             <div className="pt-6 border-t border-[#E3DCCF] grid grid-cols-2 gap-4 text-xs font-sans">

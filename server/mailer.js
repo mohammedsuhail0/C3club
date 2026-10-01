@@ -185,6 +185,9 @@ TECHNICAL EVALUATION SESSION DETAILS:
 To view your official digital interview letter:
 👉 View Interview Letter: ${letterUrl}
 
+💬 Join Official C3 WhatsApp Community:
+https://chat.whatsapp.com/IEY6Ao4bxh48gcIde6arA4
+
 Admission decisions and issuance of official 3D Founding Passes will take place following this technical evaluation.
 
 ──────────────────────────────────────────────────────────────────
@@ -221,6 +224,10 @@ COHORT DETAILS & PRIVILEGES:
 
 To secure your seat, please claim your digital 3D Founding Builder Pass before the kickoff session using your Founder Key (${cleanKey}):
 👉 Claim 3D Pass: ${passUrl}
+📄 View Acceptance Letter: ${letterUrl}
+
+💬 Join Official C3 WhatsApp Community:
+https://chat.whatsapp.com/IEY6Ao4bxh48gcIde6arA4
 
 We look forward to building, shipping, and defining the future of software with you.
 
@@ -316,7 +323,22 @@ ISL Engineering College (Autonomous)`;
             </td>
           </tr>
         </table>
-        <p style="font-size:13px;line-height:1.6;color:#4A443B;margin-top:24px;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:20px 0;background-color:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;">
+          <tr>
+            <td style="padding:16px 20px;text-align:center;">
+              <div style="font-size:11px;font-family:monospace;font-weight:bold;color:#15803D;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">
+                💬 Official C3 WhatsApp Community
+              </div>
+              <div style="font-size:13px;color:#166534;margin-bottom:12px;line-height:1.4;">
+                Join the official builder group for live cohort announcements, schedule updates, and candidate support.
+              </div>
+              <a href="https://chat.whatsapp.com/IEY6Ao4bxh48gcIde6arA4" target="_blank" style="display:inline-block;background-color:#25D366;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;padding:10px 24px;border-radius:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-shadow:0 2px 8px rgba(37,211,102,0.25);">
+                Join Official WhatsApp Group &rarr;
+              </a>
+            </td>
+          </tr>
+        </table>
+        <p style="font-size:13px;line-height:1.6;color:#4A443B;margin-top:20px;">
           Final admission decisions and issuance of official 3D Founding Passes will take place following this technical evaluation. We look forward to meeting you!
         </p>
         <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top:28px;padding-top:16px;border-top:1px solid #E8E2D5;">
@@ -422,7 +444,22 @@ ISL Engineering College (Autonomous)`;
             </td>
           </tr>
         </table>
-        <p style="font-size:13px;line-height:1.6;color:#4A443B;margin-top:24px;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:20px 0;background-color:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;">
+          <tr>
+            <td style="padding:16px 20px;text-align:center;">
+              <div style="font-size:11px;font-family:monospace;font-weight:bold;color:#15803D;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">
+                💬 Official C3 WhatsApp Community
+              </div>
+              <div style="font-size:13px;color:#166534;margin-bottom:12px;line-height:1.4;">
+                Join the official builder group for live cohort announcements, schedule updates, and peer discussions.
+              </div>
+              <a href="https://chat.whatsapp.com/IEY6Ao4bxh48gcIde6arA4" target="_blank" style="display:inline-block;background-color:#25D366;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;padding:10px 24px;border-radius:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-shadow:0 2px 8px rgba(37,211,102,0.25);">
+                Join Official WhatsApp Group &rarr;
+              </a>
+            </td>
+          </tr>
+        </table>
+        <p style="font-size:13px;line-height:1.6;color:#4A443B;margin-top:20px;">
           Please claim your pass before Monday morning. See you on Monday!
         </p>
         <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top:28px;padding-top:16px;border-top:1px solid #E8E2D5;">

@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Copy, Check, ExternalLink, X, Send, Sparkles, Shield, AlertCircle, Code } from 'lucide-react';
 import { MemberRecord, sendAcceptanceEmailApi, saveEmailConfigApi } from '../utils/api';
 import { generateAcceptanceLetterHtml, generateInterviewLetterHtml } from '../utils/letterHtml';
-import { sounds } from '../utils/audio';
 
 interface EmailDispatchModalProps {
   member: MemberRecord | null;
@@ -54,8 +53,8 @@ export const EmailDispatchModal: React.FC<EmailDispatchModalProps> = ({
     : generateAcceptanceLetterHtml(member);
 
   const plainTextBody = isInterview
-    ? `OFFICE OF THE C3 ADMISSIONS COUNCIL\nDept. of Information Technology · ISL Engineering College (Autonomous)\nRef: ${refCode}\n\nDear ${member.name},\n\nYou have been shortlisted for an in-person technical evaluation and team-fit interview for C3 Founding Cohort (Batch 01).\n\nVenue: Innovation Lab 3 / C3 Campus Office · Dept. of IT, ISLEC Campus\nTimings: Monday to Thursday · 10:00 AM – 1:00 PM\nCandidate Tracking Code: ${cleanKey}\n\nView Digital Interview Letter:\n${window.location.origin}/?letter=${cleanKey}&type=interview\n\nWhat to Bring:\n1. Laptop with development setup\n2. Live GitHub repositories or projects`
-    : `OFFICE OF THE C3 ADMISSIONS COUNCIL\nDept. of Information Technology · ISL Engineering College (Autonomous)\nRef: ${refCode}\n\nDear ${member.name},\n\nCongratulations! Your application for C3 Founding Cohort (Batch 01) has been officially approved.\n\nFounder Key: ${cleanKey}\nClaim 3D Pass: ${window.location.origin}/?code=${cleanKey}\nView Acceptance Letter: ${window.location.origin}/?letter=${cleanKey}\n\nKickoff: Monday, 10:00 AM – 1:00 PM at C3 Campus Office / Lab 3.`;
+    ? `OFFICE OF THE C3 ADMISSIONS COUNCIL\nDept. of Information Technology · ISL Engineering College (Autonomous)\nRef: ${refCode}\n\nDear ${member.name},\n\nYou have been shortlisted for an in-person technical evaluation and team-fit interview for C3 Founding Cohort (Batch 01).\n\nVenue: Innovation Lab 3 / C3 Campus Office · Dept. of IT, ISLEC Campus\nTimings: Monday to Thursday · 10:00 AM – 1:00 PM\nCandidate Tracking Code: ${cleanKey}\n\nView Digital Interview Letter:\n${window.location.origin}/?letter=${cleanKey}&type=interview\n\n💬 Join Official C3 WhatsApp Community:\nhttps://chat.whatsapp.com/IEY6Ao4bxh48gcIde6arA4\n\nWhat to Bring:\n1. Laptop with development setup\n2. Live GitHub repositories or projects`
+    : `OFFICE OF THE C3 ADMISSIONS COUNCIL\nDept. of Information Technology · ISL Engineering College (Autonomous)\nRef: ${refCode}\n\nDear ${member.name},\n\nCongratulations! Your application for C3 Founding Cohort (Batch 01) has been officially approved.\n\nFounder Key: ${cleanKey}\nClaim 3D Pass: ${window.location.origin}/?code=${cleanKey}\nView Acceptance Letter: ${window.location.origin}/?letter=${cleanKey}\n\n💬 Join Official C3 WhatsApp Community:\nhttps://chat.whatsapp.com/IEY6Ao4bxh48gcIde6arA4\n\nKickoff: Monday, 10:00 AM – 1:00 PM at C3 Campus Office / Lab 3.`;
 
   const googleAppsScriptMailerCode = `// C3 1-Click Native Gmail Mailer (Zero Password Needed)
 // Deploy at script.google.com under c3.collective.in@gmail.com
@@ -80,7 +79,6 @@ function doPost(e) {
 
   const handleCopyGraphicLetter = async () => {
     try {
-      sounds.playSuccess();
       const blobHtml = new Blob([letterHtml], { type: 'text/html' });
       const blobText = new Blob([plainTextBody], { type: 'text/plain' });
 
@@ -105,7 +103,6 @@ function doPost(e) {
   };
 
   const handleOpenGmailCompose = () => {
-    sounds.playClick();
     const senderEmail = 'c3.collective.in@gmail.com';
     const gmailUrl = `https://mail.google.com/mail/?authuser=${encodeURIComponent(senderEmail)}&view=cm&fs=1&to=${encodeURIComponent(member.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainTextBody)}`;
     window.open(gmailUrl, '_blank');
@@ -113,7 +110,6 @@ function doPost(e) {
 
   const handleDirectSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    sounds.playClick();
     setIsSendingDirect(true);
     setStatusMessage(null);
 
@@ -154,7 +150,6 @@ function doPost(e) {
       setIsSendingDirect(false);
 
       if (res.success) {
-        sounds.playSuccess();
         setStatusMessage({ 
           text: `✓ Official graphic ${isInterview ? 'interview call' : 'admission notice'} sent directly to ${member.email}!`, 
           success: true 
@@ -399,7 +394,6 @@ function doPost(e) {
                         type="button"
                         onClick={() => {
                           navigator.clipboard.writeText(googleAppsScriptMailerCode);
-                          sounds.playSuccess();
                           setCopiedScript(true);
                           setTimeout(() => setCopiedScript(false), 2000);
                         }}

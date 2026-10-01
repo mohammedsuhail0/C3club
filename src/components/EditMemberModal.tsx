@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Edit3, User, Building, Calendar, Shield, Sparkles, Check, AlertCircle } from 'lucide-react';
 import { MemberRecord, editMemberApi, saveLocalDecision } from '../utils/api';
-import { sounds } from '../utils/audio';
 
 interface EditMemberModalProps {
   isOpen: boolean;
@@ -91,25 +90,21 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
   if (!isOpen || !member) return null;
 
   const handleSelectDept = (d: string) => {
-    sounds.playKey();
     setBranch(d);
     setIsCustomDept(false);
   };
 
   const handleCustomDeptSelect = () => {
-    sounds.playKey();
     setIsCustomDept(true);
     setBranch('Other');
   };
 
   const handleSelectYear = (y: string) => {
-    sounds.playKey();
     setYear(y);
     setIsCustomYear(false);
   };
 
   const handleCustomYearSelect = () => {
-    sounds.playKey();
     setIsCustomYear(true);
     setYear('Other');
   };
@@ -122,7 +117,6 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
     const cleanName = name.trim();
     if (!cleanName) {
       setErrorMsg('Full Name cannot be empty');
-      sounds.playKey();
       return;
     }
 
@@ -132,7 +126,6 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
     const effectiveCustomRole = customRole.trim();
 
     setSaving(true);
-    sounds.playClick();
 
     try {
       // 1. Send update to backend
@@ -173,7 +166,6 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
       };
 
       setSaving(false);
-      sounds.playSuccess();
       setSuccessMsg('Member updated successfully!');
 
       setTimeout(() => {
@@ -183,7 +175,6 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
     } catch (err: any) {
       setSaving(false);
       setErrorMsg(err?.message || 'Failed to update member');
-      sounds.playKey();
     }
   };
 
@@ -217,7 +208,7 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
             </div>
 
             <button
-              onClick={() => { sounds.playClick(); onClose(); }}
+              onClick={() => { onClose(); }}
               className="p-2 rounded-xl hover:bg-[#25211A] text-[#8C8275] hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -414,7 +405,7 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
                   <button
                     key={s.key}
                     type="button"
-                    onClick={() => { sounds.playKey(); setStatus(s.key as any); }}
+                    onClick={() => { setStatus(s.key as any); }}
                     className={`px-3 py-1.5 rounded-xl text-xs font-mono cursor-pointer border transition-all ${
                       status === s.key
                         ? `bg-[#2A231A] font-bold ${s.color} ring-1 ring-[#CC5A36]`
@@ -431,7 +422,7 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#2A251E] mt-6">
               <button
                 type="button"
-                onClick={() => { sounds.playClick(); onClose(); }}
+                onClick={() => { onClose(); }}
                 disabled={saving}
                 className="px-4 py-2.5 rounded-xl bg-[#201C16] hover:bg-[#28231C] text-xs font-mono text-[#A8A093] hover:text-white border border-[#302B22] transition-colors cursor-pointer"
               >
