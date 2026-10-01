@@ -12,9 +12,7 @@ import {
   Flame,
   Coffee,
   GraduationCap,
-  Layers
 } from 'lucide-react';
-import { sounds } from '../utils/audio';
 
 interface PromptOption {
   id: string;
@@ -64,28 +62,23 @@ export const PromptToComponent: React.FC = () => {
   ];
 
   const handleSelectPrompt = (id: string) => {
-    sounds.playClick();
     setSelectedPromptId(id);
     runExecution();
   };
 
   const runExecution = () => {
-    sounds.playKey();
     setIsExecuting(true);
     setExecStep(1);
 
     setTimeout(() => {
-      sounds.playKey();
       setExecStep(2);
     }, 400);
 
     setTimeout(() => {
-      sounds.playKey();
       setExecStep(3);
     }, 900);
 
     setTimeout(() => {
-      sounds.playSuccess();
       setExecStep(4);
       setIsExecuting(false);
     }, 1400);

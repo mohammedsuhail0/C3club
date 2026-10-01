@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Terminal as TerminalIcon, RefreshCw, CheckCircle2, GitCommit, Sparkles } from 'lucide-react';
-import { sounds } from '../utils/audio';
 
 export const TerminalDemo: React.FC = () => {
   const [selectedTaskIndex, setSelectedTaskIndex] = useState(0);
@@ -52,29 +51,25 @@ export const TerminalDemo: React.FC = () => {
 
   const currentTask = tasks[selectedTaskIndex];
 
-  // Automated step progression when running
+  // Automated step progression when running (silent video/demo simulation)
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     if (isRunning && step < currentTask.steps.length - 1) {
       timer = setTimeout(() => {
-        sounds.playKey();
         setStep((prev) => prev + 1);
       }, 700);
     } else if (step === currentTask.steps.length - 1) {
-      sounds.playSuccess();
       setIsRunning(false);
     }
     return () => clearTimeout(timer);
   }, [isRunning, step, currentTask.steps.length]);
 
   const handleStartSimulation = () => {
-    sounds.playClick();
     setStep(0);
     setIsRunning(true);
   };
 
   const handleSelectTask = (index: number) => {
-    sounds.playClick();
     setSelectedTaskIndex(index);
     setStep(0);
     setIsRunning(true);
