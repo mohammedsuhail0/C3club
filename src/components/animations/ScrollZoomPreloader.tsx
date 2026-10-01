@@ -21,7 +21,7 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
     }
     window.scrollTo(0, 0);
 
-    // Keep body overflow clean - native scrolling stays operational
+    // Keep body overflow clean
     document.body.style.overflow = '';
     document.documentElement.style.overflow = '';
 
@@ -37,20 +37,20 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('click', handleClick);
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
     };
 
-    // Responsive Lerp loop for real-time scroll scrub
+    // Physics Lerp loop: Smoothly catches up to wherever the user manually scrolls
     const loop = () => {
       if (isDoneRef.current) return;
 
-      currentProgress.current += (targetProgress.current - currentProgress.current) * 0.18;
+      // Smooth interpolation towards user's exact scroll scrub target
+      currentProgress.current += (targetProgress.current - currentProgress.current) * 0.16;
       setProgress(currentProgress.current);
 
-      // Once progress clears 0.72, C3 has fully zoomed past screen edges
-      if (currentProgress.current >= 0.72) {
+      // Only finish when user has physically scrolled all the way through (progress >= 0.96 and target == 1)
+      if (currentProgress.current >= 0.95 && targetProgress.current >= 0.99) {
         setProgress(1);
         cleanupListeners();
         setIsDone(true);
@@ -63,82 +63,49 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
 
     animFrameId.current = requestAnimationFrame(loop);
 
-    // Wheel event: User physically zooms the C3 logo by scrolling
+    // Wheel event: 100% USER DRIVEN. Scroll down to zoom in, scroll up to zoom out.
+    // Absolutely NO automatic jumping or auto-advancing!
     const handleWheel = (e: WheelEvent) => {
       if (isDoneRef.current) return;
 
-      // If user has already scrolled through, let native scroll flow seamlessly
-      if (targetProgress.current >= 0.70) {
-        cleanupListeners();
-        setIsDone(true);
-        if (onComplete) onComplete();
-        return;
-      }
-
-      if (e.deltaY > 0) {
-        e.preventDefault();
-        const delta = e.deltaY / 180;
-        const next = Math.min(Math.max(targetProgress.current + delta, 0), 1.05);
-
-        // Natural momentum: once user initiates zoom scroll past 30%, glide cleanly open
-        if (next >= 0.30) {
-          targetProgress.current = 1.05;
-        } else {
-          targetProgress.current = next;
-        }
-      } else if (e.deltaY < 0 && targetProgress.current > 0) {
-        // Can scrub back if before commitment
-        const delta = e.deltaY / 180;
-        targetProgress.current = Math.max(targetProgress.current + delta, 0);
-      }
+      e.preventDefault();
+      // Sensitivity: ~3 full notches of standard wheel or 1 deliberate trackpad flick completes the zoom
+      const delta = e.deltaY / 280;
+      targetProgress.current = Math.min(Math.max(targetProgress.current + delta, 0), 1);
     };
 
-    // Touch events for mobile touch scroll scrub
+    // Touch events for mobile: User drags up to zoom in, drags down to zoom out.
     const handleTouchStart = (e: TouchEvent) => {
       touchStartY.current = e.touches[0].clientY;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (isDoneRef.current) return;
-      if (targetProgress.current >= 0.70) {
-        cleanupListeners();
-        setIsDone(true);
-        if (onComplete) onComplete();
-        return;
-      }
-      if (touchStartY.current === null) return;
+      if (isDoneRef.current || touchStartY.current === null) return;
       const currentY = e.touches[0].clientY;
-      const delta = (touchStartY.current - currentY) / 120;
+      const delta = (touchStartY.current - currentY) / 240;
       touchStartY.current = currentY;
 
-      if (delta > 0) {
-        e.preventDefault();
-        const next = Math.min(Math.max(targetProgress.current + delta, 0), 1.05);
-        if (next >= 0.28) {
-          targetProgress.current = 1.05;
-        } else {
-          targetProgress.current = next;
-        }
-      }
+      e.preventDefault();
+      targetProgress.current = Math.min(Math.max(targetProgress.current + delta, 0), 1);
     };
 
     const handleTouchEnd = () => {
       touchStartY.current = null;
     };
 
-    // Keyboard support (Down arrow, Space, PageDown, Enter)
+    // Keyboard support: ArrowDown / PageDown increments zoom, ArrowUp / PageUp decrements zoom. Escape skips.
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isDoneRef.current) return;
-      if (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown' || e.key === 'Enter') {
+      if (e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
-        targetProgress.current = 1.05;
+        targetProgress.current = Math.min(targetProgress.current + 0.2, 1);
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault();
+        targetProgress.current = Math.max(targetProgress.current - 0.2, 0);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        targetProgress.current = 1;
       }
-    };
-
-    // Click anywhere to zoom into the site
-    const handleClick = () => {
-      if (isDoneRef.current) return;
-      targetProgress.current = 1.05;
     };
 
     window.addEventListener('wheel', handleWheel, { passive: false });
@@ -146,7 +113,6 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
     window.addEventListener('touchmove', handleTouchMove, { passive: false });
     window.addEventListener('touchend', handleTouchEnd, { passive: true });
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('click', handleClick);
 
     return () => {
       cleanupListeners();
@@ -157,24 +123,34 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
     return null;
   }
 
-  // Smooth transform values computed from user's physical scroll scrub progress (0 -> 1)
+  // Pure scroll-driven transformation values:
+  // When progress = 0: Centered C3 monogram at 1x scale, opaque background
+  // When progress = 1: C3 scales to 14x, C flies left (-120vw), 3 flies right (+120vw), backdrop dissolves
   const clamped = Math.min(Math.max(progress, 0), 1);
-  const xLeft = -(clamped * 115);      // 0vw -> -115vw (smooth split to left)
-  const xRight = clamped * 115;        // 0vw -> +115vw (smooth split to right)
-  const scale = 1 + clamped * 8.5;     // Dramatic, cinematic zoom (1x -> 9.5x)
-  const emblemOpacity = Math.max(0, 1 - clamped * 1.35);
-  const bgOpacity = Math.max(0, 1 - clamped * 2.2);
-  const glowOpacity = Math.max(0, 1 - clamped * 2.5);
-  const hintOpacity = Math.max(0, 1 - clamped * 5);
+  const scale = 1 + Math.pow(clamped, 1.35) * 13;          // 1x -> 14x dramatic zoom
+  const xLeft = -(Math.pow(clamped, 1.2) * 125);           // 0vw -> -125vw (C glides left)
+  const xRight = Math.pow(clamped, 1.2) * 125;             // 0vw -> +125vw (3 glides right)
+  
+  // Background fades out gradually between 0.35 and 0.95 so Hero emerges cleanly behind
+  const bgOpacity = clamped < 0.35 ? 1 : Math.max(0, 1 - (clamped - 0.35) / 0.60);
+  
+  // Emblem fades as it zooms off-screen between 0.60 and 1.0
+  const emblemOpacity = clamped < 0.60 ? 1 : Math.max(0, 1 - (clamped - 0.60) / 0.38);
+  
+  // Ambient glow
+  const glowOpacity = Math.max(0, 1 - clamped * 1.5);
+  
+  // Instruction hint fades immediately on first scroll
+  const hintOpacity = Math.max(0, 1 - clamped * 4.5);
 
   return (
     <div
       style={{
-        pointerEvents: clamped > 0.7 ? 'none' : 'auto',
+        pointerEvents: clamped > 0.85 ? 'none' : 'auto',
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden select-none cursor-pointer"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden select-none"
     >
-      {/* Seamless Full-Screen Backdrop: fades out smoothly as you scroll */}
+      {/* Seamless Backdrop: smoothly reveals the site underneath as user scrolls */}
       <div
         style={{ opacity: bgOpacity }}
         className="absolute inset-0 bg-claude-bg dark:bg-claude-darkBg pointer-events-none transition-opacity duration-75"
@@ -184,15 +160,15 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
       <div
         style={{
           opacity: glowOpacity,
-          transform: `scale(${1 + clamped * 1.5})`,
+          transform: `scale(${1 + clamped * 1.8})`,
         }}
         className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full bg-claude-terracotta/25 dark:bg-claude-terracotta/35 blur-[140px] -z-10 will-change-transform"
       />
 
-      {/* The Official C3 Monogram Logo Split Assembly: Scales & splits as user scrolls */}
+      {/* The Official C3 Monogram Logo Split Assembly: Scales & splits strictly as user scrolls */}
       <div className="relative z-30 flex items-center justify-center select-none pointer-events-none will-change-transform">
         <div className="relative w-[280px] xs:w-[340px] sm:w-[440px] md:w-[500px] aspect-[551/388] flex items-center justify-center drop-shadow-2xl">
-          {/* Left C Half (Glides smoothly to the LEFT) */}
+          {/* Left C Half (Glides to the LEFT) */}
           <div
             style={{
               transform: `translateX(${xLeft}vw) scale(${scale})`,
@@ -207,7 +183,7 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
             />
           </div>
 
-          {/* Right 3 Half (Glides smoothly to the RIGHT) */}
+          {/* Right 3 Half (Glides to the RIGHT) */}
           <div
             style={{
               transform: `translateX(${xRight}vw) scale(${scale})`,
@@ -224,7 +200,7 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
         </div>
       </div>
 
-      {/* Scroll Instruction (Scrub Indicator) */}
+      {/* Scroll Instruction (Manual Scrub Indicator) */}
       <div
         style={{
           opacity: hintOpacity,
@@ -233,10 +209,23 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
         className="absolute bottom-8 sm:bottom-10 z-40 flex items-center justify-center text-center select-none pointer-events-none px-4"
       >
         <div className="flex items-center gap-2 text-xs sm:text-sm font-mono tracking-[0.25em] uppercase text-claude-text dark:text-claude-darkText font-semibold">
-          <span>Scroll to zoom &amp; explore C3</span>
+          <span>Scroll down to zoom C3</span>
           <ChevronDown className="w-4 h-4 text-claude-terracotta animate-bounce" />
         </div>
       </div>
+
+      {/* Accessible Skip Button (top-right, non-intrusive) */}
+      <button
+        type="button"
+        onClick={() => {
+          targetProgress.current = 1;
+        }}
+        style={{ opacity: hintOpacity }}
+        className="absolute top-6 right-6 z-50 text-[11px] font-mono tracking-wider text-claude-subtext hover:text-claude-text dark:hover:text-claude-darkText px-3 py-1.5 rounded-full border border-claude-border dark:border-claude-darkBorder bg-white/40 dark:bg-black/40 backdrop-blur-sm transition-all cursor-pointer"
+      >
+        Skip &rarr;
+      </button>
     </div>
   );
 };
+
