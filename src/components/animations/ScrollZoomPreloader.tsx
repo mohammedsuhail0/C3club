@@ -41,16 +41,16 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
       document.documentElement.style.overflow = '';
     };
 
-    // Physics Lerp loop: Smoothly catches up with weighted damping for a cinematic feel
+    // Physics Lerp loop: Smoothly catches up with natural, responsive feel
     const loop = () => {
       if (isDoneRef.current) return;
 
-      // Silky smooth interpolation with reduced speed / increased damping
-      currentProgress.current += (targetProgress.current - currentProgress.current) * 0.09;
+      // Responsive interpolation (balanced between too fast and too slow)
+      currentProgress.current += (targetProgress.current - currentProgress.current) * 0.13;
       setProgress(currentProgress.current);
 
-      // Only finish when user has physically scrolled all the way through (progress >= 0.96 and target == 1)
-      if (currentProgress.current >= 0.95 && targetProgress.current >= 0.99) {
+      // Finish cleanly once user scrolls through the zoom
+      if (currentProgress.current >= 0.92 && targetProgress.current >= 0.98) {
         setProgress(1);
         cleanupListeners();
         setIsDone(true);
@@ -63,18 +63,18 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
 
     animFrameId.current = requestAnimationFrame(loop);
 
-    // Wheel event: 100% USER DRIVEN. Reduced zoom speed for deliberate, tactile control.
+    // Wheel event: 100% USER DRIVEN. Balanced natural scroll speed.
     const handleWheel = (e: WheelEvent) => {
       if (isDoneRef.current) return;
 
       e.preventDefault();
-      // Reduced sensitivity (~4x slower) + per-event delta clamp so trackpad flicks don't rush through
-      const rawDelta = e.deltaY / 1100;
-      const delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), 0.065);
+      // Sweet spot sensitivity: ~5 notches of wheel or 1 natural trackpad swipe
+      const rawDelta = e.deltaY / 480;
+      const delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), 0.20);
       targetProgress.current = Math.min(Math.max(targetProgress.current + delta, 0), 1);
     };
 
-    // Touch events for mobile: Reduced speed so dragging provides gradual, controlled zoom
+    // Touch events for mobile: 1 natural swipe up zooms through
     const handleTouchStart = (e: TouchEvent) => {
       touchStartY.current = e.touches[0].clientY;
     };
@@ -82,8 +82,8 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
     const handleTouchMove = (e: TouchEvent) => {
       if (isDoneRef.current || touchStartY.current === null) return;
       const currentY = e.touches[0].clientY;
-      const rawDelta = (touchStartY.current - currentY) / 850;
-      const delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), 0.07);
+      const rawDelta = (touchStartY.current - currentY) / 380;
+      const delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), 0.22);
       touchStartY.current = currentY;
 
       e.preventDefault();
@@ -94,15 +94,15 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
       touchStartY.current = null;
     };
 
-    // Keyboard support: ArrowDown / PageDown increments zoom slowly, ArrowUp / PageUp decrements zoom. Escape skips.
+    // Keyboard support: ArrowDown / PageDown increments zoom, ArrowUp / PageUp decrements zoom. Escape skips.
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isDoneRef.current) return;
       if (e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
-        targetProgress.current = Math.min(targetProgress.current + 0.08, 1);
+        targetProgress.current = Math.min(targetProgress.current + 0.14, 1);
       } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
         e.preventDefault();
-        targetProgress.current = Math.max(targetProgress.current - 0.08, 0);
+        targetProgress.current = Math.max(targetProgress.current - 0.14, 0);
       } else if (e.key === 'Escape') {
         e.preventDefault();
         targetProgress.current = 1;
