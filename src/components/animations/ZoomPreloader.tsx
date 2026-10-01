@@ -15,25 +15,42 @@ export const ZoomPreloader: React.FC<ZoomPreloaderProps> = ({ onComplete }) => {
     }
     window.scrollTo(0, 0);
 
-    // Lock body scroll during the intro preloader
-    document.body.style.overflow = 'hidden';
+    // Keep body overflow native and clean - never locked
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
 
-    // Step 1: Hold the monogram in center briefly for visual impact (350ms)
+    // Step 1: Hold the monogram in center briefly for visual impact (300ms)
     const holdTimer = setTimeout(() => {
       setPhase('zooming');
-    }, 350);
+    }, 300);
 
-    // Step 2: Complete the zoom reveal and unlock full-page scrolling (1700ms)
+    // Step 2: Complete the zoom reveal and finish (1400ms)
     const doneTimer = setTimeout(() => {
       setPhase('done');
-      document.body.style.overflow = '';
       if (onComplete) onComplete();
-    }, 1700);
+    }, 1400);
+
+    // Any user interaction (click, wheel, key) smoothly accelerates to reveal site
+    const handleDismiss = () => {
+      setPhase('zooming');
+      setTimeout(() => {
+        setPhase('done');
+        if (onComplete) onComplete();
+      }, 250);
+    };
+
+    window.addEventListener('click', handleDismiss);
+    window.addEventListener('wheel', handleDismiss, { passive: true });
+    window.addEventListener('touchstart', handleDismiss, { passive: true });
 
     return () => {
       clearTimeout(holdTimer);
       clearTimeout(doneTimer);
+      window.removeEventListener('click', handleDismiss);
+      window.removeEventListener('wheel', handleDismiss);
+      window.removeEventListener('touchstart', handleDismiss);
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     };
   }, [onComplete]);
 
@@ -49,8 +66,8 @@ export const ZoomPreloader: React.FC<ZoomPreloaderProps> = ({ onComplete }) => {
             opacity: phase === 'zooming' ? 0 : 1,
           }}
           transition={{
-            duration: 0.85,
-            delay: phase === 'zooming' ? 0.45 : 0,
+            duration: 0.75,
+            delay: phase === 'zooming' ? 0.35 : 0,
             ease: 'easeInOut',
           }}
           className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-claude-bg dark:bg-claude-darkBg pointer-events-none select-none"
@@ -63,7 +80,7 @@ export const ZoomPreloader: React.FC<ZoomPreloaderProps> = ({ onComplete }) => {
               scale: phase === 'zooming' ? 3.5 : 1.1,
             }}
             transition={{
-              duration: 1.2,
+              duration: 1.1,
               ease: smoothEase,
             }}
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] rounded-full bg-claude-terracotta/30 dark:bg-claude-terracotta/40 blur-[150px] -z-10"
@@ -77,8 +94,8 @@ export const ZoomPreloader: React.FC<ZoomPreloaderProps> = ({ onComplete }) => {
               opacity: phase === 'zooming' ? 0 : 1,
             }}
             transition={{
-              scale: { duration: 1.35, ease: smoothEase },
-              opacity: { duration: 0.55, delay: 0.5, ease: 'easeOut' },
+              scale: { duration: 1.25, ease: smoothEase },
+              opacity: { duration: 0.5, delay: 0.4, ease: 'easeOut' },
             }}
             className="relative w-[300px] sm:w-[420px] md:w-[480px] aspect-[551/388] flex items-center justify-center drop-shadow-2xl"
           >
@@ -89,7 +106,7 @@ export const ZoomPreloader: React.FC<ZoomPreloaderProps> = ({ onComplete }) => {
                 x: phase === 'zooming' ? '-130vw' : 0,
               }}
               transition={{
-                duration: 1.35,
+                duration: 1.25,
                 ease: smoothEase,
               }}
               className="absolute inset-0 w-full h-full will-change-transform"
@@ -108,7 +125,7 @@ export const ZoomPreloader: React.FC<ZoomPreloaderProps> = ({ onComplete }) => {
                 x: phase === 'zooming' ? '130vw' : 0,
               }}
               transition={{
-                duration: 1.35,
+                duration: 1.25,
                 ease: smoothEase,
               }}
               className="absolute inset-0 w-full h-full will-change-transform"

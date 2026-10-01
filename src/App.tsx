@@ -13,6 +13,7 @@ import { ScrollProgress } from './components/animations/ScrollProgress';
 import { CursorGlow } from './components/animations/CursorGlow';
 import { Marquee } from './components/animations/Marquee';
 import { EngineeringBackground } from './components/animations/EngineeringBackground';
+import { ZoomPreloader } from './components/animations/ZoomPreloader';
 import { fetchMemberByKey, MemberRecord } from './utils/api';
 
 export function App() {
@@ -25,6 +26,17 @@ export function App() {
       if (path === '/admin' || path.startsWith('/admin') || hash === '#admin' || hash.startsWith('#admin') || search.includes('admin=')) {
         return true;
       }
+    }
+    return false;
+  });
+
+  const [isPreloaderDone, setIsPreloaderDone] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+      const search = window.location.search;
+      const params = new URLSearchParams(search || (hash.includes('?') ? hash.split('?')[1] : ''));
+      return !!(path === '/admin' || hash === '#admin' || params.get('letter') || params.get('acceptance') || params.get('code') || params.get('fnd') || params.get('admin') || params.get('apply'));
     }
     return false;
   });
@@ -157,6 +169,11 @@ export function App() {
 
       {/* Ultra-Minimal Transparent Header (ONLY the C3 Logo) */}
       <Navbar />
+
+      {/* C3 Zoom-In Preloader: Runs on page load / refresh */}
+      {!isPreloaderDone && (
+        <ZoomPreloader onComplete={() => setIsPreloaderDone(true)} />
+      )}
 
       {/* Main Site Content: Clean, Story-Driven Flow */}
       <main className="relative z-10 w-full flex flex-col">
