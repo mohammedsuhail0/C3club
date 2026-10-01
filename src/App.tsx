@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
-import { ScrollZoomPreloader } from './components/animations/ScrollZoomPreloader';
 import { Hero } from './components/Hero';
 import { WhatIsC3 } from './components/WhatIsC3';
 import { AccreditationStrip } from './components/AccreditationStrip';
@@ -30,16 +29,12 @@ export function App() {
     }
     return false;
   });
-  const [isPreloaderDone, setIsPreloaderDone] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const search = window.location.search;
-      const hash = window.location.hash;
-      const path = window.location.pathname;
-      const params = new URLSearchParams(search || (hash.includes('?') ? hash.split('?')[1] : ''));
-      return !!(path === '/admin' || hash === '#admin' || params.get('letter') || params.get('acceptance') || params.get('code') || params.get('fnd') || params.get('admin') || params.get('apply'));
-    }
-    return false;
-  });
+
+  // Ensure body and html overflow are never locked and native browser scrolling is always active
+  useEffect(() => {
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+  }, []);
 
   // Acceptance Letter & Pass state
   const [isLetterOpen, setIsLetterOpen] = useState<boolean>(false);
@@ -172,11 +167,6 @@ export function App() {
 
       {/* Ultra-Minimal Transparent Header (ONLY the C3 Logo) */}
       <Navbar />
-
-      {/* Scroll-Driven Zoom Preloader: Activates on page load / refresh */}
-      {!isPreloaderDone && (
-        <ScrollZoomPreloader onComplete={() => setIsPreloaderDone(true)} />
-      )}
 
       {/* Main Site Content: Clean, Story-Driven Flow */}
       <main className="relative z-10 w-full flex flex-col">

@@ -21,8 +21,9 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
     }
     window.scrollTo(0, 0);
 
-    // Lock page scroll while preloader is active
-    document.body.style.overflow = 'hidden';
+    // Ensure body and html overflow are clean
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
 
     // Cleanup helper to fully release event listeners and body scroll
     const cleanupListeners = () => {
