@@ -1,23 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Printer, Sparkles, Check, Copy, ArrowRight, ShieldCheck, MessageCircle } from 'lucide-react';
+import { X, Printer, Sparkles, Check, Copy, ArrowRight, ShieldCheck, MessageCircle, Calendar, MapPin, Clock, Laptop } from 'lucide-react';
 import { MemberRecord } from '../utils/api';
 import { sounds } from '../utils/audio';
+
+export type LetterType = 'interview' | 'admission';
 
 interface AcceptanceLetterModalProps {
   isOpen: boolean;
   onClose: () => void;
   member: MemberRecord | null;
   onClaimPass: (founderKey: string) => void;
+  initialType?: LetterType;
 }
 
 export const AcceptanceLetterModal: React.FC<AcceptanceLetterModalProps> = ({
   isOpen,
   onClose,
   member,
-  onClaimPass
+  onClaimPass,
+  initialType = 'admission'
 }) => {
+  const [letterType, setLetterType] = useState<LetterType>(() => {
+    return initialType || (member?.status === 'interview' ? 'interview' : 'admission');
+  });
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (initialType) {
+      setLetterType(initialType);
+    } else if (member?.status === 'interview') {
+      setLetterType('interview');
+    } else {
+      setLetterType('admission');
+    }
+  }, [initialType, member?.status, member?.id]);
 
   if (!isOpen || !member) return null;
 
@@ -28,7 +45,8 @@ export const AcceptanceLetterModal: React.FC<AcceptanceLetterModalProps> = ({
 
   const handleCopyLink = () => {
     sounds.playSuccess();
-    const url = `${window.location.origin}/?letter=${member.founderKey}`;
+    const cleanKey = member.founderKey || 'PENDING';
+    const url = `${window.location.origin}/?letter=${cleanKey}&type=${letterType}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -37,9 +55,27 @@ export const AcceptanceLetterModal: React.FC<AcceptanceLetterModalProps> = ({
   const handleWhatsApp = () => {
     sounds.playSuccess();
     const cleanKey = member.founderKey || 'PENDING';
-    const letterUrl = `${window.location.origin}/?letter=${cleanKey}`;
+    const letterUrl = `${window.location.origin}/?letter=${cleanKey}&type=${letterType}`;
     const unlockUrl = `${window.location.origin}/?code=${cleanKey}`;
-    const text = `🎉 Congratulations ${member.name}!
+
+    let text = '';
+    if (letterType === 'interview') {
+      text = `🎙️ Official Notice: Accepted for C3 Interview · ISL Engineering College
+
+Dear ${member.name},
+Congratulations! Your application has been screened and you have been officially shortlisted for the In-Person Founding Team Interview for C3 Batch 01.
+
+🔑 Candidate Code: ${cleanKey}
+📄 View Official Interview Call Letter: ${letterUrl}
+
+📍 Campus Venue: C3 Campus Office / Innovation Lab 3 (Dept. of IT, ISLEC)
+🕒 Evaluation Timings: Monday to Thursday, 10:00 AM – 1:00 PM
+🎯 What to Bring: Your laptop, project ideas, and your candidate code.
+
+See you at Lab 3!
+— Mohammed Suhail & Mohammad Bilal (Founding Co-Leads, C3 Collective)`;
+    } else {
+      text = `🎉 Congratulations ${member.name}!
 
 You have been officially accepted into C3 Batch 01 (Founding Member) at ISL Engineering College.
 
@@ -50,6 +86,7 @@ You have been officially accepted into C3 Batch 01 (Founding Member) at ISL Engi
 Kickoff Routine: Monday to Thursday, 10:00 AM – 1:00 PM at C3 Campus Office / Lab 3.
 See you on Monday!
 — Mohammed Suhail & Mohammad Bilal (Founding Co-Leads, C3 Collective)`;
+    }
 
     let cleanPhone = (member.phone || '').replace(/\D/g, '');
     if (cleanPhone.length > 10) {
@@ -75,7 +112,10 @@ See you on Monday!
     onClose();
   };
 
-  const refNumber = `ISLEC/C3/B01/ADM/2026/${(member.founderKey || '').replace('C3-FND-', '')}`;
+  const cleanKey = (member.founderKey || '').replace(/^(C3-)?(FND-)?/i, '') || 'PENDING';
+  const refNumber = letterType === 'interview'
+    ? `ISLEC/C3/B01/INT/2026/${cleanKey}`
+    : `ISLEC/C3/B01/ADM/2026/${cleanKey}`;
 
   const letterDate = member.createdAt
     ? new Date(member.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
@@ -98,14 +138,42 @@ See you on Monday!
         >
           
           {/* Top Actions Bar (Hidden on Print) */}
-          <div className="bg-[#F0EBE1] border-b border-[#E3DCCE] px-5 py-3 flex items-center justify-between print:hidden">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-mono text-xs uppercase tracking-wider text-[#666055] font-semibold">
-                Official Admission Document · Batch 01
-              </span>
+          <div className="bg-[#F0EBE1] border-b border-[#E3DCCE] px-4 sm:px-5 py-3 flex flex-wrap items-center justify-between gap-2.5 print:hidden">
+            
+            {/* Letter Type Switcher Toggle */}
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-white/70 border border-[#DDD6C9] shadow-xs">
+              <button
+                onClick={() => {
+                  sounds.playClick();
+                  setLetterType('interview');
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  letterType === 'interview'
+                    ? 'bg-[#CC5A36] text-white shadow-xs'
+                    : 'text-[#666055] hover:text-[#1F1E1B]'
+                }`}
+              >
+                <span>🎙️</span>
+                <span>Interview Letter</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  sounds.playClick();
+                  setLetterType('admission');
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  letterType === 'admission'
+                    ? 'bg-emerald-700 text-white shadow-xs'
+                    : 'text-[#666055] hover:text-[#1F1E1B]'
+                }`}
+              >
+                <span>🎓</span>
+                <span>Admission Letter</span>
+              </button>
             </div>
 
+            {/* Quick Actions (Copy, WhatsApp, Print, Close) */}
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCopyLink}
@@ -119,7 +187,7 @@ See you on Monday!
               <button
                 onClick={handleWhatsApp}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-mono font-medium shadow-sm transition-all cursor-pointer"
-                title="Send Acceptance Letter to Candidate on WhatsApp"
+                title={`Send ${letterType === 'interview' ? 'Interview Call' : 'Acceptance Letter'} on WhatsApp`}
               >
                 <MessageCircle className="w-3.5 h-3.5" />
                 <span>WhatsApp</span>
@@ -183,23 +251,27 @@ See you on Monday!
             <div className="bg-[#F5F1E9] p-4 rounded-xl border border-[#E3DCCF] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <span className="text-[10px] font-mono uppercase text-[#8C8275] block">
-                  ADMITTED FOUNDING BUILDER
+                  {letterType === 'interview' ? 'SHORTLISTED CANDIDATE' : 'ADMITTED FOUNDING BUILDER'}
                 </span>
                 <h2 className="font-serif text-xl sm:text-2xl font-bold text-[#1F1E1B]">
                   {member.name}
                 </h2>
                 <p className="text-xs font-mono text-[#666055] mt-0.5">
-                  {member.phone} · {member.email}
+                  {member.phone} · {member.email || 'No email provided'} · {member.branch} ({member.year})
                 </p>
               </div>
 
               <div className="text-left sm:text-right">
                 <span className="text-[10px] font-mono uppercase text-[#8C8275] block">
-                  EXCLUSIVE FOUNDER KEY
+                  {letterType === 'interview' ? 'CANDIDATE TRACKING CODE' : 'EXCLUSIVE FOUNDER KEY'}
                 </span>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#CC5A36]/10 border border-[#CC5A36]/30 text-[#CC5A36] font-mono font-bold text-sm tracking-wider">
+                <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border font-mono font-bold text-sm tracking-wider ${
+                  letterType === 'interview'
+                    ? 'bg-[#CC5A36]/10 border-[#CC5A36]/30 text-[#CC5A36]'
+                    : 'bg-emerald-600/10 border-emerald-600/30 text-emerald-800'
+                }`}>
                   <ShieldCheck className="w-4 h-4" />
-                  <span>{member.founderKey}</span>
+                  <span>{cleanKey}</span>
                 </div>
               </div>
             </div>
@@ -207,45 +279,87 @@ See you on Monday!
             {/* Letter Subject */}
             <div className="pt-2">
               <h3 className="font-serif text-base sm:text-lg font-bold text-[#1F1E1B] tracking-tight">
-                SUBJECT: OFFICIAL NOTICE OF ADMISSION & SELECTION · C3 FOUNDING COHORT (BATCH 01)
+                {letterType === 'interview'
+                  ? 'SUBJECT: OFFICIAL NOTICE: SHORTLISTED FOR FOUNDING TEAM INTERVIEW · C3 COLLECTIVE (BATCH 01)'
+                  : 'SUBJECT: OFFICIAL NOTICE OF ADMISSION & SELECTION · C3 FOUNDING COHORT (BATCH 01)'}
               </h3>
             </div>
 
-            {/* Letter Body */}
-            <div className="space-y-3.5 text-xs sm:text-sm leading-relaxed text-[#38342E] font-sans">
-              <p>
-                Dear <strong>{member.name}</strong>,
-              </p>
-              
-              <p>
-                On behalf of the <strong>C3 (Claude Code & Cowork) Collective</strong> and the Department of Information Technology at ISL Engineering College, we are pleased to inform you that your application for <strong>Batch 01</strong> has been officially approved.
-              </p>
+            {/* Letter Body: INTERVIEW MODE */}
+            {letterType === 'interview' ? (
+              <div className="space-y-3.5 text-xs sm:text-sm leading-relaxed text-[#38342E] font-sans">
+                <p>
+                  Dear <strong>{member.name}</strong>,
+                </p>
+                
+                <p>
+                  Following an in-depth review of your application by the Admissions Council of the <strong>C3 (Claude Code &amp; Cowork) Collective</strong> at ISL Engineering College, we are pleased to inform you that you have been <strong>officially shortlisted and accepted for the In-Person Founding Team Interview &amp; Technical Evaluation</strong>.
+                </p>
 
-              <p>
-                Out of all departmental submissions, your responses demonstrated the technical aptitude, problem-solving mindset, and dedication required to spearhead autonomous AI engineering on our campus. As an inducted Founding Builder, you are granted provisional core membership into the collective with full access to our inaugural workspace.
-              </p>
+                <p>
+                  Your written application demonstrated the problem-solving drive, curiosity, and builder mentality we look for in our inaugural cohort. We invite you to attend your in-person technical discussion at the C3 Campus Office.
+                </p>
 
-              <div className="bg-white p-4 rounded-xl border border-[#E0D8C8] space-y-2.5 my-3 shadow-xs">
-                <h4 className="font-mono text-xs uppercase tracking-wider text-[#CC5A36] font-bold">
-                  Cohort Details & Privileges:
-                </h4>
-                <ul className="list-disc list-inside space-y-1 text-xs sm:text-[13px] text-[#423C32]">
-                  <li><strong>Assigned Role:</strong> {member.customRole || member.role || 'Founding Builder'}</li>
-                  <li><strong>Dedicated Workstation:</strong> C3 Campus Office / Innovation Lab 3</li>
-                  <li><strong>Weekly Routine:</strong> Monday to Thursday · 10:00 AM – 1:00 PM</li>
-                  <li><strong>Tooling Access:</strong> Full Claude Code CLI terminal ecosystem, MCP server suites, and production deployment pipeline.</li>
-                  <li><strong>Physical Credential:</strong> Your physical NFC campus badge will be handed to you at the registration desk upon verification of your digital pass.</li>
-                </ul>
+                {/* Interview Logistics Box */}
+                <div className="bg-white p-4 rounded-xl border border-[#E0D8C8] space-y-2.5 my-3 shadow-xs">
+                  <h4 className="font-mono text-xs uppercase tracking-wider text-[#CC5A36] font-bold flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Interview &amp; Evaluation Logistics:</span>
+                  </h4>
+                  <ul className="list-disc list-inside space-y-1.5 text-xs sm:text-[13px] text-[#423C32]">
+                    <li><strong>Venue:</strong> C3 Campus Office / Innovation Lab 3, Department of Information Technology, ISLEC Campus.</li>
+                    <li><strong>Evaluation Timings:</strong> Monday to Thursday · 10:00 AM – 1:00 PM.</li>
+                    <li><strong>What to Bring:</strong> Your laptop, personal hotspot, and any past projects or code you've written (zero slides or theoretical prep required).</li>
+                    <li><strong>Format:</strong> A 15-minute informal conversation focusing on what you want to build at C3, your familiarity with CLI tools, and your preferred weekly sprint commitment.</li>
+                    <li><strong>Candidate Pass:</strong> Present this letter and your Candidate Tracking Code <strong>({cleanKey})</strong> at the Lab 3 entrance desk.</li>
+                  </ul>
+                </div>
+
+                <p>
+                  Upon successful conclusion of your interview, your specialized builder role will be formally designated and your official <strong>3D Founding Pass &amp; NFC Campus Badge</strong> will be unlocked.
+                </p>
+
+                <p className="pt-1">
+                  We look forward to meeting you and evaluating your ideas for the founding team.
+                </p>
               </div>
+            ) : (
+              /* Letter Body: ADMISSION MODE */
+              <div className="space-y-3.5 text-xs sm:text-sm leading-relaxed text-[#38342E] font-sans">
+                <p>
+                  Dear <strong>{member.name}</strong>,
+                </p>
+                
+                <p>
+                  On behalf of the <strong>C3 (Claude Code &amp; Cowork) Collective</strong> and the Department of Information Technology at ISL Engineering College, we are pleased to inform you that your application for <strong>Batch 01</strong> has been officially approved.
+                </p>
 
-              <p>
-                To secure your seat, you must claim your digital 3D Founding Builder Pass before the kickoff session. Use your unique Founder Key <strong>({member.founderKey})</strong> via the portal link below.
-              </p>
+                <p>
+                  Out of all departmental submissions, your responses demonstrated the technical aptitude, problem-solving mindset, and dedication required to spearhead autonomous AI engineering on our campus. As an inducted Founding Builder, you are granted provisional core membership into the collective with full access to our inaugural workspace.
+                </p>
 
-              <p className="pt-1">
-                We look forward to building, shipping, and defining the future of software with you.
-              </p>
-            </div>
+                <div className="bg-white p-4 rounded-xl border border-[#E0D8C8] space-y-2.5 my-3 shadow-xs">
+                  <h4 className="font-mono text-xs uppercase tracking-wider text-[#CC5A36] font-bold">
+                    Cohort Details &amp; Privileges:
+                  </h4>
+                  <ul className="list-disc list-inside space-y-1 text-xs sm:text-[13px] text-[#423C32]">
+                    <li><strong>Assigned Role:</strong> {member.customRole || member.role || 'Founding Builder'}</li>
+                    <li><strong>Dedicated Workstation:</strong> C3 Campus Office / Innovation Lab 3</li>
+                    <li><strong>Weekly Routine:</strong> Monday to Thursday · 10:00 AM – 1:00 PM</li>
+                    <li><strong>Tooling Access:</strong> Full Claude Code CLI terminal ecosystem, MCP server suites, and production deployment pipeline.</li>
+                    <li><strong>Physical Credential:</strong> Your physical NFC campus badge will be handed to you at the registration desk upon verification of your digital pass.</li>
+                  </ul>
+                </div>
+
+                <p>
+                  To secure your seat, you must claim your digital 3D Founding Builder Pass before the kickoff session. Use your unique Founder Key <strong>({cleanKey})</strong> via the portal link below.
+                </p>
+
+                <p className="pt-1">
+                  We look forward to building, shipping, and defining the future of software with you.
+                </p>
+              </div>
+            )}
 
             {/* Signatures */}
             <div className="pt-6 border-t border-[#E3DCCF] grid grid-cols-2 gap-4 text-xs font-sans">
@@ -270,16 +384,28 @@ See you on Monday!
             <div className="pt-4 border-t border-[#E8E2D5] flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden">
               <span className="text-xs text-[#8C8275] font-mono flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-[#CC5A36]" />
-                Present this letter or your digital pass at the C3 desk
+                {letterType === 'interview'
+                  ? 'Present this letter at the Lab 3 desk on your interview day'
+                  : 'Present this letter or your digital pass at the C3 desk'}
               </span>
 
-              <button
-                onClick={handleClaim}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#CC5A36] hover:bg-[#B34826] text-white font-medium text-xs font-mono shadow-md transition-all cursor-pointer"
-              >
-                <span>Claim & Customize 3D Pass</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              {letterType === 'admission' ? (
+                <button
+                  onClick={handleClaim}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#CC5A36] hover:bg-[#B34826] text-white font-medium text-xs font-mono shadow-md transition-all cursor-pointer"
+                >
+                  <span>Claim &amp; Customize 3D Pass</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={handleClaim}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#CC5A36] hover:bg-[#B34826] text-white font-medium text-xs font-mono shadow-md transition-all cursor-pointer"
+                >
+                  <span>Preview Founding Pass Portal</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
           </div>

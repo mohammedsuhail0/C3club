@@ -625,6 +625,7 @@ async function routeApi(method, pathname, url, body, req, res) {
     const stats = {
       total: members.length,
       pending: members.filter(m => m.status === 'pending_review').length,
+      interview: members.filter(m => m.status === 'interview').length,
       accepted: members.filter(m => m.status === 'accepted').length,
       claimed: members.filter(m => m.status === 'claimed').length,
       printed: members.filter(m => m.printedAt).length,
@@ -673,7 +674,7 @@ async function routeApi(method, pathname, url, body, req, res) {
   // 5. POST /api/send-email (Requires Admin Authentication)
   if (method === 'POST' && pathname === '/api/send-email') {
     if (!authenticateAdmin(req, res, body)) return;
-    const { id, key } = body;
+    const { id, key, type } = body;
     const clean = normalizeKey(key);
     const member = members.find(m => m.id === id || (clean && normalizeKey(m.founderKey) === clean));
 
@@ -690,10 +691,13 @@ async function routeApi(method, pathname, url, body, req, res) {
     // Auto-generate key if not present
     if (!member.founderKey) {
       member.founderKey = generateKeyFromPhone(member.phone);
-      if (member.status === 'pending_review') member.status = 'accepted';
+      if (member.status === 'pending_review' && type !== 'interview') {
+        member.status = 'accepted';
+      }
     }
 
-    const emailResult = await sendAcceptanceEmail(member, origin);
+    const emailType = type === 'interview' ? 'interview' : (type === 'admission' ? 'admission' : (member.status === 'interview' ? 'interview' : 'admission'));
+    const emailResult = await sendAcceptanceEmail(member, origin, emailType);
     if (emailResult.success || emailResult.isFallback) {
       member.emailSentAt = new Date().toISOString();
       saveMembers(members);
@@ -828,6 +832,13 @@ async function routeApi(method, pathname, url, body, req, res) {
       }
       if (role) member.role = role;
       if (customRole !== undefined) member.customRole = customRole;
+    } else if (action === 'interview') {
+      member.status = 'interview';
+      if (!member.founderKey) {
+        member.founderKey = generateKeyFromPhone(member.phone);
+      }
+      if (role) member.role = role;
+      if (customRole !== undefined) member.customRole = customRole;
     } else if (action === 'reject') {
       member.status = 'rejected';
       member.founderKey = '';
@@ -860,9 +871,9 @@ async function routeApi(method, pathname, url, body, req, res) {
     if (year !== undefined && String(year).trim()) member.year = String(year).trim();
     if (role !== undefined && String(role).trim()) member.role = String(role).trim();
     if (customRole !== undefined) member.customRole = String(customRole).trim();
-    if (status !== undefined && ['pending_review', 'accepted', 'rejected', 'claimed'].includes(status)) {
+    if (status !== undefined && ['pending_review', 'interview', 'accepted', 'rejected', 'claimed'].includes(status)) {
       member.status = status;
-      if (status === 'accepted' && !member.founderKey) {
+      if ((status === 'accepted' || status === 'interview') && !member.founderKey) {
         member.founderKey = generateKeyFromPhone(member.phone);
       }
     }
@@ -911,7 +922,7 @@ async function routeApi(method, pathname, url, body, req, res) {
   if (method === 'GET' && pathname.startsWith('/api/members/')) {
     const key = normalizeKey(decodeURIComponent(pathname.replace('/api/members/', '')));
     const member = members.find(m => 
-      (m.founderKey && normalizeKey(m.founderKey) === key && (m.status === 'accepted' || m.status === 'claimed')) ||
+      (m.founderKey && normalizeKey(m.founderKey) === key && (m.status === 'accepted' || m.status === 'claimed' || m.status === 'interview')) ||
       (m.id === key)
     );
     if (member) {

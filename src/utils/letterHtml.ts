@@ -131,3 +131,118 @@ export function generateAcceptanceLetterHtml(member: MemberRecord, baseUrl: stri
 </body>
 </html>`;
 }
+
+export function generateInterviewLetterHtml(member: MemberRecord, baseUrl: string = ''): string {
+  const base = baseUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://c3club.vercel.app');
+  const cleanKey = String(member.founderKey || '').replace(/^(C3-)?(FND-)?/i, '') || (member.phone ? member.phone.replace(/\D/g, '').slice(-4).toUpperCase() : 'PEND');
+  const letterUrl = `${base}/?letter=${cleanKey}&type=interview`;
+  const refCode = `ISLEC/C3/B01/INT/2026/${cleanKey}`;
+
+  const safeName = escapeHtml(member.name);
+  const safeRole = escapeHtml(member.role || 'Shortlisted Candidate');
+  const safeKey = escapeHtml(cleanKey);
+  const safeRefCode = escapeHtml(refCode);
+  const safeLetterUrl = escapeHtml(letterUrl);
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>C3 Interview Call Notice</title>
+</head>
+<body style="margin:0;padding:20px;background-color:#FAF8F5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1F1E1B;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #E8E2D5;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.05);">
+    <tr>
+      <td style="background-color:#FAF8F5;border-bottom:2px solid #CC5A36;padding:24px;text-align:center;">
+        <h2 style="margin:0;font-family:Georgia,serif;font-size:22px;color:#CC5A36;letter-spacing:0.5px;">
+          C3 · CLAUDE CODE &amp; COWORK
+        </h2>
+        <p style="margin:4px 0 0 0;font-size:11px;font-family:monospace;text-transform:uppercase;color:#8C8275;letter-spacing:1.5px;">
+          Admissions Council &bull; Dept. of Information Technology &bull; ISL Engineering College
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:32px 28px;">
+        <div style="font-size:11px;font-family:monospace;color:#8C8275;margin-bottom:12px;">
+          REF: ${safeRefCode} &bull; INTERVIEW SHORTLIST
+        </div>
+        <h1 style="margin:0 0 16px 0;font-family:Georgia,serif;font-size:22px;font-weight:bold;color:#1F1E1B;line-height:1.3;">
+          Official Call for Technical Interview &amp; Evaluation: Batch 01
+        </h1>
+        <p style="font-size:15px;line-height:1.6;color:#38342E;">
+          Dear <strong>${safeName}</strong>,
+        </p>
+        <p style="font-size:14px;line-height:1.6;color:#4A443B;">
+          Following a thorough review of your candidate application dossier, the <strong>C3 Admissions Council</strong> is pleased to inform you that you have been <strong>shortlisted for an in-person technical evaluation and team-fit interview</strong> for <strong>Founding Cohort (Batch 01)</strong>.
+        </p>
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:24px 0;background-color:#FAF8F5;border:1px dashed #CC5A36;border-radius:12px;text-align:center;">
+          <tr>
+            <td style="padding:20px;">
+              <div style="font-size:11px;font-family:monospace;text-transform:uppercase;letter-spacing:2px;color:#8C8275;">
+                Candidate Tracking Code
+              </div>
+              <div style="font-size:32px;font-family:monospace;font-weight:bold;color:#CC5A36;letter-spacing:4px;margin:8px 0;">
+                ${safeKey}
+              </div>
+              <div style="font-size:12px;color:#666055;">
+                Quote this tracking code during your in-person evaluation at the campus office.
+              </div>
+            </td>
+          </tr>
+        </table>
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:26px 0 20px 0;">
+          <tr>
+            <td align="center">
+              <a href="${safeLetterUrl}" target="_blank" style="display:inline-block;background-color:#CC5A36;color:#FAF8F5;border:1px solid #CC5A36;text-decoration:none;font-size:14px;font-weight:600;padding:14px 32px;border-radius:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;letter-spacing:0.3px;box-shadow:0 3px 12px rgba(204,90,54,0.22);min-width:240px;text-align:center;">
+                🎙️ View Digital Interview Letter &rarr;
+              </a>
+            </td>
+          </tr>
+        </table>
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#F7F5F0;border-radius:10px;margin:20px 0;font-size:12px;color:#4A443B;">
+          <tr>
+            <td style="padding:16px;">
+              <div style="font-weight:bold;font-family:monospace;color:#CC5A36;margin-bottom:8px;">
+                TECHNICAL EVALUATION SESSION DETAILS:
+              </div>
+              <div>&bull; <strong>Candidate Role Focus:</strong> ${safeRole}</div>
+              <div>&bull; <strong>Venue:</strong> Innovation Lab 3 / C3 Campus Office &bull; Dept. of IT, ISLEC Campus</div>
+              <div>&bull; <strong>Evaluation Window:</strong> Monday to Thursday &bull; 10:00 AM &ndash; 1:00 PM</div>
+              <div>&bull; <strong>What to Bring:</strong> Your laptop with your development tools installed, and any live repositories or projects you'd like to demonstrate.</div>
+            </td>
+          </tr>
+        </table>
+        <p style="font-size:13px;line-height:1.6;color:#4A443B;margin-top:24px;">
+          Final admission decisions and issuance of official 3D Founding Passes will take place following this technical evaluation. We look forward to meeting you!
+        </p>
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top:28px;padding-top:16px;border-top:1px solid #E8E2D5;">
+          <tr>
+            <td>
+              <div style="font-family:Georgia,serif;font-style:italic;font-size:15px;font-weight:bold;color:#CC5A36;">
+                Mohammed Suhail &amp; Mohammad Bilal
+              </div>
+              <div style="font-size:11px;color:#1F1E1B;font-weight:600;">
+                Founding Co-Leads (Flat Collective &bull; No Hierarchy)
+              </div>
+              <div style="font-size:10px;color:#8C8275;font-family:monospace;">
+                C3 Collective &bull; Dept. of Information Technology &bull; ISL Engineering College
+              </div>
+            </td>
+            <td align="right" style="font-size:10px;font-family:monospace;color:#8C8275;">
+              ISL Engineering College<br>(UGC Autonomous)
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="background-color:#FAF8F5;border-top:1px solid #E8E2D5;padding:14px;text-align:center;font-size:11px;color:#8C8275;font-family:monospace;">
+        Bandlaguda, Chandrayangutta, Hyderabad &bull; Official C3 Collective Admissions
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+

@@ -8,7 +8,7 @@ export interface MemberRecord {
   branch: string;
   year: string;
   founderKey: string;
-  status: 'pending_review' | 'accepted' | 'rejected' | 'claimed';
+  status: 'pending_review' | 'interview' | 'accepted' | 'rejected' | 'claimed';
   role: string;
   customRole: string;
   claimedAt: string | null;
@@ -29,6 +29,7 @@ export interface MembersResponse {
   stats: {
     total: number;
     pending: number;
+    interview: number;
     accepted: number;
     claimed: number;
     printed: number;
@@ -187,7 +188,7 @@ export async function addMemberApi(data: {
 
 export async function reviewApplicantApi(
   id: string,
-  action: 'accept' | 'reject' | 'revoke',
+  action: 'accept' | 'interview' | 'reject' | 'revoke',
   role?: string,
   customRole?: string
 ): Promise<MemberRecord | null> {
@@ -213,7 +214,7 @@ export async function editMemberApi(data: {
   year: string;
   role?: string;
   customRole?: string;
-  status?: 'pending_review' | 'accepted' | 'rejected' | 'claimed';
+  status?: 'pending_review' | 'interview' | 'accepted' | 'rejected' | 'claimed';
 }): Promise<{ success: boolean; member?: MemberRecord; message?: string }> {
   try {
     const res = await fetch('/api/edit-member', {
@@ -237,7 +238,7 @@ export interface LocalDecision {
   name?: string;
   branch?: string;
   year?: string;
-  status?: 'accepted' | 'rejected' | 'pending_review' | 'claimed';
+  status?: 'accepted' | 'rejected' | 'pending_review' | 'interview' | 'claimed';
   founderKey?: string;
   role?: string;
   customRole?: string;
@@ -290,7 +291,7 @@ export async function syncDecisionsApi(decisions: Record<string, LocalDecision>)
   }
 }
 
-export async function sendAcceptanceEmailApi(idOrKey: { id?: string; key?: string }): Promise<{
+export async function sendAcceptanceEmailApi(idOrKey: { id?: string; key?: string; type?: 'interview' | 'admission' }): Promise<{
   success: boolean;
   isFallback?: boolean;
   gmailUrl?: string;

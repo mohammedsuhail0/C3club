@@ -44,6 +44,7 @@ export function App() {
   // Acceptance Letter & Pass state
   const [isLetterOpen, setIsLetterOpen] = useState<boolean>(false);
   const [letterMember, setLetterMember] = useState<MemberRecord | null>(null);
+  const [letterType, setLetterType] = useState<'interview' | 'admission'>('admission');
   const [activePassKey, setActivePassKey] = useState<string>('');
 
   // Browser History & URL Navigation Sync
@@ -81,10 +82,18 @@ export function App() {
     const hashParams = new URLSearchParams(hashQuery);
 
     const letterKey = searchParams.get('letter') || hashParams.get('letter') || searchParams.get('acceptance') || hashParams.get('acceptance');
+    const typeParam = searchParams.get('type') || hashParams.get('type');
     if (letterKey) {
       fetchMemberByKey(letterKey).then(member => {
         if (member) {
           setLetterMember(member);
+          if (typeParam === 'interview') {
+            setLetterType('interview');
+          } else if (typeParam === 'admission') {
+            setLetterType('admission');
+          } else {
+            setLetterType(member.status === 'interview' ? 'interview' : 'admission');
+          }
           setIsLetterOpen(true);
         }
       });
@@ -132,8 +141,9 @@ export function App() {
             setIsAdminMode(false);
             window.history.pushState(null, '', '/');
           }}
-          onViewLetter={(member) => {
+          onViewLetter={(member, type) => {
             setLetterMember(member);
+            setLetterType(type || (member.status === 'interview' ? 'interview' : 'admission'));
             setIsLetterOpen(true);
           }}
         />
@@ -141,6 +151,7 @@ export function App() {
           isOpen={isLetterOpen}
           onClose={() => setIsLetterOpen(false)}
           member={letterMember}
+          initialType={letterType}
           onClaimPass={handleClaimFromLetter}
         />
       </>
@@ -211,6 +222,7 @@ export function App() {
         isOpen={isLetterOpen}
         onClose={() => setIsLetterOpen(false)}
         member={letterMember}
+        initialType={letterType}
         onClaimPass={handleClaimFromLetter}
       />
 

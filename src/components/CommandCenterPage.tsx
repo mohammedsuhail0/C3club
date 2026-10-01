@@ -35,7 +35,7 @@ import { EditMemberModal } from './EditMemberModal';
 
 interface CommandCenterPageProps {
   onNavigateHome: () => void;
-  onViewLetter: (member: MemberRecord) => void;
+  onViewLetter: (member: MemberRecord, letterType?: 'interview' | 'admission') => void;
 }
 
 export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
@@ -68,7 +68,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
   const [data, setData] = useState<MembersResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending_review' | 'accepted' | 'claimed' | 'printed'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending_review' | 'interview' | 'accepted' | 'claimed' | 'printed'>('all');
   
   // Drawer & Modals
   const [selectedApplicant, setSelectedApplicant] = useState<MemberRecord | null>(null);
@@ -98,6 +98,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const [emailStatusMsg, setEmailStatusMsg] = useState<{ id: string; text: string; success: boolean; actionUrl?: string } | null>(null);
   const [emailDispatchMember, setEmailDispatchMember] = useState<MemberRecord | null>(null);
+  const [emailDispatchType, setEmailDispatchType] = useState<'interview' | 'admission'>('admission');
 
   // Email config state
   const [emailConfig, setEmailConfig] = useState<EmailConfig>({
@@ -299,6 +300,7 @@ export const CommandCenterPage: React.FC<CommandCenterPageProps> = ({
       const stats = {
         total: mergedMembers.length,
         pending: mergedMembers.filter(m => m.status === 'pending_review').length,
+        interview: mergedMembers.filter(m => m.status === 'interview').length,
         accepted: mergedMembers.filter(m => m.status === 'accepted').length,
         claimed: mergedMembers.filter(m => m.status === 'claimed').length,
         printed: mergedMembers.filter(m => m.printedAt).length,
@@ -469,9 +471,43 @@ See you on Monday!
     window.open(waUrl, '_blank');
   };
 
+  const handleWhatsAppInterviewInvite = (member: MemberRecord) => {
+    sounds.playSuccess();
+    const cleanKey = String(member.founderKey || '').replace(/^(C3-)?(FND-)?/i, '') || (member.phone ? member.phone.replace(/\D/g, '').slice(-4).toUpperCase() : 'PEND');
+    const letterUrl = `${window.location.origin}/?letter=${cleanKey}&type=interview`;
+    
+    const text = `🎙️ Technical Interview Call: C3 Batch 01
+
+Dear ${member.name},
+
+Following the review of your application dossier, the C3 Admissions Council has shortlisted you for an in-person technical evaluation and team-fit interview for Founding Cohort (Batch 01).
+
+📍 Venue: C3 Campus Office / Innovation Lab 3 · Dept. of IT, ISLEC Campus
+🕒 Timings: Monday to Thursday · 10:00 AM – 1:00 PM
+🔑 Candidate Tracking Code: ${cleanKey}
+📄 View Your Official Interview Invitation Letter:
+${letterUrl}
+
+What to Bring:
+1. Your laptop with your development environment set up.
+2. Any active GitHub repositories, prototypes, or projects you have built.
+
+We look forward to meeting you!
+— Mohammed Suhail & Mohammad Bilal (Founding Co-Leads, C3 Collective)`;
+
+    let cleanPhone = (member.phone || '').replace(/\D/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = `91${cleanPhone}`;
+    } else if (cleanPhone.length === 11 && cleanPhone.startsWith('0')) {
+      cleanPhone = `91${cleanPhone.slice(1)}`;
+    }
+    const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`;
+    window.open(waUrl, '_blank');
+  };
+
   const handleReviewDecision = async (
     id: string,
-    action: 'accept' | 'reject' | 'revoke',
+    action: 'accept' | 'interview' | 'reject' | 'revoke',
     role?: string,
     customRole?: string
   ) => {
@@ -480,9 +516,19 @@ See you on Monday!
     const target = updated || selectedApplicant;
     if (target) {
       const phoneKey = target.phone ? target.phone.replace(/\D/g, '').slice(-10) : target.id;
-      const nextStatus = action === 'accept' ? ('accepted' as const) : (action === 'reject' ? ('rejected' as const) : ('pending_review' as const));
-      const nextKey = action === 'accept' ? (updated?.founderKey || target.founderKey) : '';
-      const nextCustomRole = action === 'accept' ? (customRole !== undefined ? customRole : target.customRole) : '';
+      const nextStatus = action === 'accept' 
+        ? ('accepted' as const) 
+        : (action === 'interview' 
+            ? ('interview' as const) 
+            : (action === 'reject' 
+                ? ('rejected' as const) 
+                : ('pending_review' as const)));
+      const nextKey = (action === 'accept' || action === 'interview') 
+        ? (updated?.founderKey || target.founderKey || (target.phone ? target.phone.replace(/\D/g, '').slice(-4).toUpperCase() : '')) 
+        : '';
+      const nextCustomRole = (action === 'accept' || action === 'interview') 
+        ? (customRole !== undefined ? customRole : target.customRole) 
+        : '';
 
       const decPatch: LocalDecision = {
         status: nextStatus,
@@ -679,6 +725,7 @@ function onFormSubmit(e) {
     if (!matchesSearch) return false;
     if (statusFilter === 'all') return true;
     if (statusFilter === 'pending_review') return m.status === 'pending_review';
+    if (statusFilter === 'interview') return m.status === 'interview';
     if (statusFilter === 'accepted') return m.status === 'accepted';
     if (statusFilter === 'claimed') return m.status === 'claimed';
     if (statusFilter === 'printed') return !!m.printedAt;
@@ -937,7 +984,7 @@ function onFormSubmit(e) {
             <div className="space-y-6">
               
               {/* TOP METRIC CARDS */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 sm:gap-4">
                 <div 
                   onClick={() => setStatusFilter('all')}
                   className={`p-4 rounded-2xl border transition-all cursor-pointer ${
@@ -963,6 +1010,20 @@ function onFormSubmit(e) {
                   <span className="text-[10px] font-mono uppercase text-amber-400 block">Pending Review</span>
                   <span className="text-2xl sm:text-3xl font-serif font-bold text-amber-400 mt-1 block">
                     {data?.stats?.pending || 0}
+                  </span>
+                </div>
+
+                <div 
+                  onClick={() => setStatusFilter('interview')}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                    statusFilter === 'interview' 
+                      ? 'bg-amber-500/20 border-amber-500 text-amber-300' 
+                      : 'bg-[#1A1713] border-[#2A251E] hover:border-[#3E382E]'
+                  }`}
+                >
+                  <span className="text-[10px] font-mono uppercase text-amber-300 block">Interview Call</span>
+                  <span className="text-2xl sm:text-3xl font-serif font-bold text-amber-300 mt-1 block">
+                    {data?.stats?.interview || 0}
                   </span>
                 </div>
 
@@ -996,7 +1057,7 @@ function onFormSubmit(e) {
 
                 <div 
                   onClick={() => setStatusFilter('printed')}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer col-span-2 sm:col-span-1 ${
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                     statusFilter === 'printed' 
                       ? 'bg-purple-500/15 border-purple-500' 
                       : 'bg-[#1A1713] border-[#2A251E] hover:border-[#3E382E]'
@@ -1031,7 +1092,7 @@ function onFormSubmit(e) {
                 </div>
 
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-                  {(['all', 'pending_review', 'accepted', 'claimed', 'printed'] as const).map((filter) => (
+                  {(['all', 'pending_review', 'interview', 'accepted', 'claimed', 'printed'] as const).map((filter) => (
                     <button
                       key={filter}
                       onClick={() => setStatusFilter(filter)}
@@ -1173,6 +1234,12 @@ function onFormSubmit(e) {
                                       Pending Review
                                     </span>
                                   )}
+                                  {member.status === 'interview' && (
+                                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold flex items-center gap-1">
+                                      <span>🎙️</span>
+                                      Interview
+                                    </span>
+                                  )}
                                   {isAccepted && (
                                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950/50 text-emerald-300 border border-emerald-800/40 font-bold flex items-center gap-1">
                                       <CheckCircle className="w-3 h-3" />
@@ -1219,27 +1286,58 @@ function onFormSubmit(e) {
                                     <span>Edit</span>
                                   </button>
 
-                                  {/* Graphic Acceptance Email Dispatch */}
-                                  {member.founderKey && (
-                                    <button
-                                      onClick={() => { sounds.playClick(); setEmailDispatchMember(member); }}
-                                      className="px-2.5 py-1.5 rounded-lg bg-[#25211A] hover:bg-[#302B22] border border-[#352F26] text-emerald-400 text-xs font-mono flex items-center gap-1 cursor-pointer"
-                                      title="Dispatch Official Graphic Acceptance Letter Card"
-                                    >
-                                      <Mail className="w-3 h-3 text-emerald-400" />
-                                      <span className="hidden md:inline">Mail</span>
-                                    </button>
+                                  {/* Interview Call Letter & Mail Actions */}
+                                  {(member.status === 'interview' || member.status === 'pending_review') && (
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        onClick={() => {
+                                          sounds.playClick();
+                                          onViewLetter(member, 'interview');
+                                        }}
+                                        className="px-2 py-1.5 rounded-lg bg-amber-950/40 hover:bg-amber-900/50 border border-amber-800/50 text-amber-300 text-xs font-mono flex items-center gap-1 cursor-pointer"
+                                        title="View Official Technical Interview Letter"
+                                      >
+                                        <span>🎙️ Int</span>
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          sounds.playClick();
+                                          setEmailDispatchType('interview');
+                                          setEmailDispatchMember(member);
+                                        }}
+                                        className="p-1.5 rounded-lg bg-[#25211A] hover:bg-amber-950/40 border border-amber-800/40 text-amber-300 cursor-pointer"
+                                        title="Dispatch Interview Call Email"
+                                      >
+                                        <Mail className="w-3.5 h-3.5 text-amber-400" />
+                                      </button>
+                                    </div>
                                   )}
 
-                                  {/* View Acceptance Letter */}
-                                  {member.founderKey && (
-                                    <button
-                                      onClick={() => onViewLetter(member)}
-                                      className="p-1.5 rounded-lg bg-[#25211A] hover:bg-[#302B22] border border-[#352F26] text-[#A8A093] hover:text-white cursor-pointer"
-                                      title="View Official Acceptance Letter"
-                                    >
-                                      <FileText className="w-3.5 h-3.5" />
-                                    </button>
+                                  {/* Final Admission Letter & Mail Actions */}
+                                  {(member.founderKey || member.status === 'accepted' || member.status === 'claimed') && (
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        onClick={() => {
+                                          sounds.playClick();
+                                          onViewLetter(member, 'admission');
+                                        }}
+                                        className="px-2 py-1.5 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-800/50 text-emerald-300 text-xs font-mono flex items-center gap-1 cursor-pointer"
+                                        title="View Official Final Admission Letter"
+                                      >
+                                        <span>🎓 Adm</span>
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          sounds.playClick();
+                                          setEmailDispatchType('admission');
+                                          setEmailDispatchMember(member);
+                                        }}
+                                        className="p-1.5 rounded-lg bg-[#25211A] hover:bg-emerald-950/40 border border-emerald-800/40 text-emerald-300 cursor-pointer"
+                                        title="Dispatch Official Final Admission Email"
+                                      >
+                                        <Mail className="w-3.5 h-3.5 text-emerald-400" />
+                                      </button>
+                                    </div>
                                   )}
 
                                   {/* Toggle Print */}
@@ -2037,70 +2135,175 @@ function onFormSubmit(e) {
                 </div>
 
                 {/* Quick Dispatch Actions */}
-                <div className="pt-2 space-y-2.5">
+                <div className="pt-2 space-y-3">
                   <span className="text-xs font-mono text-[#8C8275] uppercase block font-semibold">
                     Organizer Dispatch Actions
                   </span>
                   
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <button
-                      onClick={() => { sounds.playClick(); setEmailDispatchMember(selectedApplicant); }}
-                      disabled={!selectedApplicant.founderKey}
-                      className="py-2.5 px-3 rounded-xl bg-[#25211A] hover:bg-[#302B22] border border-[#352F26] text-xs font-mono text-emerald-400 font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      <Mail className="w-3.5 h-3.5" />
-                      <span>Dispatch Letter Card</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleWhatsAppInvite(selectedApplicant)}
-                      className="py-2.5 px-3 rounded-xl bg-[#25211A] hover:bg-[#302B22] border border-[#352F26] text-xs font-mono text-emerald-300 font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>WhatsApp Invite</span>
-                    </button>
-
-                    {selectedApplicant.founderKey && (
+                  {/* Interview Dispatch Group */}
+                  <div className="p-3.5 rounded-2xl bg-[#14120E] border border-amber-900/40 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono font-bold text-amber-400 flex items-center gap-1.5">
+                        <span>🎙️</span>
+                        <span>Stage 1: Technical Interview Dispatch</span>
+                      </span>
+                      {selectedApplicant.status === 'interview' && (
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+                          Active Shortlist
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
                       <button
-                        onClick={() => onViewLetter(selectedApplicant)}
-                        className="py-2.5 px-3 rounded-xl bg-[#25211A] hover:bg-[#302B22] border border-[#352F26] text-xs font-mono text-[#D4CDC3] font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        onClick={() => onViewLetter(selectedApplicant, 'interview')}
+                        className="py-2.5 px-2 rounded-xl bg-[#25211A] hover:bg-[#302B22] border border-[#352F26] text-xs font-mono text-amber-300 font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        title="View Official Interview Call Letter"
                       >
-                        <FileText className="w-3.5 h-3.5 text-[#CC5A36]" />
-                        <span>Acceptance Letter</span>
+                        <FileText className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Letter</span>
                       </button>
-                    )}
 
-                    <button
-                      onClick={() => handleTogglePrinted(selectedApplicant)}
-                      className="py-2.5 px-3 rounded-xl bg-[#25211A] hover:bg-[#302B22] border border-[#352F26] text-xs font-mono text-purple-300 font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <Printer className="w-3.5 h-3.5 text-purple-400" />
-                      <span>{selectedApplicant.printedAt ? 'Badge Printed ✓' : 'Mark Printed'}</span>
-                    </button>
+                      <button
+                        onClick={() => {
+                          sounds.playClick();
+                          setEmailDispatchType('interview');
+                          setEmailDispatchMember(selectedApplicant);
+                        }}
+                        className="py-2.5 px-2 rounded-xl bg-[#25211A] hover:bg-[#302B22] border border-[#352F26] text-xs font-mono text-amber-300 font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        title="Send Interview Call via Gmail or Server"
+                      >
+                        <Mail className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Email</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleWhatsAppInterviewInvite(selectedApplicant)}
+                        className="py-2.5 px-2 rounded-xl bg-[#25211A] hover:bg-[#302B22] border border-[#352F26] text-xs font-mono text-amber-300 font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        title="Send Interview Invite on WhatsApp"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
+                        <span>WhatsApp</span>
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Final Admission Dispatch Group */}
+                  <div className="p-3.5 rounded-2xl bg-[#14120E] border border-emerald-900/40 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono font-bold text-emerald-400 flex items-center gap-1.5">
+                        <span>🎓</span>
+                        <span>Stage 2: Official Admission &amp; 3D Pass</span>
+                      </span>
+                      {selectedApplicant.status === 'accepted' && (
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
+                          Admitted Core
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        onClick={() => onViewLetter(selectedApplicant, 'admission')}
+                        className="py-2.5 px-2 rounded-xl bg-[#25211A] hover:bg-[#302B22] border border-[#352F26] text-xs font-mono text-emerald-300 font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        title="View Official Final Admission Letter"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Letter</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          sounds.playClick();
+                          setEmailDispatchType('admission');
+                          setEmailDispatchMember(selectedApplicant);
+                        }}
+                        className="py-2.5 px-2 rounded-xl bg-[#25211A] hover:bg-[#302B22] border border-[#352F26] text-xs font-mono text-emerald-300 font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        title="Send Admission Notice via Gmail or Server"
+                      >
+                        <Mail className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Email</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleWhatsAppInvite(selectedApplicant)}
+                        className="py-2.5 px-2 rounded-xl bg-[#25211A] hover:bg-[#302B22] border border-[#352F26] text-xs font-mono text-emerald-300 font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        title="Send Admission & Pass Link on WhatsApp"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>WhatsApp</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Print Physical Badge Toggle */}
+                  <button
+                    onClick={() => handleTogglePrinted(selectedApplicant)}
+                    className="w-full py-2.5 px-3 rounded-xl bg-[#25211A] hover:bg-[#302B22] border border-[#352F26] text-xs font-mono text-purple-300 font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-purple-400" />
+                    <span>{selectedApplicant.printedAt ? 'Physical NFC Badge: Printed ✓' : 'Mark Physical NFC Badge as Printed'}</span>
+                  </button>
                 </div>
 
               </div>
 
               {/* Admissions Decision Bottom Bar */}
-              <div className="pt-6 border-t border-[#2A2620] flex items-center gap-3">
-                {selectedApplicant.status !== 'accepted' ? (
-                  <button
-                    onClick={() => {
-                      const isCustom = drawerRoleMode === 'custom' && drawerCustomRole.trim().length > 0;
-                      const assignedRole = isCustom ? drawerCustomRole.trim() : drawerPresetRole;
-                      const customRoleVal = isCustom ? drawerCustomRole.trim() : '';
-                      handleReviewDecision(selectedApplicant.id, 'accept', assignedRole, customRoleVal);
-                    }}
-                    className="flex-1 py-3 rounded-xl bg-[#CC5A36] hover:bg-[#B34826] text-white font-mono text-xs font-bold shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <Check className="w-4 h-4" />
-                    Accept Candidate &amp; Issue Key
-                  </button>
-                ) : (
+              <div className="pt-6 border-t border-[#2A2620] space-y-2.5">
+                {selectedApplicant.status === 'pending_review' && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const isCustom = drawerRoleMode === 'custom' && drawerCustomRole.trim().length > 0;
+                        const assignedRole = isCustom ? drawerCustomRole.trim() : drawerPresetRole;
+                        const customRoleVal = isCustom ? drawerCustomRole.trim() : '';
+                        handleReviewDecision(selectedApplicant.id, 'interview', assignedRole, customRoleVal);
+                      }}
+                      className="flex-1 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-mono text-xs font-bold shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <span>🎙️</span>
+                      Shortlist for Interview
+                    </button>
+                    <button
+                      onClick={() => {
+                        const isCustom = drawerRoleMode === 'custom' && drawerCustomRole.trim().length > 0;
+                        const assignedRole = isCustom ? drawerCustomRole.trim() : drawerPresetRole;
+                        const customRoleVal = isCustom ? drawerCustomRole.trim() : '';
+                        handleReviewDecision(selectedApplicant.id, 'accept', assignedRole, customRoleVal);
+                      }}
+                      className="flex-1 py-3 rounded-xl bg-[#CC5A36] hover:bg-[#B34826] text-white font-mono text-xs font-bold shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <Check className="w-4 h-4" />
+                      Direct Accept &amp; Key
+                    </button>
+                  </div>
+                )}
+
+                {selectedApplicant.status === 'interview' && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const isCustom = drawerRoleMode === 'custom' && drawerCustomRole.trim().length > 0;
+                        const assignedRole = isCustom ? drawerCustomRole.trim() : drawerPresetRole;
+                        const customRoleVal = isCustom ? drawerCustomRole.trim() : '';
+                        handleReviewDecision(selectedApplicant.id, 'accept', assignedRole, customRoleVal);
+                      }}
+                      className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <Check className="w-4 h-4" />
+                      Accept Post-Interview &amp; Issue Key
+                    </button>
+                    <button
+                      onClick={() => handleReviewDecision(selectedApplicant.id, 'revoke')}
+                      className="px-4 py-3 rounded-xl bg-[#25211A] hover:bg-rose-950/40 border border-rose-900/30 text-rose-300 font-mono text-xs transition-all cursor-pointer"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                )}
+
+                {(selectedApplicant.status === 'accepted' || selectedApplicant.status === 'claimed') && (
                   <button
                     onClick={() => handleReviewDecision(selectedApplicant.id, 'revoke')}
-                    className="flex-1 py-3 rounded-xl bg-[#25211A] hover:bg-rose-950/40 border border-rose-900/30 text-rose-300 font-mono text-xs transition-all cursor-pointer"
+                    className="w-full py-3 rounded-xl bg-[#25211A] hover:bg-rose-950/40 border border-rose-900/30 text-rose-300 font-mono text-xs transition-all cursor-pointer"
                   >
                     Revoke Acceptance &amp; Founder Code
                   </button>
@@ -2201,6 +2404,7 @@ function onFormSubmit(e) {
       {/* Official Acceptance Email Dispatch Modal */}
       <EmailDispatchModal
         member={emailDispatchMember}
+        initialType={emailDispatchType}
         onClose={() => setEmailDispatchMember(null)}
         onSuccess={() => {
           loadData();

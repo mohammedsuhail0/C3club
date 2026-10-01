@@ -1,21 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Copy, Check, ExternalLink, X, Send, Sparkles, Shield, AlertCircle, Code } from 'lucide-react';
 import { MemberRecord, sendAcceptanceEmailApi, saveEmailConfigApi } from '../utils/api';
-import { generateAcceptanceLetterHtml } from '../utils/letterHtml';
+import { generateAcceptanceLetterHtml, generateInterviewLetterHtml } from '../utils/letterHtml';
 import { sounds } from '../utils/audio';
 
 interface EmailDispatchModalProps {
   member: MemberRecord | null;
   onClose: () => void;
   onSuccess: (memberId: string) => void;
+  initialType?: 'interview' | 'admission';
 }
 
 export const EmailDispatchModal: React.FC<EmailDispatchModalProps> = ({
   member,
   onClose,
-  onSuccess
+  onSuccess,
+  initialType = 'admission'
 }) => {
+  const [emailLetterType, setEmailLetterType] = useState<'interview' | 'admission'>(() => {
+    return initialType || (member?.status === 'interview' ? 'interview' : 'admission');
+  });
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'gmail' | 'direct'>('gmail');
   const [directMode, setDirectMode] = useState<'script' | 'password'>('script');
@@ -25,11 +30,32 @@ export const EmailDispatchModal: React.FC<EmailDispatchModalProps> = ({
   const [isSendingDirect, setIsSendingDirect] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ text: string; success: boolean } | null>(null);
 
+  useEffect(() => {
+    if (initialType) {
+      setEmailLetterType(initialType);
+    } else if (member?.status === 'interview') {
+      setEmailLetterType('interview');
+    } else {
+      setEmailLetterType('admission');
+    }
+  }, [initialType, member?.status, member?.id]);
+
   if (!member) return null;
 
-  const cleanKey = String(member.founderKey || '').replace(/^(C3-)?(FND-)?/i, '');
-  const subject = `🎉 Official Notice of Admission: C3 Batch 01 (Founder Key: ${cleanKey})`;
-  const letterHtml = generateAcceptanceLetterHtml(member);
+  const isInterview = emailLetterType === 'interview';
+  const cleanKey = String(member.founderKey || '').replace(/^(C3-)?(FND-)?/i, '') || (member.phone ? member.phone.replace(/\D/g, '').slice(-4).toUpperCase() : 'PEND');
+  const refCode = isInterview ? `ISLEC/C3/B01/INT/2026/${cleanKey}` : `ISLEC/C3/B01/ADM/2026/${cleanKey}`;
+  const subject = isInterview
+    ? `🎙️ Official Call for Technical Interview: C3 Batch 01 (Candidate: ${cleanKey})`
+    : `🎉 Official Notice of Admission: C3 Batch 01 (Founder Key: ${cleanKey})`;
+
+  const letterHtml = isInterview
+    ? generateInterviewLetterHtml(member)
+    : generateAcceptanceLetterHtml(member);
+
+  const plainTextBody = isInterview
+    ? `OFFICE OF THE C3 ADMISSIONS COUNCIL\nDept. of Information Technology · ISL Engineering College (Autonomous)\nRef: ${refCode}\n\nDear ${member.name},\n\nYou have been shortlisted for an in-person technical evaluation and team-fit interview for C3 Founding Cohort (Batch 01).\n\nVenue: Innovation Lab 3 / C3 Campus Office · Dept. of IT, ISLEC Campus\nTimings: Monday to Thursday · 10:00 AM – 1:00 PM\nCandidate Tracking Code: ${cleanKey}\n\nView Digital Interview Letter:\n${window.location.origin}/?letter=${cleanKey}&type=interview\n\nWhat to Bring:\n1. Laptop with development setup\n2. Live GitHub repositories or projects`
+    : `OFFICE OF THE C3 ADMISSIONS COUNCIL\nDept. of Information Technology · ISL Engineering College (Autonomous)\nRef: ${refCode}\n\nDear ${member.name},\n\nCongratulations! Your application for C3 Founding Cohort (Batch 01) has been officially approved.\n\nFounder Key: ${cleanKey}\nClaim 3D Pass: ${window.location.origin}/?code=${cleanKey}\nView Acceptance Letter: ${window.location.origin}/?letter=${cleanKey}\n\nKickoff: Monday, 10:00 AM – 1:00 PM at C3 Campus Office / Lab 3.`;
 
   const googleAppsScriptMailerCode = `// C3 1-Click Native Gmail Mailer (Zero Password Needed)
 // Deploy at script.google.com under c3.collective.in@gmail.com
@@ -56,9 +82,7 @@ function doPost(e) {
     try {
       sounds.playSuccess();
       const blobHtml = new Blob([letterHtml], { type: 'text/html' });
-      const blobText = new Blob([
-        `OFFICE OF THE C3 ADMISSIONS COUNCIL\nDept. of Information Technology · ISL Engineering College\nFounder Key: ${cleanKey}\nAdmitted: ${member.name}\n\nClaim Pass: ${window.location.origin}/?code=${cleanKey}`
-      ], { type: 'text/plain' });
+      const blobText = new Blob([plainTextBody], { type: 'text/plain' });
 
       if (navigator.clipboard && window.ClipboardItem) {
         await navigator.clipboard.write([
@@ -83,7 +107,7 @@ function doPost(e) {
   const handleOpenGmailCompose = () => {
     sounds.playClick();
     const senderEmail = 'c3.collective.in@gmail.com';
-    const gmailUrl = `https://mail.google.com/mail/?authuser=${encodeURIComponent(senderEmail)}&view=cm&fs=1&to=${encodeURIComponent(member.email)}&su=${encodeURIComponent(subject)}`;
+    const gmailUrl = `https://mail.google.com/mail/?authuser=${encodeURIComponent(senderEmail)}&view=cm&fs=1&to=${encodeURIComponent(member.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainTextBody)}`;
     window.open(gmailUrl, '_blank');
   };
 
@@ -126,13 +150,13 @@ function doPost(e) {
       }
 
       // Dispatch email
-      const res = await sendAcceptanceEmailApi({ id: member.id, key: member.founderKey });
+      const res = await sendAcceptanceEmailApi({ id: member.id, key: member.founderKey, type: emailLetterType });
       setIsSendingDirect(false);
 
       if (res.success) {
         sounds.playSuccess();
         setStatusMessage({ 
-          text: `✓ Official graphic HTML letter sent directly to ${member.email}!`, 
+          text: `✓ Official graphic ${isInterview ? 'interview call' : 'admission notice'} sent directly to ${member.email}!`, 
           success: true 
         });
         onSuccess(member.id);
@@ -176,9 +200,13 @@ function doPost(e) {
               </div>
               <div>
                 <h3 className="font-serif text-base font-bold text-white flex items-center gap-2">
-                  Official Acceptance Letter Dispatch
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-800/40">
-                    GRAPHIC CARD
+                  <span>{isInterview ? '🎙️ Technical Interview Dispatch' : '🎓 Official Admission Dispatch'}</span>
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                    isInterview 
+                      ? 'bg-amber-950/60 text-amber-300 border-amber-800/40' 
+                      : 'bg-emerald-950/60 text-emerald-300 border-emerald-800/40'
+                  }`}>
+                    {isInterview ? 'INTERVIEW CALL' : 'FINAL ADMISSION'}
                   </span>
                 </h3>
                 <p className="text-xs font-mono text-[#8C8275]">
@@ -192,6 +220,40 @@ function doPost(e) {
             >
               <X className="w-5 h-5" />
             </button>
+          </div>
+
+          {/* Dual-Letter Template Switcher */}
+          <div className="px-6 py-3 bg-[#13110D] border-b border-[#29241C] flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-mono text-[#8C8275] uppercase tracking-wider">Template:</span>
+              <div className="inline-flex rounded-xl bg-[#1C1813] p-1 border border-[#332C22]">
+                <button
+                  type="button"
+                  onClick={() => setEmailLetterType('interview')}
+                  className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                    isInterview
+                      ? 'bg-[#CC5A36] text-white shadow-sm font-bold'
+                      : 'text-[#8C8275] hover:text-[#D4CDC3]'
+                  }`}
+                >
+                  <span>🎙️ Technical Interview Call</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEmailLetterType('admission')}
+                  className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                    !isInterview
+                      ? 'bg-emerald-700 text-white shadow-sm font-bold'
+                      : 'text-[#8C8275] hover:text-[#D4CDC3]'
+                  }`}
+                >
+                  <span>🎓 Final Admission Notice</span>
+                </button>
+              </div>
+            </div>
+            <div className="text-[11px] font-mono text-[#CC5A36] bg-[#CC5A36]/10 px-2.5 py-1 rounded-md border border-[#CC5A36]/20">
+              REF: {refCode}
+            </div>
           </div>
 
           {/* Tab Selector */}
@@ -405,7 +467,7 @@ function doPost(e) {
           {/* Footer note */}
           <div className="px-6 py-3 border-t border-[#29241C] bg-[#14120E] text-[11px] font-mono text-[#7D7467] flex items-center justify-between">
             <span>C3 Admissions Council &bull; Dept. of Information Technology</span>
-            <span className="text-[#CC5A36]">REF: ISLEC/C3/B01/ADM/2026/{cleanKey}</span>
+            <span className="text-[#CC5A36]">REF: {refCode}</span>
           </div>
         </motion.div>
       </div>

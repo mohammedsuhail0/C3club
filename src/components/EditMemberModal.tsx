@@ -39,7 +39,7 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
 
   const [role, setRole] = useState('Technical & AI Architect');
   const [customRole, setCustomRole] = useState('');
-  const [status, setStatus] = useState<'pending_review' | 'accepted' | 'rejected' | 'claimed'>('pending_review');
+  const [status, setStatus] = useState<'pending_review' | 'interview' | 'accepted' | 'rejected' | 'claimed'>('pending_review');
 
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -403,9 +403,10 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
                 <Shield className="w-3.5 h-3.5 text-[#CC5A36]" />
                 Admission Status
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {[
                   { key: 'pending_review', label: 'Pending', color: 'border-amber-700/50 text-amber-300' },
+                  { key: 'interview', label: 'Interview', color: 'border-amber-500/50 text-amber-300' },
                   { key: 'accepted', label: 'Accepted', color: 'border-emerald-700/50 text-emerald-300' },
                   { key: 'claimed', label: 'Claimed', color: 'border-blue-700/50 text-blue-300' },
                   { key: 'rejected', label: 'Rejected', color: 'border-red-700/50 text-red-300' }
