@@ -15,8 +15,15 @@ import { Marquee } from './components/animations/Marquee';
 import { EngineeringBackground } from './components/animations/EngineeringBackground';
 import { sounds } from './utils/audio';
 import { fetchMemberByKey, MemberRecord } from './utils/api';
+import { useDeviceMode } from './hooks/useDeviceMode';
+import { DeviceModeSwitcher } from './components/common/DeviceModeSwitcher';
+import { MobileAppLayout } from './components/mobile/MobileAppLayout';
+import { DesktopCommandStudio } from './components/desktop/DesktopCommandStudio';
 
 export function App() {
+  const { mode, setMode, isDesktop, isMobile } = useDeviceMode();
+  const [desktopLayout, setDesktopLayout] = useState<'studio' | 'monumental'>('studio');
+
   const [isApplyOpen, setIsApplyOpen] = useState<boolean>(false);
   const [isAdminMode, setIsAdminMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -30,11 +37,13 @@ export function App() {
     return false;
   });
 
-  // Ensure body and html overflow are never locked and native browser scrolling is always active
+  // Ensure body and html overflow are clean when on desktop scrolling mode
   useEffect(() => {
-    document.body.style.overflow = '';
-    document.documentElement.style.overflow = '';
-  }, []);
+    if (isDesktop && desktopLayout === 'monumental') {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+  }, [isDesktop, desktopLayout]);
 
   // Acceptance Letter & Pass state
   const [isLetterOpen, setIsLetterOpen] = useState<boolean>(false);
@@ -106,6 +115,7 @@ export function App() {
 
     const codeParam = searchParams.get('code') || hashParams.get('code') || searchParams.get('fnd') || hashParams.get('fnd') || searchParams.get('key') || hashParams.get('key');
     if (codeParam) {
+      setActivePassKey(codeParam);
       const scrollPass = () => {
         document.getElementById('founding-pass')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       };
@@ -153,55 +163,100 @@ export function App() {
     );
   }
 
+  // 1. DEDICATED MOBILE VIEW: STRICTLY ZERO SCROLL NATIVE WEB APP
+  if (isMobile) {
+    return (
+      <div className="fixed inset-0 h-[100dvh] max-h-[100dvh] w-full overflow-hidden select-none bg-[#FAF8F5] dark:bg-[#141210]">
+        <EngineeringBackground />
+        
+        <MobileAppLayout
+          onOpenApply={() => setIsApplyOpen(true)}
+          onOpenOrganizer={() => {
+            setIsAdminMode(true);
+            window.history.pushState(null, '', '/admin');
+          }}
+          activePassKey={activePassKey}
+        />
+
+        {/* Floating View Mode Switcher: Toggle between Auto, Desktop, and Mobile */}
+        <DeviceModeSwitcher
+          mode={mode}
+          onSetMode={setMode}
+          isDesktop={isDesktop}
+        />
+
+        <ApplyModal
+          isOpen={isApplyOpen}
+          onClose={() => setIsApplyOpen(false)}
+        />
+
+        <AcceptanceLetterModal
+          isOpen={isLetterOpen}
+          onClose={() => setIsLetterOpen(false)}
+          member={letterMember}
+          initialType={letterType}
+          onClaimPass={handleClaimFromLetter}
+        />
+      </div>
+    );
+  }
+
+  // 2. DEDICATED DESKTOP VIEW
   return (
     <div className="min-h-screen bg-claude-bg dark:bg-claude-darkBg text-claude-text dark:text-claude-darkText transition-colors duration-200 bg-paper-pattern flex flex-col font-sans relative overflow-x-hidden">
       
-      {/* Dynamic Scroll Progress Bar */}
-      <ScrollProgress />
-
       {/* Interactive Cursor Spotlight */}
       <CursorGlow />
 
       {/* Modern Engineering Blueprint Grid (Zero Particles) */}
       <EngineeringBackground />
 
-      {/* Ultra-Minimal Transparent Header (ONLY the C3 Logo) */}
-      <Navbar />
+      {/* Floating View Mode Switcher: Toggle between Auto, Desktop, and Mobile */}
+      <DeviceModeSwitcher
+        mode={mode}
+        onSetMode={setMode}
+        isDesktop={isDesktop}
+      />
 
-      {/* Main Site Content: Clean, Story-Driven Flow */}
-      <main className="relative z-10 w-full flex flex-col">
-        {/* 1. Fullscreen Monumental Hero Hook */}
-        <Hero onOpenApply={() => setIsApplyOpen(true)} />
-
-        {/* 2. What is C3? The 4 Core Pillars & Routine */}
-        <WhatIsC3 />
-
-        {/* 3. Tech Stack Marquee */}
-        <Marquee />
-
-        {/* 4. Official Accreditation Strip */}
-        <AccreditationStrip />
-
-        {/* 5. Week 1 Kickoff Sessions */}
-        <EventsWeek1 />
-
-        {/* 6. Climax: Interactive 3D Founding Pass Generator */}
-        <FoundingPass 
-          onOpenApply={() => setIsApplyOpen(true)} 
-          externalKey={activePassKey}
-        />
-
-        {/* 7. Minimal Footer with Organizer Command Link */}
-        <Footer 
+      {desktopLayout === 'studio' ? (
+        /* Widescreen Command Studio for Large Screens */
+        <DesktopCommandStudio
           onOpenApply={() => setIsApplyOpen(true)}
           onOpenOrganizer={() => {
             setIsAdminMode(true);
             window.history.pushState(null, '', '/admin');
           }}
+          activePassKey={activePassKey}
+          onToggleFullSite={() => setDesktopLayout('monumental')}
         />
-      </main>
+      ) : (
+        /* Classic Monumental Scrolling Flow */
+        <>
+          <ScrollProgress />
+          <Navbar onToggleStudio={() => setDesktopLayout('studio')} />
 
-      {/* Quick Application Modal with QR Code */}
+          <main className="relative z-10 w-full flex flex-col">
+            <Hero onOpenApply={() => setIsApplyOpen(true)} />
+            <WhatIsC3 />
+            <Marquee />
+            <AccreditationStrip />
+            <EventsWeek1 />
+            <FoundingPass 
+              onOpenApply={() => setIsApplyOpen(true)} 
+              externalKey={activePassKey}
+            />
+            <Footer 
+              onOpenApply={() => setIsApplyOpen(true)}
+              onOpenOrganizer={() => {
+                setIsAdminMode(true);
+                window.history.pushState(null, '', '/admin');
+              }}
+            />
+          </main>
+        </>
+      )}
+
+      {/* Quick Application Modal */}
       <ApplyModal
         isOpen={isApplyOpen}
         onClose={() => setIsApplyOpen(false)}
