@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 
 interface ScrollZoomPreloaderProps {
@@ -6,227 +7,192 @@ interface ScrollZoomPreloaderProps {
 }
 
 export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComplete }) => {
-  const [progress, setProgress] = useState(0);
-  const [isDone, setIsDone] = useState(false);
-  const targetProgress = useRef(0);
-  const currentProgress = useRef(0);
-  const animFrameId = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
-  const isDoneRef = useRef(false);
+  const [phase, setPhase] = useState<'idle' | 'zooming' | 'done'>('idle');
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const isTriggeredRef = useRef(false);
 
   useEffect(() => {
-    // Start at top of page on reload/refresh
+    // Keep scroll clean
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
     }
-    window.scrollTo(0, 0);
-
-    // Keep body overflow clean
     document.body.style.overflow = '';
     document.documentElement.style.overflow = '';
 
-    const cleanupListeners = () => {
-      if (isDoneRef.current) return;
-      isDoneRef.current = true;
-      if (animFrameId.current) {
-        cancelAnimationFrame(animFrameId.current);
-        animFrameId.current = null;
-      }
+    const triggerZoom = () => {
+      if (isTriggeredRef.current) return;
+      isTriggeredRef.current = true;
+      setPhase('zooming');
+      setTimeout(() => {
+        setPhase('done');
+        onCompleteRef.current?.();
+      }, 550);
+    };
+
+    // Auto-advance after 800ms of viewing so user is NEVER stuck
+    const autoTimer = setTimeout(() => {
+      triggerZoom();
+    }, 800);
+
+    // Any user scroll, touch, or key action immediately triggers zoom reveal
+    const handleWheel = () => {
+      triggerZoom();
+    };
+
+    const handleTouch = () => {
+      triggerZoom();
+    };
+
+    const handleKeyDown = () => {
+      triggerZoom();
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: true });
+    window.addEventListener('touchstart', handleTouch, { passive: true });
+    window.addEventListener('touchmove', handleTouch, { passive: true });
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      clearTimeout(autoTimer);
       window.removeEventListener('wheel', handleWheel);
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchstart', handleTouch);
+      window.removeEventListener('touchmove', handleTouch);
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
     };
+  }, []);
 
-    // Physics Lerp loop: Smoothly catches up with natural, responsive feel
-    const loop = () => {
-      if (isDoneRef.current) return;
-
-      // Responsive interpolation (balanced between too fast and too slow)
-      currentProgress.current += (targetProgress.current - currentProgress.current) * 0.13;
-      setProgress(currentProgress.current);
-
-      // Finish cleanly once user scrolls through the zoom
-      if (currentProgress.current >= 0.92 && targetProgress.current >= 0.98) {
-        setProgress(1);
-        cleanupListeners();
-        setIsDone(true);
-        if (onComplete) onComplete();
-        return;
-      }
-
-      animFrameId.current = requestAnimationFrame(loop);
-    };
-
-    animFrameId.current = requestAnimationFrame(loop);
-
-    // Wheel event: 100% USER DRIVEN. Balanced natural scroll speed.
-    const handleWheel = (e: WheelEvent) => {
-      if (isDoneRef.current) return;
-
-      e.preventDefault();
-      // Sweet spot sensitivity: ~5 notches of wheel or 1 natural trackpad swipe
-      const rawDelta = e.deltaY / 480;
-      const delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), 0.20);
-      targetProgress.current = Math.min(Math.max(targetProgress.current + delta, 0), 1);
-    };
-
-    // Touch events for mobile: 1 natural swipe up zooms through
-    const handleTouchStart = (e: TouchEvent) => {
-      touchStartY.current = e.touches[0].clientY;
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (isDoneRef.current || touchStartY.current === null) return;
-      const currentY = e.touches[0].clientY;
-      const rawDelta = (touchStartY.current - currentY) / 380;
-      const delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), 0.22);
-      touchStartY.current = currentY;
-
-      e.preventDefault();
-      targetProgress.current = Math.min(Math.max(targetProgress.current + delta, 0), 1);
-    };
-
-    const handleTouchEnd = () => {
-      touchStartY.current = null;
-    };
-
-    // Keyboard support: ArrowDown / PageDown increments zoom, ArrowUp / PageUp decrements zoom. Escape skips.
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (isDoneRef.current) return;
-      if (e.key === 'ArrowDown' || e.key === 'PageDown') {
-        e.preventDefault();
-        targetProgress.current = Math.min(targetProgress.current + 0.14, 1);
-      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-        e.preventDefault();
-        targetProgress.current = Math.max(targetProgress.current - 0.14, 0);
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        targetProgress.current = 1;
-      }
-    };
-
-    window.addEventListener('wheel', handleWheel, { passive: false });
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-    window.addEventListener('touchend', handleTouchEnd, { passive: true });
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      cleanupListeners();
-    };
-  }, [onComplete]);
-
-  if (isDone) {
-    return null;
-  }
-
-  // Pure scroll-driven transformation values:
-  // When progress = 0: Centered C3 monogram at 1x scale, opaque background
-  // When progress = 1: C3 scales to 14x, C flies left (-120vw), 3 flies right (+120vw), backdrop dissolves
-  const clamped = Math.min(Math.max(progress, 0), 1);
-  const scale = 1 + Math.pow(clamped, 1.35) * 13;          // 1x -> 14x dramatic zoom
-  const xLeft = -(Math.pow(clamped, 1.2) * 125);           // 0vw -> -125vw (C glides left)
-  const xRight = Math.pow(clamped, 1.2) * 125;             // 0vw -> +125vw (3 glides right)
-  
-  // Background fades out gradually between 0.35 and 0.95 so Hero emerges cleanly behind
-  const bgOpacity = clamped < 0.35 ? 1 : Math.max(0, 1 - (clamped - 0.35) / 0.60);
-  
-  // Emblem fades as it zooms off-screen between 0.60 and 1.0
-  const emblemOpacity = clamped < 0.60 ? 1 : Math.max(0, 1 - (clamped - 0.60) / 0.38);
-  
-  // Ambient glow
-  const glowOpacity = Math.max(0, 1 - clamped * 1.5);
-  
-  // Instruction hint fades immediately on first scroll
-  const hintOpacity = Math.max(0, 1 - clamped * 4.5);
+  const smoothEase = [0.76, 0, 0.24, 1] as const;
 
   return (
-    <div
-      style={{
-        pointerEvents: clamped > 0.85 ? 'none' : 'auto',
-      }}
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden select-none"
-    >
-      {/* Seamless Backdrop: smoothly reveals the site underneath as user scrolls */}
-      <div
-        style={{ opacity: bgOpacity }}
-        className="absolute inset-0 bg-claude-bg dark:bg-claude-darkBg pointer-events-none transition-opacity duration-75"
-      />
-
-      {/* Warm Terracotta Ambient Glow behind C3 */}
-      <div
-        style={{
-          opacity: glowOpacity,
-          transform: `scale(${1 + clamped * 1.8})`,
-        }}
-        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full bg-claude-terracotta/25 dark:bg-claude-terracotta/35 blur-[140px] -z-10 will-change-transform"
-      />
-
-      {/* The Official C3 Monogram Logo Split Assembly: Scales & splits strictly as user scrolls */}
-      <div className="relative z-30 flex items-center justify-center select-none pointer-events-none will-change-transform">
-        <div className="relative w-[280px] xs:w-[340px] sm:w-[440px] md:w-[500px] aspect-[551/388] flex items-center justify-center drop-shadow-2xl">
-          {/* Left C Half (Glides to the LEFT) */}
-          <div
-            style={{
-              transform: `translateX(${xLeft}vw) scale(${scale})`,
-              opacity: emblemOpacity,
+    <AnimatePresence>
+      {phase !== 'done' && (
+        <motion.div
+          initial={{ opacity: 1 }}
+          animate={{
+            opacity: phase === 'zooming' ? 0 : 1,
+          }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.55, ease: smoothEase }}
+          onClick={() => {
+            if (!isTriggeredRef.current) {
+              isTriggeredRef.current = true;
+              setPhase('zooming');
+              setTimeout(() => {
+                setPhase('done');
+                onCompleteRef.current?.();
+              }, 550);
+            }
+          }}
+          className={`fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-claude-bg dark:bg-claude-darkBg select-none cursor-pointer ${
+            phase === 'zooming' ? 'pointer-events-none' : ''
+          }`}
+        >
+          {/* Warm Terracotta Ambient Glow behind C3 */}
+          <motion.div
+            initial={{ opacity: 0.7, scale: 1 }}
+            animate={{
+              opacity: phase === 'zooming' ? 0 : 0.7,
+              scale: phase === 'zooming' ? 2.8 : 1,
             }}
-            className="absolute inset-0 w-full h-full pointer-events-none will-change-transform"
-          >
-            <img
-              src="/assets/c3_logo_c.png"
-              alt="C3 Monogram - C"
-              className="w-full h-full object-contain filter drop-shadow-[0_12px_30px_rgba(204,90,54,0.35)]"
-            />
+            transition={{ duration: 0.6, ease: smoothEase }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full bg-claude-terracotta/25 dark:bg-claude-terracotta/35 blur-[140px] -z-10 pointer-events-none"
+          />
+
+          {/* The Official C3 Monogram Logo Split Assembly: Scales & splits on enter */}
+          <div className="relative z-30 flex items-center justify-center select-none pointer-events-none">
+            <motion.div
+              initial={{ scale: 1 }}
+              animate={{
+                scale: phase === 'zooming' ? 12 : 1,
+              }}
+              transition={{ duration: 0.6, ease: smoothEase }}
+              className="relative w-[280px] xs:w-[340px] sm:w-[440px] md:w-[500px] aspect-[551/388] flex items-center justify-center drop-shadow-2xl"
+            >
+              {/* Left C Half (Glides smoothly to the LEFT) */}
+              <motion.div
+                initial={{ x: 0, opacity: 1 }}
+                animate={{
+                  x: phase === 'zooming' ? '-130vw' : 0,
+                  opacity: phase === 'zooming' ? 0 : 1,
+                }}
+                transition={{
+                  x: { duration: 0.6, ease: smoothEase },
+                  opacity: { duration: 0.45, ease: 'easeOut' },
+                }}
+                className="absolute inset-0 w-full h-full pointer-events-none"
+              >
+                <img
+                  src="/assets/c3_logo_c.png"
+                  alt="C3 Monogram - C"
+                  className="w-full h-full object-contain filter drop-shadow-[0_12px_30px_rgba(204,90,54,0.35)]"
+                />
+              </motion.div>
+
+              {/* Right 3 Half (Glides smoothly to the RIGHT) */}
+              <motion.div
+                initial={{ x: 0, opacity: 1 }}
+                animate={{
+                  x: phase === 'zooming' ? '130vw' : 0,
+                  opacity: phase === 'zooming' ? 0 : 1,
+                }}
+                transition={{
+                  x: { duration: 0.6, ease: smoothEase },
+                  opacity: { duration: 0.45, ease: 'easeOut' },
+                }}
+                className="absolute inset-0 w-full h-full pointer-events-none"
+              >
+                <img
+                  src="/assets/c3_logo_3.png"
+                  alt="C3 Monogram - 3"
+                  className="w-full h-full object-contain filter drop-shadow-[0_12px_30px_rgba(204,90,54,0.35)]"
+                />
+              </motion.div>
+            </motion.div>
           </div>
 
-          {/* Right 3 Half (Glides to the RIGHT) */}
-          <div
-            style={{
-              transform: `translateX(${xRight}vw) scale(${scale})`,
-              opacity: emblemOpacity,
+          {/* Scroll Instruction (Manual Scrub Indicator) */}
+          <motion.div
+            initial={{ opacity: 0.8, y: 0 }}
+            animate={{
+              opacity: phase === 'zooming' ? 0 : 0.8,
+              y: phase === 'zooming' ? 15 : 0,
             }}
-            className="absolute inset-0 w-full h-full pointer-events-none will-change-transform"
+            transition={{ duration: 0.25 }}
+            className="absolute bottom-8 sm:bottom-10 z-40 flex items-center justify-center text-center select-none pointer-events-none px-4"
           >
-            <img
-              src="/assets/c3_logo_3.png"
-              alt="C3 Monogram - 3"
-              className="w-full h-full object-contain filter drop-shadow-[0_12px_30px_rgba(204,90,54,0.35)]"
-            />
-          </div>
-        </div>
-      </div>
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-mono tracking-[0.25em] uppercase text-claude-text dark:text-claude-darkText font-semibold">
+              <span>Scroll down or tap to enter</span>
+              <ChevronDown className="w-4 h-4 text-claude-terracotta animate-bounce" />
+            </div>
+          </motion.div>
 
-      {/* Scroll Instruction (Manual Scrub Indicator) */}
-      <div
-        style={{
-          opacity: hintOpacity,
-          transform: `translateY(${clamped * 20}px)`,
-        }}
-        className="absolute bottom-8 sm:bottom-10 z-40 flex items-center justify-center text-center select-none pointer-events-none px-4"
-      >
-        <div className="flex items-center gap-2 text-xs sm:text-sm font-mono tracking-[0.25em] uppercase text-claude-text dark:text-claude-darkText font-semibold">
-          <span>Scroll down to zoom C3</span>
-          <ChevronDown className="w-4 h-4 text-claude-terracotta animate-bounce" />
-        </div>
-      </div>
-
-      {/* Accessible Skip Button (top-right, non-intrusive) */}
-      <button
-        type="button"
-        onClick={() => {
-          targetProgress.current = 1;
-        }}
-        style={{ opacity: hintOpacity }}
-        className="absolute top-6 right-6 z-50 text-[11px] font-mono tracking-wider text-claude-subtext hover:text-claude-text dark:hover:text-claude-darkText px-3 py-1.5 rounded-full border border-claude-border dark:border-claude-darkBorder bg-white/40 dark:bg-black/40 backdrop-blur-sm transition-all cursor-pointer"
-      >
-        Skip &rarr;
-      </button>
-    </div>
+          {/* Accessible Skip Button (top-right, non-intrusive, NO PILLS) */}
+          <motion.button
+            type="button"
+            initial={{ opacity: 0.8 }}
+            animate={{
+              opacity: phase === 'zooming' ? 0 : 0.8,
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isTriggeredRef.current) {
+                isTriggeredRef.current = true;
+                setPhase('zooming');
+                setTimeout(() => {
+                  setPhase('done');
+                  onCompleteRef.current?.();
+                }, 350);
+              }
+            }}
+            className="absolute top-6 right-6 z-50 text-[11px] font-mono tracking-wider text-claude-subtext hover:text-claude-text dark:hover:text-claude-darkText px-3 py-1.5 rounded-lg border border-claude-border dark:border-claude-darkBorder bg-white/40 dark:bg-black/40 backdrop-blur-sm transition-all cursor-pointer"
+          >
+            Skip &rarr;
+          </motion.button>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
-

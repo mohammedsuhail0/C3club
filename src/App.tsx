@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { WhatIsC3 } from './components/WhatIsC3';
@@ -14,9 +14,12 @@ import { CursorGlow } from './components/animations/CursorGlow';
 import { Marquee } from './components/animations/Marquee';
 import { EngineeringBackground } from './components/animations/EngineeringBackground';
 import { ScrollZoomPreloader } from './components/animations/ScrollZoomPreloader';
+import { MobileAppLayout } from './components/mobile/MobileAppLayout';
+import { useDeviceMode } from './hooks/useDeviceMode';
 import { fetchMemberByKey, MemberRecord } from './utils/api';
 
 export function App() {
+  const { mode, setMode, isMobile, isDesktop } = useDeviceMode();
   const [isApplyOpen, setIsApplyOpen] = useState<boolean>(false);
   const [isAdminMode, setIsAdminMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -40,6 +43,10 @@ export function App() {
     }
     return false;
   });
+
+  const handlePreloaderComplete = useCallback(() => {
+    setIsPreloaderDone(true);
+  }, []);
 
   // Ensure body and html overflow are never locked and native browser scrolling is always active
   useEffect(() => {
@@ -155,6 +162,42 @@ export function App() {
     );
   }
 
+  // ─── DEDICATED ZERO-SCROLL MOBILE APP VIEW (FOR PHONES) ───
+  if (isMobile) {
+    return (
+      <div className="h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-claude-bg dark:bg-claude-darkBg text-claude-text dark:text-claude-darkText font-sans relative">
+        {/* Scroll & Touch-Driven C3 Zoom Preloader */}
+        {!isPreloaderDone && (
+          <ScrollZoomPreloader onComplete={handlePreloaderComplete} />
+        )}
+
+        <MobileAppLayout
+          onOpenApply={() => setIsApplyOpen(true)}
+          onOpenOrganizer={() => {
+            setIsAdminMode(true);
+            window.history.pushState(null, '', '/admin');
+          }}
+          activePassKey={activePassKey}
+        />
+
+        {/* Quick Application Modal with QR Code */}
+        <ApplyModal
+          isOpen={isApplyOpen}
+          onClose={() => setIsApplyOpen(false)}
+        />
+
+        {/* Official Collegiate Acceptance Letter Modal */}
+        <AcceptanceLetterModal
+          isOpen={isLetterOpen}
+          onClose={() => setIsLetterOpen(false)}
+          member={letterMember}
+          initialType={letterType}
+          onClaimPass={handleClaimFromLetter}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-claude-bg dark:bg-claude-darkBg text-claude-text dark:text-claude-darkText transition-colors duration-200 bg-paper-pattern flex flex-col font-sans relative overflow-x-hidden">
       
@@ -172,7 +215,7 @@ export function App() {
 
       {/* Scroll-Driven C3 Zoom Preloader: User controls the zoom via scrolling */}
       {!isPreloaderDone && (
-        <ScrollZoomPreloader onComplete={() => setIsPreloaderDone(true)} />
+        <ScrollZoomPreloader onComplete={handlePreloaderComplete} />
       )}
 
       {/* Main Site Content: Clean, Story-Driven Flow */}
