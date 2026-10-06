@@ -70,18 +70,12 @@ export function App() {
       requestMobileFullscreen();
     };
 
-    window.addEventListener('touchstart', handleGesture, { capture: true, passive: true });
-    window.addEventListener('touchend', handleGesture, { capture: true, passive: true });
     window.addEventListener('pointerdown', handleGesture, { capture: true, passive: true });
-    window.addEventListener('click', handleGesture, { capture: true, passive: true });
-    window.addEventListener('wheel', handleGesture, { capture: true, passive: true });
+    window.addEventListener('touchstart', handleGesture, { capture: true, passive: true });
 
     return () => {
-      window.removeEventListener('touchstart', handleGesture, { capture: true });
-      window.removeEventListener('touchend', handleGesture, { capture: true });
       window.removeEventListener('pointerdown', handleGesture, { capture: true });
-      window.removeEventListener('click', handleGesture, { capture: true });
-      window.removeEventListener('wheel', handleGesture, { capture: true });
+      window.removeEventListener('touchstart', handleGesture, { capture: true });
     };
   }, [isMobile]);
 

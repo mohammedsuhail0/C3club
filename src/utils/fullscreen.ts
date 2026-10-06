@@ -1,6 +1,32 @@
 // Cross-browser Fullscreen utility strictly for mobile view
+let isRequesting = false;
+let hasRequested = false;
+
+if (typeof document !== 'undefined') {
+  const resetIfExited = () => {
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element;
+      mozFullScreenElement?: Element;
+      msFullscreenElement?: Element;
+    };
+    const isFs = Boolean(
+      doc.fullscreenElement ||
+      doc.webkitFullscreenElement ||
+      doc.mozFullScreenElement ||
+      doc.msFullscreenElement
+    );
+    if (!isFs) {
+      hasRequested = false;
+    }
+  };
+
+  document.addEventListener('fullscreenchange', resetIfExited, { passive: true });
+  document.addEventListener('webkitfullscreenchange', resetIfExited, { passive: true });
+}
+
 export function requestMobileFullscreen() {
   if (typeof document === 'undefined') return;
+  if (isRequesting || hasRequested) return;
 
   const doc = document as Document & {
     webkitFullscreenElement?: Element;
@@ -15,7 +41,10 @@ export function requestMobileFullscreen() {
     doc.msFullscreenElement
   );
 
-  if (isAlreadyFullscreen) return;
+  if (isAlreadyFullscreen) {
+    hasRequested = true;
+    return;
+  }
 
   const el = document.documentElement as HTMLElement & {
     webkitRequestFullscreen?: () => Promise<void>;
@@ -23,17 +52,35 @@ export function requestMobileFullscreen() {
     msRequestFullscreen?: () => Promise<void>;
   };
 
+  isRequesting = true;
+  hasRequested = true;
+
   try {
     if (el.requestFullscreen) {
-      el.requestFullscreen().catch(() => {});
+      el.requestFullscreen()
+        .catch(() => {
+          hasRequested = false;
+        })
+        .finally(() => {
+          isRequesting = false;
+        });
     } else if (el.webkitRequestFullscreen) {
       el.webkitRequestFullscreen();
+      isRequesting = false;
     } else if (el.mozRequestFullScreen) {
       el.mozRequestFullScreen();
+      isRequesting = false;
     } else if (el.msRequestFullscreen) {
       el.msRequestFullscreen();
+      isRequesting = false;
+    } else {
+      isRequesting = false;
+      hasRequested = false;
     }
-  } catch {}
+  } catch {
+    isRequesting = false;
+    hasRequested = false;
+  }
 }
 
 export function exitFullscreenIfActive() {

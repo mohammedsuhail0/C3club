@@ -90,7 +90,6 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
 
     const handleTouchMove = (e: TouchEvent) => {
       if (isDoneRef.current || touchStartY.current === null) return;
-      requestMobileFullscreen();
       const currentY = e.touches[0].clientY;
       const rawDelta = (touchStartY.current - currentY) / 260;
       const delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), 0.30);

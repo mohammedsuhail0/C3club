@@ -71,23 +71,17 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
     // 1. Attempt immediately on mount
     requestMobileFullscreen();
 
-    // 2. Trigger on any user gesture across window
+    // 2. Trigger on user gesture
     const handleGesture = () => {
       requestMobileFullscreen();
     };
 
-    window.addEventListener('touchstart', handleGesture, { capture: true, passive: true });
-    window.addEventListener('touchend', handleGesture, { capture: true, passive: true });
     window.addEventListener('pointerdown', handleGesture, { capture: true, passive: true });
-    window.addEventListener('click', handleGesture, { capture: true, passive: true });
-    window.addEventListener('wheel', handleGesture, { capture: true, passive: true });
+    window.addEventListener('touchstart', handleGesture, { capture: true, passive: true });
 
     return () => {
-      window.removeEventListener('touchstart', handleGesture, { capture: true });
-      window.removeEventListener('touchend', handleGesture, { capture: true });
       window.removeEventListener('pointerdown', handleGesture, { capture: true });
-      window.removeEventListener('click', handleGesture, { capture: true });
-      window.removeEventListener('wheel', handleGesture, { capture: true });
+      window.removeEventListener('touchstart', handleGesture, { capture: true });
       // When leaving mobile view, exit fullscreen automatically
       exitFullscreenIfActive();
     };
@@ -724,6 +718,16 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                       </div>
                     </div>
 
+                    {/* Founder Charter Commitment */}
+                    <div className="p-2.5 rounded-xl bg-[#FAF8F5] dark:bg-[#151412] border border-[#E0DCD3]/70 dark:border-white/10 shrink-0">
+                      <div className="text-[8.5px] font-mono font-bold text-claude-text dark:text-claude-darkText uppercase tracking-wider mb-0.5">
+                        FOUNDER COMMITMENT &amp; ETHOS
+                      </div>
+                      <p className="text-[9.5px] text-claude-muted dark:text-claude-darkMuted leading-tight">
+                        Knowledge counts once it ships. Everyone owns a project or a clear role in someone else's. Nobody sits on the sidelines. Build faster with AI as your working partner.
+                      </p>
+                    </div>
+
                     <div className="p-2 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10 flex items-center justify-between text-[9px] font-mono shrink-0">
                       <span className="text-stone-500">Next Intake</span>
                       <span className="text-[#CC5A36] font-bold">Batch 01 · 30 Builder Seats</span>
@@ -1142,6 +1146,16 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                         Each level is earned by action, such as a first merged pull request, a first shipped project, or mentoring a newcomer.
                       </p>
                     </div>
+
+                    {/* Succession & Governance Protocol (From Charter) */}
+                    <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10 shrink-0">
+                      <div className="text-[8.5px] font-mono font-bold text-[#CC5A36] uppercase tracking-wider mb-0.5">
+                        SUCCESSION &amp; GOVERNANCE PROTOCOL
+                      </div>
+                      <p className="text-[9.5px] text-claude-muted dark:text-claude-darkMuted leading-tight">
+                        Built to outlast founders. Every role is shadowed by an active deputy. Organization ownership, domain access, and handbook repo keys are passed annually under faculty supervision.
+                      </p>
+                    </div>
                   </div>
                 )}
 
@@ -1176,6 +1190,16 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                           <div key={idx} className="leading-tight">{idx + 1}. {item}</div>
                         ))}
                       </div>
+                    </div>
+
+                    {/* Month 1 Launch Milestone (From Charter) */}
+                    <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10 shrink-0">
+                      <div className="text-[8.5px] font-mono font-bold text-[#CC5A36] uppercase tracking-wider mb-0.5">
+                        MONTH 1 CHARTER LAUNCH MILESTONE
+                      </div>
+                      <p className="text-[9.5px] text-claude-muted dark:text-claude-darkMuted leading-tight">
+                        Complete the full 4-week cycle in month one. Every founder commits to a project or joins a team build. 100% deployed code on the internet before end-of-semester reviews.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -1434,48 +1458,60 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                         }}
                         className="w-full h-full rounded-2xl p-3 xs:p-3.5 bg-white dark:bg-[#1E1D1A] border border-[#E0DCD3] dark:border-white/10 shadow-sm flex flex-col justify-between text-left touch-pan-y overflow-hidden my-0"
                       >
-                        <div className="flex-1 min-h-0 flex flex-col justify-start gap-1.5 overflow-y-auto no-scrollbar pr-0.5">
-                          {/* Event Header Strip */}
+                        <div className="flex-1 min-h-0 flex flex-col justify-start gap-2 overflow-y-auto no-scrollbar pr-0.5">
+                          {/* Event Top Badge & Timing Strip */}
                           <div className="flex items-center justify-between shrink-0">
-                            <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-lg bg-[#CC5A36]/10 border border-[#CC5A36]/20 flex items-center justify-center text-[#CC5A36]">
-                                <IconComponent className="w-3.5 h-3.5" />
-                              </div>
-                              <div>
-                                <span className="text-[10px] font-mono font-bold text-[#CC5A36] block leading-none">
-                                  {current.code} · {current.name}
-                                </span>
-                                <span className="text-[9px] font-mono text-claude-muted">
-                                  {current.time}
-                                </span>
-                              </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded-md bg-[#CC5A36] text-white text-[9.5px] font-mono font-bold shadow-2xs">
+                                {current.code}
+                              </span>
+                              <span className="text-[9px] font-mono text-claude-muted flex items-center gap-1">
+                                <Clock className="w-2.5 h-2.5 text-[#CC5A36]" />
+                                {current.time}
+                              </span>
                             </div>
                             <span className="text-[9px] font-mono font-semibold text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">
                               {current.duration}
                             </span>
                           </div>
 
-                          {/* Event Subtitle & Format */}
-                          <div className="shrink-0">
-                            <h2 className="font-serif text-lg xs:text-xl font-bold text-claude-text dark:text-claude-darkText leading-tight">
-                              {current.subtitle}
-                            </h2>
-                            <p className="text-[10px] font-mono text-[#CC5A36] font-medium mt-0.5">
-                              Format: {current.format} · Lab 3
-                            </p>
+                          {/* HERO EVENT NAME & ICON (BIG, PROMINENT & STANDS OUT) */}
+                          <div className="flex items-center gap-3 shrink-0 py-0.5">
+                            <div className="w-12 h-12 rounded-xl bg-[#CC5A36]/10 border-2 border-[#CC5A36]/30 flex items-center justify-center text-[#CC5A36] shrink-0 shadow-2xs">
+                              <IconComponent className="w-6 h-6 text-[#CC5A36]" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h1 className="font-serif text-2xl xs:text-[28px] font-black text-claude-text dark:text-claude-darkText tracking-tight uppercase leading-none">
+                                {current.name}
+                              </h1>
+                              <p className="text-[11px] font-mono text-[#CC5A36] font-bold truncate mt-1">
+                                {current.subtitle}
+                              </p>
+                              <div className="flex items-center gap-1 text-[8.5px] font-mono text-stone-500 dark:text-stone-400 mt-0.5">
+                                <span className="font-medium text-stone-600 dark:text-stone-300">Format:</span>
+                                <span>{current.format}</span>
+                                <span>·</span>
+                                <span>Innovation Lab 3</span>
+                              </div>
+                            </div>
                           </div>
 
                           {/* Tagline / Charter Quote */}
-                          <div className="p-2 rounded-xl bg-[#FAF8F5] dark:bg-[#151412] border border-[#E0DCD3]/60 dark:border-white/10 shrink-0">
+                          <div className="p-2.5 rounded-xl bg-[#FAF8F5] dark:bg-[#151412] border border-[#E0DCD3]/70 dark:border-white/10 shrink-0">
                             <p className="text-[11px] text-claude-text dark:text-claude-darkText italic font-serif leading-snug">
                               "{current.tagline}"
                             </p>
                           </div>
 
                           {/* Structured Mechanics Box */}
-                          <div className="p-2 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200 dark:border-white/10 space-y-1 shrink-0">
-                            <div className="text-[9px] font-mono font-bold text-claude-text dark:text-claude-darkText uppercase">
-                              {current.mechanicsTitle}
+                          <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200 dark:border-white/10 space-y-1.5 shrink-0">
+                            <div className="flex items-center justify-between">
+                              <div className="text-[9px] font-mono font-bold text-claude-text dark:text-claude-darkText uppercase">
+                                {current.mechanicsTitle}
+                              </div>
+                              <span className="text-[8px] font-mono text-[#CC5A36] font-semibold">
+                                {current.format}
+                              </span>
                             </div>
                             <div className="space-y-1">
                               {current.mechanics.map((m, i) => (
@@ -1495,7 +1531,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                           </div>
 
                           {/* Session Flow */}
-                          <div className="px-2 py-1 rounded-lg bg-stone-100 dark:bg-white/5 border border-stone-200 dark:border-white/10 text-[9px] font-mono text-claude-muted leading-tight shrink-0">
+                          <div className="px-2.5 py-1.5 rounded-lg bg-stone-100 dark:bg-white/5 border border-stone-200 dark:border-white/10 text-[9px] font-mono text-claude-muted leading-tight shrink-0">
                             <span className="font-bold text-claude-text mr-1">Flow:</span>
                             {current.flow}
                           </div>
@@ -1506,7 +1542,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                           </div>
 
                           {/* Binding Output Strip */}
-                          <div className="px-2.5 py-1 rounded-lg bg-[#CC5A36]/10 border border-[#CC5A36]/20 text-[9px] font-mono text-[#CC5A36] font-medium text-center shrink-0">
+                          <div className="px-2.5 py-1.5 rounded-lg bg-[#CC5A36]/10 border border-[#CC5A36]/20 text-[9px] font-mono text-[#CC5A36] font-semibold text-center shrink-0">
                             {current.outputBadge}
                           </div>
                         </div>
