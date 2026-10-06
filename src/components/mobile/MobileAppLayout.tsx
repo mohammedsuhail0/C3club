@@ -602,16 +602,16 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
               </div>
 
               {/* Central Content Card based on SubTab */}
-              <div className="flex-1 min-h-0 rounded-2xl bg-white/90 dark:bg-[#1E1D1A]/95 border border-[#E0DCD3] dark:border-white/10 p-2.5 xs:p-3 flex flex-col justify-between shadow-2xs overflow-hidden my-0.5">
+              <div className="flex-1 min-h-0 rounded-2xl bg-white/90 dark:bg-[#1E1D1A]/95 border border-[#E0DCD3] dark:border-white/10 p-2.5 xs:p-3 flex flex-col shadow-2xs overflow-hidden my-0.5">
                 {aboutSubTab === 'ways' && (
-                  <div className="flex-1 min-h-0 flex flex-col justify-between space-y-1.5 text-left">
-                    <div className="space-y-1">
+                  <div className="flex-1 min-h-0 flex flex-col justify-start gap-2 overflow-y-auto no-scrollbar text-left pr-0.5">
+                    <div className="space-y-1 shrink-0">
                       <div className="text-[9px] font-mono font-bold text-[#CC5A36] uppercase tracking-wider">
                         TWO WAYS IN
                       </div>
                       <div className="grid grid-cols-1 gap-1">
                         {aboutWaysIn.map((way, idx) => (
-                          <div key={idx} className="p-1.5 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10">
+                          <div key={idx} className="p-2 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10">
                             <div className="flex items-center justify-between mb-0.5">
                               <h3 className="font-serif text-xs font-bold text-claude-text dark:text-claude-darkText">
                                 {way.title}
@@ -629,7 +629,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                     </div>
 
                     {/* The Project Journey Strip */}
-                    <div className="p-1.5 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10">
+                    <div className="p-2 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10 shrink-0">
                       <div className="flex items-center justify-between text-[8px] font-mono text-stone-500 uppercase mb-0.5">
                         <span>The Project Journey</span>
                         <span className="text-[#CC5A36] font-bold">5 Stages</span>
@@ -650,11 +650,11 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                     </div>
 
                     {/* What We Teach */}
-                    <div className="p-1.5 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10">
+                    <div className="p-2 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10 shrink-0">
                       <div className="text-[8px] font-mono font-bold text-[#CC5A36] uppercase mb-0.5">
                         WHAT WE TEACH
                       </div>
-                      <div className="grid grid-cols-3 gap-1">
+                      <div className="grid grid-cols-3 gap-1.5">
                         {aboutTeaches.map((t, i) => (
                           <div key={i} className="text-left">
                             <div className="text-[9px] font-bold text-claude-text dark:text-claude-darkText leading-tight">
@@ -671,13 +671,13 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                 )}
 
                 {aboutSubTab === 'beliefs' && (
-                  <div className="flex-1 min-h-0 flex flex-col justify-between space-y-1 text-left">
+                  <div className="flex-1 min-h-0 flex flex-col justify-start gap-2 overflow-y-auto no-scrollbar text-left pr-0.5">
                     <div className="text-[9px] font-mono font-bold text-[#CC5A36] uppercase tracking-wider shrink-0">
                       WHAT WE BELIEVE
                     </div>
-                    <div className="grid grid-cols-1 gap-1 flex-1 min-h-0 justify-between">
+                    <div className="grid grid-cols-1 gap-1.5 shrink-0">
                       {aboutBeliefs.map((b, idx) => (
-                        <div key={idx} className="p-1.5 rounded-xl bg-stone-50 dark:bg-white/5 border-l-3 border-l-[#CC5A36] border-stone-200/80 dark:border-white/10 border-t border-r border-b">
+                        <div key={idx} className="p-2 rounded-xl bg-stone-50 dark:bg-white/5 border-l-3 border-l-[#CC5A36] border-stone-200/80 dark:border-white/10 border-t border-r border-b">
                           <h3 className="font-serif text-xs font-bold text-claude-text dark:text-claude-darkText">
                             {b.title}
                           </h3>
@@ -687,19 +687,19 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                         </div>
                       ))}
                     </div>
-                    <div className="px-2 py-1 rounded-lg bg-[#CC5A36]/10 text-[9px] font-mono text-[#CC5A36] text-center font-medium shrink-0">
+                    <div className="px-2.5 py-1.5 rounded-lg bg-[#CC5A36]/10 border border-[#CC5A36]/20 text-[9px] font-mono text-[#CC5A36] text-center font-medium shrink-0">
                       "no members, only founders · ISL Engineering College"
                     </div>
                   </div>
                 )}
 
                 {aboutSubTab === 'give_ask' && (
-                  <div className="flex-1 min-h-0 flex flex-col justify-between space-y-1.5 text-left">
+                  <div className="flex-1 min-h-0 flex flex-col justify-start gap-2.5 overflow-y-auto no-scrollbar text-left pr-0.5">
                     <div className="text-[9px] font-mono font-bold text-[#CC5A36] uppercase tracking-wider shrink-0">
                       WHAT WE GIVE, WHAT WE ASK
                     </div>
-                    <div className="space-y-1.5 flex-1 min-h-0 flex flex-col justify-around">
-                      <div className="p-2 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40">
+                    <div className="space-y-2 shrink-0">
+                      <div className="p-2.5 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40">
                         <div className="flex items-center gap-1.5 mb-0.5">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                           <h3 className="font-serif text-xs font-bold text-emerald-900 dark:text-emerald-300">
@@ -711,7 +711,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                         </p>
                       </div>
 
-                      <div className="p-2 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40">
+                      <div className="p-2.5 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40">
                         <div className="flex items-center gap-1.5 mb-0.5">
                           <Zap className="w-3.5 h-3.5 text-[#CC5A36] shrink-0" />
                           <h3 className="font-serif text-xs font-bold text-amber-900 dark:text-amber-300">
@@ -724,7 +724,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                       </div>
                     </div>
 
-                    <div className="p-1.5 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10 flex items-center justify-between text-[9px] font-mono shrink-0">
+                    <div className="p-2 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10 flex items-center justify-between text-[9px] font-mono shrink-0">
                       <span className="text-stone-500">Next Intake</span>
                       <span className="text-[#CC5A36] font-bold">Batch 01 · 30 Builder Seats</span>
                     </div>
@@ -1044,12 +1044,12 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
               </div>
 
               {/* Central Card with content based on SubTab */}
-              <div className="flex-1 min-h-0 rounded-2xl bg-white/90 dark:bg-[#1E1D1A]/95 border border-[#E0DCD3] dark:border-white/10 p-2.5 xs:p-3 flex flex-col justify-between shadow-2xs overflow-hidden my-0.5">
+              <div className="flex-1 min-h-0 rounded-2xl bg-white/90 dark:bg-[#1E1D1A]/95 border border-[#E0DCD3] dark:border-white/10 p-2.5 xs:p-3 flex flex-col shadow-2xs overflow-hidden my-0.5">
                 {structureSubTab === 'team' && (
-                  <div className="flex-1 min-h-0 flex flex-col justify-between space-y-1 text-left">
+                  <div className="flex-1 min-h-0 flex flex-col justify-start gap-2 overflow-y-auto no-scrollbar text-left pr-0.5">
                     {/* Charter block */}
-                    <div className="p-1.5 rounded-xl bg-stone-50 dark:bg-white/5 border-l-3 border-l-[#CC5A36] border-stone-200/80 dark:border-white/10 border-t border-r border-b shrink-0">
-                      <div className="text-[8.5px] font-mono font-bold text-[#CC5A36] uppercase">
+                    <div className="p-2 rounded-xl bg-stone-50 dark:bg-white/5 border-l-3 border-l-[#CC5A36] border-stone-200/80 dark:border-white/10 border-t border-r border-b shrink-0">
+                      <div className="text-[8.5px] font-mono font-bold text-[#CC5A36] uppercase tracking-wider">
                         CHARTER · ONE PAGE
                       </div>
                       <p className="text-[9.5px] text-claude-muted dark:text-claude-darkMuted leading-tight mt-0.5">
@@ -1058,15 +1058,15 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                     </div>
 
                     {/* Core team · one-year terms */}
-                    <div className="space-y-1 flex-1 min-h-0 flex flex-col justify-between">
-                      <div className="text-[8.5px] font-mono font-bold text-claude-text dark:text-claude-darkText uppercase shrink-0">
+                    <div className="space-y-1 shrink-0">
+                      <div className="text-[8.5px] font-mono font-bold text-claude-text dark:text-claude-darkText uppercase tracking-wider">
                         CORE TEAM · ONE-YEAR TERMS
                       </div>
                       <div className="grid grid-cols-1 gap-1">
                         {structureCoreTeam.map((m, i) => {
                           const IconComponent = m.icon;
                           return (
-                            <div key={i} className="flex items-center gap-2 p-1.2 rounded-lg bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10">
+                            <div key={i} className="flex items-center gap-2 p-1.5 rounded-lg bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10">
                               <div className="w-5 h-5 rounded-md bg-[#CC5A36]/10 flex items-center justify-center text-[#CC5A36] shrink-0">
                                 <IconComponent className="w-3 h-3" />
                               </div>
@@ -1085,11 +1085,11 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                     </div>
 
                     {/* Deputy rule & Cohorts note */}
-                    <div className="space-y-1 shrink-0">
-                      <div className="px-2 py-0.5 rounded-lg bg-[#CC5A36]/10 text-[8.5px] font-mono text-[#CC5A36] leading-tight">
+                    <div className="space-y-1 shrink-0 pt-0.5">
+                      <div className="px-2.5 py-1 rounded-lg bg-[#CC5A36]/10 border border-[#CC5A36]/20 text-[8.5px] font-mono text-[#CC5A36] leading-tight">
                         <b>Deputy Rule:</b> Every role has a deputy who takes over next year. Nobody holds a role without someone shadowing them.
                       </div>
-                      <div className="px-2 py-0.5 rounded-lg bg-stone-100 dark:bg-white/5 text-[8.5px] font-mono text-stone-600 dark:text-stone-300 leading-tight">
+                      <div className="px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-white/5 border border-stone-200/80 dark:border-white/10 text-[8.5px] font-mono text-stone-600 dark:text-stone-300 leading-tight">
                         <b>Cohorts:</b> Each intake is a named generation: Founders Gen 1, Gen 2, etc. Everyone is a founder of their cohort.
                       </div>
                     </div>
@@ -1097,25 +1097,25 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                 )}
 
                 {structureSubTab === 'infra' && (
-                  <div className="flex-1 min-h-0 flex flex-col justify-between space-y-1.5 text-left">
+                  <div className="flex-1 min-h-0 flex flex-col justify-start gap-2.5 overflow-y-auto no-scrollbar text-left pr-0.5">
                     {/* Infrastructure the club owns */}
                     <div className="space-y-1 shrink-0">
-                      <div className="text-[9px] font-mono font-bold text-[#CC5A36] uppercase">
+                      <div className="text-[8.5px] font-mono font-bold text-[#CC5A36] uppercase tracking-wider">
                         INFRASTRUCTURE THE CLUB OWNS
                       </div>
-                      <div className="p-2 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10 space-y-1 font-mono text-[9px]">
+                      <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10 space-y-1.5 font-mono text-[9px]">
                         {structureInfrastructure.map((inf, i) => (
-                          <div key={i} className="flex items-start gap-1.5 leading-tight">
-                            <b className="text-[#CC5A36] font-medium w-16 shrink-0">{inf.name}</b>
-                            <span className="text-claude-muted">{inf.desc}</span>
+                          <div key={i} className="flex items-start gap-2 leading-tight">
+                            <b className="text-[#CC5A36] font-semibold w-24 shrink-0">{inf.name}</b>
+                            <span className="text-claude-muted leading-tight">{inf.desc}</span>
                           </div>
                         ))}
                       </div>
                     </div>
 
                     {/* Alumni & faculty */}
-                    <div className="p-2 rounded-xl bg-stone-50 dark:bg-white/5 border-l-3 border-l-emerald-600 border-stone-200/80 dark:border-white/10 border-t border-r border-b shrink-0">
-                      <div className="text-[8.5px] font-mono font-bold text-emerald-800 dark:text-emerald-400 uppercase">
+                    <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-white/5 border-l-3 border-l-emerald-600 border-stone-200/80 dark:border-white/10 border-t border-r border-b shrink-0">
+                      <div className="text-[8.5px] font-mono font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">
                         ALUMNI AND FACULTY
                       </div>
                       <p className="text-[9.5px] text-claude-muted dark:text-claude-darkMuted leading-tight mt-0.5">
@@ -1124,14 +1124,14 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                     </div>
 
                     {/* Contribution ladder */}
-                    <div className="p-2 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10 shrink-0">
-                      <div className="text-[8.5px] font-mono font-bold text-[#CC5A36] uppercase mb-0.5">
+                    <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10 shrink-0">
+                      <div className="text-[8.5px] font-mono font-bold text-[#CC5A36] uppercase tracking-wider mb-1">
                         CONTRIBUTION LADDER
                       </div>
                       <div className="flex items-center justify-between text-[8.5px] font-mono">
                         {['newcomer', 'builder', 'shipper', 'maintainer', 'mentor'].map((lvl, i) => (
                           <React.Fragment key={lvl}>
-                            <span className="px-1 py-0.5 rounded-md bg-stone-200/70 dark:bg-stone-800 text-claude-text dark:text-claude-darkText font-medium">
+                            <span className="px-1.5 py-0.5 rounded-md bg-stone-200/70 dark:bg-stone-800 text-claude-text dark:text-claude-darkText font-medium">
                               {lvl}
                             </span>
                             {i < 4 && <span className="text-stone-400 text-[8px]">&gt;</span>}
@@ -1146,19 +1146,19 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                 )}
 
                 {structureSubTab === 'timeline' && (
-                  <div className="flex-1 min-h-0 flex flex-col justify-between space-y-1.5 text-left">
+                  <div className="flex-1 min-h-0 flex flex-col justify-start gap-2.5 overflow-y-auto no-scrollbar text-left pr-0.5">
                     {/* First 30 Days */}
-                    <div className="space-y-1 flex-1 min-h-0">
-                      <div className="text-[9px] font-mono font-bold text-[#CC5A36] uppercase">
+                    <div className="space-y-1 shrink-0">
+                      <div className="text-[8.5px] font-mono font-bold text-[#CC5A36] uppercase tracking-wider">
                         FIRST 30 DAYS · EXECUTION CHECKLIST
                       </div>
                       <div className="grid grid-cols-1 gap-1">
                         {structureFirst30Days.map((step, idx) => (
-                          <div key={idx} className="flex items-center gap-2 p-1.2 rounded-lg bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10">
+                          <div key={idx} className="flex items-center gap-2 p-1.5 rounded-lg bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10">
                             <span className="font-mono font-bold text-[8.5px] text-[#CC5A36] w-4 shrink-0">
                               0{idx + 1}
                             </span>
-                            <span className="text-[9.5px] text-claude-text dark:text-claude-darkText font-medium">
+                            <span className="text-[9.5px] text-claude-text dark:text-claude-darkText font-medium leading-tight">
                               {step}
                             </span>
                           </div>
@@ -1167,13 +1167,13 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                     </div>
 
                     {/* Learning Path */}
-                    <div className="p-2 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10 shrink-0">
-                      <div className="text-[8.5px] font-mono font-bold text-claude-text dark:text-claude-darkText uppercase mb-0.5">
+                    <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200/80 dark:border-white/10 shrink-0">
+                      <div className="text-[8.5px] font-mono font-bold text-claude-text dark:text-claude-darkText uppercase tracking-wider mb-1">
                         5-STEP LEARNING PATH
                       </div>
-                      <div className="grid grid-cols-1 gap-0.5 text-[9px] text-claude-muted">
+                      <div className="grid grid-cols-1 gap-1 text-[9px] text-claude-muted">
                         {structureLearningPath.map((item, idx) => (
-                          <div key={idx}>{idx + 1}. {item}</div>
+                          <div key={idx} className="leading-tight">{idx + 1}. {item}</div>
                         ))}
                       </div>
                     </div>
@@ -1233,7 +1233,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                 const current = roadmapStages[activeStageIndex];
                 return (
                   <div className="flex-1 min-h-0 rounded-2xl p-3 xs:p-3.5 bg-white dark:bg-[#1E1D1A] border border-[#E0DCD3] dark:border-white/10 shadow-sm flex flex-col justify-between my-1.5 text-left overflow-hidden">
-                    <div className="flex-1 min-h-0 flex flex-col justify-between space-y-1.5">
+                    <div className="flex-1 min-h-0 flex flex-col justify-start gap-1.5 overflow-y-auto no-scrollbar pr-0.5">
                       {/* Top Header Strip */}
                       <div className="flex items-center justify-between shrink-0">
                         <span className="text-[9px] font-mono font-bold text-[#CC5A36] px-2 py-0.5 rounded-md bg-[#CC5A36]/10 border border-[#CC5A36]/20">
@@ -1434,7 +1434,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
                         }}
                         className="w-full h-full rounded-2xl p-3 xs:p-3.5 bg-white dark:bg-[#1E1D1A] border border-[#E0DCD3] dark:border-white/10 shadow-sm flex flex-col justify-between text-left touch-pan-y overflow-hidden my-0"
                       >
-                        <div className="flex-1 min-h-0 flex flex-col justify-between space-y-1.5">
+                        <div className="flex-1 min-h-0 flex flex-col justify-start gap-1.5 overflow-y-auto no-scrollbar pr-0.5">
                           {/* Event Header Strip */}
                           <div className="flex items-center justify-between shrink-0">
                             <div className="flex items-center gap-2">
