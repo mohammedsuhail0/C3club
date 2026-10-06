@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { requestMobileFullscreen } from '../../utils/fullscreen';
 
 interface ScrollZoomPreloaderProps {
   onComplete?: () => void;
@@ -62,6 +63,10 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
     const handleWheel = (e: WheelEvent) => {
       if (isDoneRef.current) return;
 
+      if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+        requestMobileFullscreen();
+      }
+
       e.preventDefault();
       // Natural sensitivity: ~3-4 wheel clicks or 1 smooth trackpad gesture
       const rawDelta = e.deltaY / 320;
@@ -77,6 +82,7 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
 
     // 2. Touch events: Drag up to zoom in, drag down to zoom out
     const handleTouchStart = (e: TouchEvent) => {
+      requestMobileFullscreen();
       if (e.touches.length > 0) {
         touchStartY.current = e.touches[0].clientY;
       }
@@ -84,6 +90,7 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
 
     const handleTouchMove = (e: TouchEvent) => {
       if (isDoneRef.current || touchStartY.current === null) return;
+      requestMobileFullscreen();
       const currentY = e.touches[0].clientY;
       const rawDelta = (touchStartY.current - currentY) / 260;
       const delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), 0.30);
@@ -240,6 +247,9 @@ export const ScrollZoomPreloader: React.FC<ScrollZoomPreloaderProps> = ({ onComp
       <button
         type="button"
         onClick={() => {
+          if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+            requestMobileFullscreen();
+          }
           targetProgress.current = 1.0;
         }}
         style={{ opacity: hintOpacity }}

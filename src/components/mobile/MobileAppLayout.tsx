@@ -25,14 +25,13 @@ import {
   Code2,
   Terminal,
   ArrowRight,
-  Zap,
-  Maximize2,
-  Minimize2
+  Zap
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import confetti from 'canvas-confetti';
 import { fetchMemberByKey, MemberRecord } from '../../utils/api';
 import { validateFounderKey } from '../../utils/founderAuth';
+import { requestMobileFullscreen, exitFullscreenIfActive } from '../../utils/fullscreen';
 
 interface MobileAppLayoutProps {
   onOpenApply: () => void;
@@ -67,99 +66,32 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
     };
   }, []);
 
-  // Fullscreen management: ONLY active for mobile view
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-
+  // Fullscreen management: 100% automatic strictly for mobile view
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      const active = Boolean(
-        document.fullscreenElement ||
-        (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
-      );
-      setIsFullscreen(active);
+    // 1. Attempt immediately on mount
+    requestMobileFullscreen();
+
+    // 2. Trigger on any user gesture across window
+    const handleGesture = () => {
+      requestMobileFullscreen();
     };
 
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-
-    // Auto-enter fullscreen upon first user gesture strictly in mobile view
-    let triggered = false;
-    const requestFullscreenOnGesture = () => {
-      if (triggered) return;
-      triggered = true;
-      const el = document.documentElement as HTMLElement & {
-        webkitRequestFullscreen?: () => Promise<void>;
-      };
-      const doc = document as Document & {
-        webkitFullscreenElement?: Element;
-      };
-      if (!doc.fullscreenElement && !doc.webkitFullscreenElement) {
-        try {
-          if (el.requestFullscreen) {
-            el.requestFullscreen().catch(() => {});
-          } else if (el.webkitRequestFullscreen) {
-            el.webkitRequestFullscreen();
-          }
-        } catch {}
-      }
-      window.removeEventListener('pointerdown', requestFullscreenOnGesture);
-      window.removeEventListener('touchstart', requestFullscreenOnGesture);
-    };
-
-    window.addEventListener('pointerdown', requestFullscreenOnGesture, { passive: true });
-    window.addEventListener('touchstart', requestFullscreenOnGesture, { passive: true });
+    window.addEventListener('touchstart', handleGesture, { capture: true, passive: true });
+    window.addEventListener('touchend', handleGesture, { capture: true, passive: true });
+    window.addEventListener('pointerdown', handleGesture, { capture: true, passive: true });
+    window.addEventListener('click', handleGesture, { capture: true, passive: true });
+    window.addEventListener('wheel', handleGesture, { capture: true, passive: true });
 
     return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      window.removeEventListener('pointerdown', requestFullscreenOnGesture);
-      window.removeEventListener('touchstart', requestFullscreenOnGesture);
-
+      window.removeEventListener('touchstart', handleGesture, { capture: true });
+      window.removeEventListener('touchend', handleGesture, { capture: true });
+      window.removeEventListener('pointerdown', handleGesture, { capture: true });
+      window.removeEventListener('click', handleGesture, { capture: true });
+      window.removeEventListener('wheel', handleGesture, { capture: true });
       // When leaving mobile view, exit fullscreen automatically
-      const doc = document as Document & {
-        webkitFullscreenElement?: Element;
-        webkitExitFullscreen?: () => Promise<void>;
-      };
-      if (doc.fullscreenElement || doc.webkitFullscreenElement) {
-        try {
-          if (doc.exitFullscreen) {
-            doc.exitFullscreen().catch(() => {});
-          } else if (doc.webkitExitFullscreen) {
-            doc.webkitExitFullscreen();
-          }
-        } catch {}
-      }
+      exitFullscreenIfActive();
     };
   }, []);
-
-  const toggleFullscreen = () => {
-    const el = document.documentElement as HTMLElement & {
-      webkitRequestFullscreen?: () => Promise<void>;
-    };
-    const doc = document as Document & {
-      webkitFullscreenElement?: Element;
-      webkitExitFullscreen?: () => Promise<void>;
-    };
-
-    const isCurrentlyFs = Boolean(doc.fullscreenElement || doc.webkitFullscreenElement);
-    if (!isCurrentlyFs) {
-      try {
-        if (el.requestFullscreen) {
-          el.requestFullscreen().catch(() => {});
-        } else if (el.webkitRequestFullscreen) {
-          el.webkitRequestFullscreen();
-        }
-      } catch {}
-    } else {
-      try {
-        if (doc.exitFullscreen) {
-          doc.exitFullscreen().catch(() => {});
-        } else if (doc.webkitExitFullscreen) {
-          doc.webkitExitFullscreen();
-        }
-      } catch {}
-    }
-  };
 
   // Update tab if activePassKey changes
   useEffect(() => {
@@ -583,21 +515,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 xs:gap-2">
-          {/* Fullscreen Toggle (Mobile View Only) */}
-          <button
-            onClick={toggleFullscreen}
-            aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-            className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/15 text-stone-600 dark:text-stone-300 flex items-center justify-center transition-colors active:scale-95"
-          >
-            {isFullscreen ? (
-              <Minimize2 className="w-3.5 h-3.5 text-[#CC5A36]" />
-            ) : (
-              <Maximize2 className="w-3.5 h-3.5" />
-            )}
-          </button>
-
+        <div className="flex items-center gap-2">
           <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 font-bold tracking-wider">
             BATCH 01
           </span>

@@ -17,6 +17,7 @@ import { ScrollZoomPreloader } from './components/animations/ScrollZoomPreloader
 import { MobileAppLayout } from './components/mobile/MobileAppLayout';
 import { useDeviceMode } from './hooks/useDeviceMode';
 import { fetchMemberByKey, MemberRecord } from './utils/api';
+import { requestMobileFullscreen, exitFullscreenIfActive } from './utils/fullscreen';
 
 export function App() {
   const { mode, setMode, isMobile, isDesktop } = useDeviceMode();
@@ -53,6 +54,36 @@ export function App() {
     document.body.style.overflow = '';
     document.documentElement.style.overflow = '';
   }, []);
+
+  // Auto-request fullscreen strictly when in mobile mode
+  useEffect(() => {
+    if (!isMobile) {
+      exitFullscreenIfActive();
+      return;
+    }
+
+    // 1. Attempt immediately on mobile mount
+    requestMobileFullscreen();
+
+    // 2. Automatically trigger on any user interaction anywhere on the window
+    const handleGesture = () => {
+      requestMobileFullscreen();
+    };
+
+    window.addEventListener('touchstart', handleGesture, { capture: true, passive: true });
+    window.addEventListener('touchend', handleGesture, { capture: true, passive: true });
+    window.addEventListener('pointerdown', handleGesture, { capture: true, passive: true });
+    window.addEventListener('click', handleGesture, { capture: true, passive: true });
+    window.addEventListener('wheel', handleGesture, { capture: true, passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', handleGesture, { capture: true });
+      window.removeEventListener('touchend', handleGesture, { capture: true });
+      window.removeEventListener('pointerdown', handleGesture, { capture: true });
+      window.removeEventListener('click', handleGesture, { capture: true });
+      window.removeEventListener('wheel', handleGesture, { capture: true });
+    };
+  }, [isMobile]);
 
   // Acceptance Letter & Pass state
   const [isLetterOpen, setIsLetterOpen] = useState<boolean>(false);
