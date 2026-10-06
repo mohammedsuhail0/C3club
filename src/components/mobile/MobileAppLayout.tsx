@@ -25,7 +25,9 @@ import {
   Code2,
   Terminal,
   ArrowRight,
-  Zap
+  Zap,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import confetti from 'canvas-confetti';
@@ -64,6 +66,100 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
       document.documentElement.style.overflow = '';
     };
   }, []);
+
+  // Fullscreen management: ONLY active for mobile view
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const active = Boolean(
+        document.fullscreenElement ||
+        (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
+      );
+      setIsFullscreen(active);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+    // Auto-enter fullscreen upon first user gesture strictly in mobile view
+    let triggered = false;
+    const requestFullscreenOnGesture = () => {
+      if (triggered) return;
+      triggered = true;
+      const el = document.documentElement as HTMLElement & {
+        webkitRequestFullscreen?: () => Promise<void>;
+      };
+      const doc = document as Document & {
+        webkitFullscreenElement?: Element;
+      };
+      if (!doc.fullscreenElement && !doc.webkitFullscreenElement) {
+        try {
+          if (el.requestFullscreen) {
+            el.requestFullscreen().catch(() => {});
+          } else if (el.webkitRequestFullscreen) {
+            el.webkitRequestFullscreen();
+          }
+        } catch {}
+      }
+      window.removeEventListener('pointerdown', requestFullscreenOnGesture);
+      window.removeEventListener('touchstart', requestFullscreenOnGesture);
+    };
+
+    window.addEventListener('pointerdown', requestFullscreenOnGesture, { passive: true });
+    window.addEventListener('touchstart', requestFullscreenOnGesture, { passive: true });
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      window.removeEventListener('pointerdown', requestFullscreenOnGesture);
+      window.removeEventListener('touchstart', requestFullscreenOnGesture);
+
+      // When leaving mobile view, exit fullscreen automatically
+      const doc = document as Document & {
+        webkitFullscreenElement?: Element;
+        webkitExitFullscreen?: () => Promise<void>;
+      };
+      if (doc.fullscreenElement || doc.webkitFullscreenElement) {
+        try {
+          if (doc.exitFullscreen) {
+            doc.exitFullscreen().catch(() => {});
+          } else if (doc.webkitExitFullscreen) {
+            doc.webkitExitFullscreen();
+          }
+        } catch {}
+      }
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    const el = document.documentElement as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void>;
+    };
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element;
+      webkitExitFullscreen?: () => Promise<void>;
+    };
+
+    const isCurrentlyFs = Boolean(doc.fullscreenElement || doc.webkitFullscreenElement);
+    if (!isCurrentlyFs) {
+      try {
+        if (el.requestFullscreen) {
+          el.requestFullscreen().catch(() => {});
+        } else if (el.webkitRequestFullscreen) {
+          el.webkitRequestFullscreen();
+        }
+      } catch {}
+    } else {
+      try {
+        if (doc.exitFullscreen) {
+          doc.exitFullscreen().catch(() => {});
+        } else if (doc.webkitExitFullscreen) {
+          doc.webkitExitFullscreen();
+        }
+      } catch {}
+    }
+  };
 
   // Update tab if activePassKey changes
   useEffect(() => {
@@ -467,7 +563,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 h-[100dvh] max-h-[100dvh] w-full overflow-hidden flex flex-col justify-between bg-[#FAF8F5] dark:bg-[#141210] text-claude-text dark:text-claude-darkText select-none">
+    <div className="fixed inset-0 h-[100dvh] max-h-[100dvh] w-full overflow-hidden flex flex-col justify-between bg-[#FAF8F5] dark:bg-[#141210] text-claude-text dark:text-claude-darkText select-none pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
       
       {/* 1. TOP HEADER (C3 · CLAUDE CODE & COWORK) */}
       <header className="h-12 shrink-0 border-b border-[#E0DCD3] dark:border-claude-darkBorder bg-[#FAF8F5]/95 dark:bg-[#141210]/95 backdrop-blur-md px-3 flex items-center justify-between z-30">
@@ -487,7 +583,21 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 xs:gap-2">
+          {/* Fullscreen Toggle (Mobile View Only) */}
+          <button
+            onClick={toggleFullscreen}
+            aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/15 text-stone-600 dark:text-stone-300 flex items-center justify-center transition-colors active:scale-95"
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-3.5 h-3.5 text-[#CC5A36]" />
+            ) : (
+              <Maximize2 className="w-3.5 h-3.5" />
+            )}
+          </button>
+
           <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 font-bold tracking-wider">
             BATCH 01
           </span>
